@@ -33,8 +33,7 @@ import co.electriccoin.zcash.ui.design.component.ZashiButton
 import co.electriccoin.zcash.ui.design.component.ZashiButtonDefaults
 import co.electriccoin.zcash.ui.design.component.ZashiFrostedSheetHeader
 import co.electriccoin.zcash.ui.design.component.ZashiScreenModalBottomSheet
-import co.electriccoin.zcash.ui.design.component.listitem.BaseListItem
-import co.electriccoin.zcash.ui.design.component.listitem.ZashiListItemDefaults
+import co.electriccoin.zcash.ui.design.component.listitem.ZashiSheetListItem
 import co.electriccoin.zcash.ui.design.component.rememberScreenModalBottomSheetState
 import co.electriccoin.zcash.ui.design.component.rememberZashiFrostState
 import co.electriccoin.zcash.ui.design.component.zashiFrostSource
@@ -91,9 +90,18 @@ private fun BottomSheetContent(
                 if (index != 0) {
                     Spacer(Modifier.height(8.dp))
                 }
-                ZashiAccountListItem(
+                ZashiSheetListItem(
                     modifier = Modifier.padding(horizontal = 24.dp),
-                    state = item,
+                    icon = imageRes(item.icon),
+                    title = item.title,
+                    subtitle = item.subtitle,
+                    badge =
+                        if (item.isSelected) {
+                            imageRes(co.electriccoin.zcash.ui.R.drawable.ic_account_selected_badge)
+                        } else {
+                            null
+                        },
+                    onClick = item.onClick,
                 )
             }
             if (state.isLoading) {
@@ -133,64 +141,6 @@ private fun BottomSheetContent(
             }
         )
     }
-}
-
-/**
- * One account of the sheet as Figma draws it: a 40 dp logo 12 dp from a Text SM Medium name, the
- * abbreviated address in Text XS right under it. The logo and text sit together in the content
- * slot because [BaseListItem]'s leading slot is spaced for a 48 dp item.
- */
-@Composable
-private fun ZashiAccountListItem(
-    state: ZashiAccountListItemState,
-    modifier: Modifier = Modifier,
-) {
-    BaseListItem(
-        modifier = modifier,
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        leading = null,
-        content = {
-            Row(
-                modifier = it,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                ZashiListItemDefaults.LeadingItem(
-                    modifier = Modifier.size(40.dp),
-                    icon = imageRes(state.icon),
-                    badge =
-                        if (state.isSelected) {
-                            imageRes(co.electriccoin.zcash.ui.R.drawable.ic_account_selected_badge)
-                        } else {
-                            null
-                        },
-                    contentDescription = state.title.getValue()
-                )
-                Spacer(Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = state.title.getValue(),
-                        style = ZashiTypography.textSm,
-                        fontWeight = FontWeight.Medium,
-                        color = ZashiColors.Text.textPrimary,
-                    )
-                    Text(
-                        text = state.subtitle.getValue(),
-                        style = ZashiTypography.textXs,
-                        color = ZashiColors.Text.textTertiary,
-                    )
-                }
-            }
-        },
-        trailing = {
-            ZashiListItemDefaults.TrailingItem(
-                modifier = it,
-                contentDescription = state.title.getValue()
-            )
-        },
-        color = ZashiColors.Surfaces.bgPrimary,
-        border = BorderStroke(1.dp, ZashiColors.Surfaces.strokeSecondary),
-        onClick = state.onClick
-    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

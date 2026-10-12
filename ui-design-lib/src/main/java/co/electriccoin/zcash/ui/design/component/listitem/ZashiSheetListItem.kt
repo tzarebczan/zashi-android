@@ -1,0 +1,79 @@
+package co.electriccoin.zcash.ui.design.component.listitem
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import co.electriccoin.zcash.ui.design.theme.colors.ZashiColors
+import co.electriccoin.zcash.ui.design.theme.typography.ZashiTypography
+import co.electriccoin.zcash.ui.design.util.ImageResource
+import co.electriccoin.zcash.ui.design.util.StringResource
+import co.electriccoin.zcash.ui.design.util.StyledStringResource
+import co.electriccoin.zcash.ui.design.util.getValue
+
+/**
+ * One bordered row of a bottom sheet as Figma draws it: a 40 dp logo 12 dp from a Text SM Medium
+ * title, the subtitle in Text XS right under it, and the trailing chevron. The logo and text sit
+ * together in the content slot because [BaseListItem]'s leading slot is spaced for a 48 dp item.
+ * The account list and the "Add Account" sheet both build their rows with it.
+ */
+@Composable
+fun ZashiSheetListItem(
+    icon: ImageResource,
+    title: StringResource,
+    subtitle: StyledStringResource,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    badge: ImageResource? = null,
+) {
+    BaseListItem(
+        modifier = modifier,
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        leading = null,
+        content = {
+            Row(
+                modifier = it,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ZashiListItemDefaults.LeadingItem(
+                    modifier = Modifier.size(40.dp),
+                    icon = icon,
+                    badge = badge,
+                    contentDescription = title.getValue()
+                )
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = title.getValue(),
+                        style = ZashiTypography.textSm,
+                        fontWeight = FontWeight.Medium,
+                        color = ZashiColors.Text.textPrimary,
+                    )
+                    Text(
+                        text = subtitle.getValue(),
+                        style = ZashiTypography.textXs,
+                        color = ZashiColors.Text.textTertiary,
+                    )
+                }
+            }
+        },
+        trailing = {
+            ZashiListItemDefaults.TrailingItem(
+                modifier = it,
+                contentDescription = title.getValue()
+            )
+        },
+        color = ZashiColors.Surfaces.bgPrimary,
+        border = BorderStroke(1.dp, ZashiColors.Surfaces.strokeSecondary),
+        onClick = onClick
+    )
+}

@@ -35,14 +35,14 @@ data class ViewOnlyAddAccountState(
             options =
                 listOfNotNull(
                     ViewOnlyAddAccountOptionState(
-                        icon = ImageResource.ByDrawable(R.drawable.view_only_ic_hardware_wallet),
+                        icon = ImageResource.ByDrawable(R.drawable.view_only_ic_option_hardware_wallet),
                         title = stringRes(R.string.view_only_add_account_hardware_title),
                         subtitle = stringRes(R.string.view_only_add_account_hardware_subtitle),
                         testTag = ViewOnlyAddAccountTag.CONNECT_HARDWARE_WALLET,
                         onClick = onConnectHardwareWalletClick,
                     ).takeIf { canConnectHardwareWallet },
                     ViewOnlyAddAccountOptionState(
-                        icon = ImageResource.ByDrawable(R.drawable.view_only_ic_eye),
+                        icon = ImageResource.ByDrawable(R.drawable.view_only_ic_option_import),
                         title = stringRes(R.string.view_only_add_account_import_title),
                         subtitle = stringRes(R.string.view_only_add_account_import_subtitle),
                         testTag = ViewOnlyAddAccountTag.IMPORT_VIEWING_KEY,
