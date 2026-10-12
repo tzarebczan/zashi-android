@@ -28,7 +28,8 @@ internal data class SwapState(
     val errorFooter: SwapErrorFooterState?,
     val primaryButton: ButtonState?,
     val onBack: () -> Unit,
-    val changeModeButton: IconButtonState,
+    /** Null when the selected account cannot swap from ZEC or has not loaded yet; the divider then runs unbroken. */
+    val changeModeButton: IconButtonState?,
 ) {
     enum class AddressLocation {
         TOP,

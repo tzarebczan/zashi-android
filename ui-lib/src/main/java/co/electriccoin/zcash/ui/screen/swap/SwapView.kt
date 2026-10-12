@@ -244,26 +244,44 @@ private fun SlippageSeparator(
     state: SwapState,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = CenterVertically
-    ) {
-        ZashiHorizontalDivider(
-            modifier = Modifier.weight(1f),
-            color = ZashiColors.Utility.Gray.utilityGray100
-        )
+    if (state.changeModeButton == null) {
+        Box(
+            modifier = modifier.heightIn(min = ChangeModeButtonMinSize),
+            contentAlignment = Alignment.Center
+        ) {
+            ZashiHorizontalDivider(
+                modifier = Modifier.fillMaxWidth(),
+                color = ZashiColors.Utility.Gray.utilityGray100
+            )
+        }
+    } else {
+        Row(
+            modifier = modifier,
+            verticalAlignment = CenterVertically
+        ) {
+            ZashiHorizontalDivider(
+                modifier = Modifier.weight(1f),
+                color = ZashiColors.Utility.Gray.utilityGray100
+            )
 
-        ZashiImageButton(
-            state = state.changeModeButton,
-            modifier = Modifier.testTag(SwapTag.SWAP_CHANGE_MODE_BUTTON)
-        )
+            ZashiImageButton(
+                state = state.changeModeButton,
+                modifier = Modifier.testTag(SwapTag.SWAP_CHANGE_MODE_BUTTON)
+            )
 
-        ZashiHorizontalDivider(
-            modifier = Modifier.weight(1f),
-            color = ZashiColors.Utility.Gray.utilityGray100
-        )
+            ZashiHorizontalDivider(
+                modifier = Modifier.weight(1f),
+                color = ZashiColors.Utility.Gray.utilityGray100
+            )
+        }
     }
 }
+
+/**
+ * Minimum touch size of [ZashiImageButton]; the unbroken divider keeps this height so the content below
+ * does not shift when the change-mode button is hidden.
+ */
+private val ChangeModeButtonMinSize = 48.dp
 
 @Composable
 private fun TopAppBar(
@@ -514,6 +532,87 @@ private fun Preview() {
                         ),
                     onBack = {},
                     changeModeButton = IconButtonState(R.drawable.ic_swap_change_mode) {}
+                ),
+            appBarState = ZashiMainTopAppBarStateFixture.new(),
+        )
+    }
+}
+
+@PreviewScreens
+@Composable
+private fun ViewOnlyAccountPreview() {
+    ZcashTheme {
+        SwapView(
+            state =
+                SwapState(
+                    swapInfoButton = IconButtonState(R.drawable.ic_help) {},
+                    amountTextField =
+                        SwapAmountTextFieldState(
+                            title = stringRes("From"),
+                            error = null,
+                            token =
+                                AssetCardState.Data(
+                                    token = stringRes("USDT"),
+                                    bigIcon = null,
+                                    smallIcon = null,
+                                    isEnabled = true,
+                                    onClick = {}
+                                ),
+                            textFieldPrefix = null,
+                            textField = NumberTextFieldState {},
+                            secondaryText = stringResByDynamicCurrencyNumber(100, "$"),
+                            max = null,
+                            onSwapChange = {}
+                        ),
+                    slippage =
+                        ButtonState(
+                            stringRes("1%"),
+                            trailingIcon = R.drawable.ic_swap_slippage
+                        ),
+                    amountText =
+                        SwapAmountTextState(
+                            token =
+                                AssetCardState.Data(
+                                    token = stringRes("ZEC"),
+                                    bigIcon = null,
+                                    smallIcon = null,
+                                    isEnabled = false,
+                                    onClick = {}
+                                ),
+                            title = stringRes("To"),
+                            text = stringResByDynamicCurrencyNumber(2.47123, "ZEC"),
+                            secondaryText = stringResByDynamicCurrencyNumber(101, "$"),
+                            subtitle = null
+                        ),
+                    infoItems =
+                        listOf(
+                            SimpleListItemState(
+                                title = stringRes("Rate"),
+                                text = stringRes("1 ZEC = 51.74 USDC")
+                            )
+                        ),
+                    addressBookButton =
+                        IconButtonState(
+                            icon = R.drawable.send_address_book,
+                            onClick = {}
+                        ),
+                    addressLocation = TOP,
+                    onAddressClick = {},
+                    address = TextFieldState(stringRes("")) {},
+                    addressPlaceholder = stringRes(co.electriccoin.zcash.ui.design.R.string.general_enter_address),
+                    qrScannerButton =
+                        IconButtonState(
+                            icon = R.drawable.qr_code_icon,
+                            onClick = {}
+                        ),
+                    errorFooter = null,
+                    primaryButton =
+                        ButtonState(
+                            stringRes("Get a quote")
+                        ),
+                    infoFooter = null,
+                    onBack = {},
+                    changeModeButton = null
                 ),
             appBarState = ZashiMainTopAppBarStateFixture.new(),
         )

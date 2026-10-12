@@ -88,6 +88,12 @@ internal class SwapVM(
 
     private val isCancelStateVisible = MutableStateFlow(false)
 
+    /**
+     * Latest selected account, tracked so the direction toggle and the quote request can refuse the
+     * swap-from-ZEC direction for an account without spend authority.
+     */
+    private val selectedAccount = MutableStateFlow<WalletAccount?>(null)
+
     val cancelState =
         isCancelStateVisible
             .map { isVisible ->
@@ -123,7 +129,13 @@ internal class SwapVM(
             getCuratedSwapAssetsUseCase.observe(),
             getSelectedWalletAccount.observe(),
         ) { state, swapAssets, account ->
-            createState(state.copy(swapAssets = swapAssets, account = account))
+            createState(
+                state.copy(
+                    swapAssets = swapAssets,
+                    account = account,
+                    swapDirection = state.swapDirection.coerceFor(account)
+                )
+            )
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(ANDROID_STATE_FLOW_TIMEOUT),
@@ -131,6 +143,12 @@ internal class SwapVM(
         )
 
     init {
+        viewModelScope.launch {
+            getSelectedWalletAccount.observe().collect { account ->
+                selectedAccount.update { account }
+                internalState.update { it.copy(swapDirection = it.swapDirection.coerceFor(account)) }
+            }
+        }
         viewModelScope.launch {
             val asset = getPreselectedSwapAsset()
             val currentAssets = swapRepository.assets.value
@@ -184,6 +202,7 @@ internal class SwapVM(
     }
 
     private fun onChangeButtonClick() {
+        if (selectedAccount.value?.isSpendable != true) return
         internalState.update {
             it.copy(
                 swapDirection =
@@ -331,7 +350,7 @@ internal class SwapVM(
         viewModelScope.launch {
             val asset = internalState.value.swapAsset ?: return@launch
             val slippage = internalState.value.slippage
-            val direction = internalState.value.swapDirection
+            val direction = internalState.value.swapDirection.coerceFor(selectedAccount.value)
             if (!navigateToSwapRefundWarning(fiatAmount = fiatAmount, mode = direction.toSwapMode())) {
                 return@launch
             }
@@ -379,6 +398,13 @@ internal class SwapVM(
             }
         }
 }
+
+/**
+ * A view-only account holds no spend authority, so it may only swap into ZEC; any other direction is
+ * reset to [SWAP_INTO_ZEC]. An account that has not loaded yet keeps the current direction.
+ */
+private fun SwapDirection.coerceFor(account: WalletAccount?): SwapDirection =
+    if (account?.isSpendable == false) SWAP_INTO_ZEC else this
 
 internal enum class CurrencyType { TOKEN, FIAT }
 
