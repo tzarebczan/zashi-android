@@ -50,6 +50,46 @@ class ValidateUfvkUseCaseTest {
         }
 
     @Test
+    fun aMixedCaseKeyIsRejected() =
+        runTest {
+            val mixed = UfvkFixtures.MAINNET_FULL.take(10).uppercase() + UfvkFixtures.MAINNET_FULL.drop(10)
+
+            assertInvalid(useCase(mixed, ZcashNetwork.Mainnet))
+            assertInvalid(useCase("U" + UfvkFixtures.MAINNET_FULL.drop(1), ZcashNetwork.Mainnet))
+            assertTrue(derivedKeys.isEmpty())
+        }
+
+    @Test
+    fun whitespaceAndZeroWidthCharactersInsideTheKeyAreDropped() =
+        runTest {
+            val broken =
+                UfvkFixtures.MAINNET_FULL
+                    .chunked(40)
+                    .mapIndexed { index, chunk ->
+                        chunk + listOf("\n", " ", "\r\n", "​", "﻿", "\t", " ", "⁠")[index % 8]
+                    }.joinToString("")
+
+            val result = useCase("﻿" + broken, ZcashNetwork.Mainnet)
+
+            assertEquals(UfvkFixtures.MAINNET_FULL, assertIs<UfvkValidation.Valid>(result).ufvk)
+            assertEquals(listOf(UfvkFixtures.MAINNET_FULL), derivedKeys)
+        }
+
+    @Test
+    fun anUpperCaseKeyWithLineBreaksIsStoredInCanonicalLowerCase() =
+        runTest {
+            val wrapped =
+                UfvkFixtures.MAINNET_FULL
+                    .uppercase()
+                    .chunked(60)
+                    .joinToString("\n")
+
+            val result = useCase(wrapped, ZcashNetwork.Mainnet)
+
+            assertEquals(UfvkFixtures.MAINNET_FULL, assertIs<UfvkValidation.Valid>(result).ufvk)
+        }
+
+    @Test
     fun aKeyForTheOtherNetworkIsRejected() =
         runTest {
             val testnet = UfvkFixtures.encode("uviewtest", UfvkFixtures.itemsOf(UfvkFixtures.MAINNET_FULL))

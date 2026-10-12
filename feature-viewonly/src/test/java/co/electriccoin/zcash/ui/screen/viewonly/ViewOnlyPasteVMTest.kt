@@ -47,7 +47,8 @@ class ViewOnlyPasteVMTest {
 
     private var result = SubmitViewOnlyKeyResult.Accepted
 
-    private val submit = mockk<SubmitViewOnlyKeyUseCase> { coEvery { this@mockk.invoke(any()) } answers { result } }
+    private val submit =
+        mockk<SubmitViewOnlyKeyUseCase> { coEvery { this@mockk.invoke(any(), any()) } answers { result } }
 
     @BeforeTest
     fun setUp() {
@@ -87,7 +88,7 @@ class ViewOnlyPasteVMTest {
                 .onClick()
             runCurrent()
 
-            coVerify(exactly = 1) { submit.invoke(TYPED) }
+            coVerify(exactly = 1) { submit.invoke(TYPED, any()) }
             verify(exactly = 1) { navigationRouter.forward(ViewOnlyNameArgs) }
             assertNull(vm.invalidKeySheet.value)
         }
@@ -151,7 +152,7 @@ class ViewOnlyPasteVMTest {
     fun aDoubleTapSubmitsOnce() =
         runTest {
             val gate = CompletableDeferred<SubmitViewOnlyKeyResult>()
-            coEvery { submit.invoke(any()) } coAnswers { gate.await() }
+            coEvery { submit.invoke(any(), any()) } coAnswers { gate.await() }
             val vm = vm()
             collect(vm)
             type(vm, TYPED)
@@ -165,14 +166,14 @@ class ViewOnlyPasteVMTest {
             gate.complete(SubmitViewOnlyKeyResult.Accepted)
             runCurrent()
 
-            coVerify(exactly = 1) { submit.invoke(any()) }
+            coVerify(exactly = 1) { submit.invoke(any(), any()) }
         }
 
     @Test
     fun backDuringTheCheckCancelsItSoNothingNavigatesLater() =
         runTest {
             val gate = CompletableDeferred<SubmitViewOnlyKeyResult>()
-            coEvery { submit.invoke(any()) } coAnswers { gate.await() }
+            coEvery { submit.invoke(any(), any()) } coAnswers { gate.await() }
             repository.set(PendingViewOnlyImport(ufvk = "uview1pending", name = ""))
             val vm = vm()
             collect(vm)
@@ -246,6 +247,17 @@ class ViewOnlyPasteVMTest {
         }
 
     @Test
+    fun clearingTheFlowsRootForgetsThePendingKey() =
+        runTest {
+            val vm = vm()
+            repository.set(PendingViewOnlyImport(ufvk = TYPED, name = "Savings"))
+
+            vm.triggerOnCleared()
+
+            assertNull(repository.get())
+        }
+
+    @Test
     fun theQrButtonOpensTheScanner() =
         runTest {
             val vm = vm()
@@ -273,6 +285,17 @@ class ViewOnlyPasteVMTest {
             pendingImportRepository = repository,
             navigationRouter = navigationRouter,
         )
+
+    /**
+     * `onCleared` is protected on `ViewModel`, and the test needs the real disposal path rather
+     * than a stand-in for it.
+     */
+    private fun ViewOnlyPasteVM.triggerOnCleared() {
+        ViewOnlyPasteVM::class.java
+            .getDeclaredMethod("onCleared")
+            .apply { isAccessible = true }
+            .invoke(this)
+    }
 
     private fun TestScope.collect(vm: ViewOnlyPasteVM) {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.state.collect { } }

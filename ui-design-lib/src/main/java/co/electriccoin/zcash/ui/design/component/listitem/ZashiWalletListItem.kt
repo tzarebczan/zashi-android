@@ -26,6 +26,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -56,6 +59,11 @@ import co.electriccoin.zcash.ui.design.util.stringRes
  * Tapping the row calls [WalletListItemState.onClick]; the trailing action is its own tap target
  * and never triggers the row. It keeps the 48 dp touch target of [ZashiIconButton] while taking the
  * 40 dp of Figma's ghost icon button in the layout, so the row stays 60 dp tall.
+ *
+ * For accessibility services the row reports whether it is the selected wallet, since the fill and
+ * the check badge only show it visually. A trailing action without a content description is
+ * decorative and left out of the accessibility tree, as a chevron that repeats the row's own action
+ * is; one with a description stays a focusable button of its own.
  */
 @Composable
 fun ZashiWalletListItem(
@@ -82,7 +90,7 @@ fun ZashiWalletListItem(
         leading = null,
         content = {
             Row(
-                modifier = it,
+                modifier = it.semantics { selected = state.isSelected },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 WalletAvatar(
@@ -160,17 +168,24 @@ private fun WalletAvatar(
 
 /**
  * Reports [TRAILING_ACTION_SIZE] to the row and centres the 48 dp [ZashiIconButton] on it; the
- * overflow falls inside the row's padding, so the whole button stays tappable.
+ * overflow falls inside the row's padding, so the whole button stays tappable. Without a content
+ * description it is hidden from accessibility services but still reacts to touch.
  */
 @Composable
 private fun TrailingAction(
     state: IconButtonState,
     modifier: Modifier = Modifier,
 ) {
+    val semanticsModifier =
+        if (state.contentDescription == null) {
+            modifier.clearAndSetSemantics { }
+        } else {
+            modifier
+        }
     ZashiIconButton(
         state = state,
         modifier =
-            modifier.layout { measurable, constraints ->
+            semanticsModifier.layout { measurable, constraints ->
                 val placeable = measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
                 val size = TRAILING_ACTION_SIZE.roundToPx()
                 layout(size, size) {

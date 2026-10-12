@@ -71,7 +71,7 @@
     <string name="view_only_remove_account">Eliminar cuenta</string>
 
     <string name="view_only_remove_title">¿Eliminar esta cuenta?</string>
-    <string name="view_only_remove_message">Al eliminar esta cuenta se borran sus datos de Zodl en este dispositivo, pero se conservan tus contactos de la libreta de direcciones y los demás metadatos de la cuenta. Eliminar la cuenta no elimina su historial en la cadena. Puedes recuperarla cuando quieras volviendo a agregar la cuenta o restaurando tu billetera.</string>
+    <string name="view_only_remove_message">Al eliminar esta cuenta se borran sus datos de Zodl en este dispositivo, pero se conservan tus contactos de la libreta de direcciones y los demás metadatos de la cuenta. Eliminar la cuenta no elimina su historial en la cadena. Puedes recuperarla cuando quieras volviendo a agregar la cuenta.</string>
     <string name="view_only_remove_cancel">Cancelar</string>
     <string name="view_only_remove_biometric_message">Confirma para eliminar esta cuenta</string>
 </resources>

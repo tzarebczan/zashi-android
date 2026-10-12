@@ -373,7 +373,9 @@ data class LedgerAccount(
  * activity but holds no spend authority, so [isSpendable] is false and every spend path refuses it.
  *
  * It is deliberately not a [HWWalletAccount], so it never counts as a connected hardware vendor.
- * Like the hardware accounts it has no Sapling address or balance, and its SDK-side
+ * Like the hardware accounts it has no Sapling address of its own, so it receives on Orchard only,
+ * but a key exported from a full Zodl account carries a Sapling component that the SDK scans, so
+ * [saplingBalance] counts toward every total just as it does for [ZashiAccount]. Its SDK-side
  * [Account.hdAccountIndex] is null, so [hdAccountIndex] is null too.
  *
  * @param name The name the user gave the account at import.
@@ -384,6 +386,7 @@ data class ViewOnlyAccount(
     override val unifiedAddress: String,
     override val transparentAddress: String,
     override val orchardBalance: WalletBalance?,
+    override val saplingBalance: WalletBalance?,
     override val ironwoodBalance: WalletBalance?,
     override val transparentBalance: Zatoshi?,
     override val isSelected: Boolean,
@@ -394,28 +397,38 @@ data class ViewOnlyAccount(
 
     override val saplingAddress: String? = null
 
-    override val saplingBalance: WalletBalance? = null
-
     override val totalBalance: Zatoshi?
         get() {
             val unifiedTotal = unifiedBalance?.total ?: return null
+            val saplingTotal = saplingBalance?.total ?: return null
             val transparent = transparentBalance ?: return null
-            return unifiedTotal + transparent
+            return unifiedTotal + saplingTotal + transparent
         }
 
     override val totalShieldedBalance: Zatoshi?
-        get() = unifiedBalance?.total
+        get() {
+            val unifiedTotal = unifiedBalance?.total ?: return null
+            val saplingTotal = saplingBalance?.total ?: return null
+            return unifiedTotal + saplingTotal
+        }
 
     override val totalTransparentBalance: Zatoshi?
         get() = transparentBalance
 
     override val spendableShieldedBalance: Zatoshi?
-        get() = unifiedBalance?.available
+        get() {
+            val unifiedAvailable = unifiedBalance?.available ?: return null
+            val saplingAvailable = saplingBalance?.available ?: return null
+            return unifiedAvailable + saplingAvailable
+        }
 
     override val pendingShieldedBalance: Zatoshi?
         get() {
             val unified = unifiedBalance ?: return null
-            return unified.changePending + unified.valuePending
+            val sapling = saplingBalance ?: return null
+            val changePendingShieldedBalance = unified.changePending + sapling.changePending
+            val valuePendingShieldedBalance = unified.valuePending + sapling.valuePending
+            return changePendingShieldedBalance + valuePendingShieldedBalance
         }
 
     override fun compareTo(other: WalletAccount) =

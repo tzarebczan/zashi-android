@@ -69,8 +69,14 @@ class ViewOnlyPasteVM(
                     ).takeIf { isVisible }
             }.stateIn(viewModel = this, initialValue = null)
 
+    /**
+     * The paste screen is the root of the import flow: every later screen (scan, name, birthday,
+     * keep-open, success) is opened on top of it, so this view model is cleared only once the whole
+     * flow has left the back stack. The pending key goes with it, whichever way the flow ended.
+     */
     override fun onCleared() {
         cancelSubmit()
+        pendingImportRepository.clear()
         super.onCleared()
     }
 

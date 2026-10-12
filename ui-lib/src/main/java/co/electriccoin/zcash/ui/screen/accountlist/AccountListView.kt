@@ -27,6 +27,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import co.electriccoin.zcash.ui.design.component.BlankBgScaffold
@@ -146,7 +148,10 @@ private fun AccountListTopAppBar(
 private fun Section(state: AccountListSectionState) {
     Column {
         Row(
-            modifier = Modifier.padding(horizontal = 24.dp),
+            modifier =
+                Modifier
+                    .padding(horizontal = 24.dp)
+                    .semantics(mergeDescendants = true) { heading() },
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(

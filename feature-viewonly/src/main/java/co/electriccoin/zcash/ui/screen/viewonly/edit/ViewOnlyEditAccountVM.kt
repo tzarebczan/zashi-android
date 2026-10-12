@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountNameLimit
 import co.electriccoin.zcash.ui.common.model.stateIn
 import co.electriccoin.zcash.ui.common.usecase.GetViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.RenameViewOnlyAccountUseCase
@@ -24,7 +25,7 @@ import kotlinx.coroutines.launch
 /**
  * Renames the view-only account [ViewOnlyEditAccountArgs.accountKeyId] names, or opens the sheet that
  * removes it. The field starts with the account's current name and is capped at
- * [ViewOnlyNameState.MAX_NAME_LENGTH] characters as it is typed; Save stores a new, non-blank name
+ * [ViewOnlyNameState.MAX_NAME_LENGTH] code points as it is typed; Save stores a new, non-blank name
  * and returns to the account list, which already shows it. An id that names no view-only account,
  * the Zodl account or a hardware wallet included, goes straight back.
  */
@@ -58,7 +59,7 @@ class ViewOnlyEditAccountVM(
             if (account == null) {
                 navigationRouter.back()
             } else {
-                name.update { it ?: account.currentName().take(ViewOnlyNameState.MAX_NAME_LENGTH) }
+                name.update { it ?: ViewOnlyAccountNameLimit.cap(account.currentName()) }
             }
         }
     }
@@ -82,7 +83,7 @@ class ViewOnlyEditAccountVM(
         onBack = ::onBack,
     )
 
-    private fun onValueChange(value: String) = name.update { value.take(ViewOnlyNameState.MAX_NAME_LENGTH) }
+    private fun onValueChange(value: String) = name.update { ViewOnlyAccountNameLimit.cap(value) }
 
     private fun onSaveClick() {
         if (saveJob?.isActive == true) return

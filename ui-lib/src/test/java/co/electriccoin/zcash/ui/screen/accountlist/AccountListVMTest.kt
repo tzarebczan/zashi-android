@@ -250,6 +250,20 @@ class AccountListVMTest {
         }
 
     @Test
+    fun theChevronIsDecorativeAndTheOptionsButtonNamesItsWallet() =
+        runTest {
+            val vm = vm(listOf(zashi(id = 1, isSelected = true), viewOnly(id = 2, isSelected = false)))
+            collect(vm)
+
+            val sections = assertNotNull(vm.state.value.sections)
+            assertNull(assertNotNull(sections[0].items.single().trailingAction).contentDescription)
+            assertEquals(
+                stringRes(UiR.string.hwWallet_walletOptions_contentDescription, stringRes("Savings")),
+                assertNotNull(sections[1].items.single().trailingAction).contentDescription
+            )
+        }
+
+    @Test
     fun theZodlChevronSelectsLikeTheRow() =
         runTest {
             val selectWalletAccount = mockk<SelectWalletAccountUseCase>(relaxed = true)
@@ -341,7 +355,7 @@ class AccountListVMTest {
         }
 
     @Test
-    fun thePromoOpensTheKeystoneShopInTheBrowserInsteadOfThisScreen() =
+    fun thePromoOpensTheKeystoneShopInTheBrowserOnTopOfThisScreen() =
         runTest {
             val navigationRouter = mockk<NavigationRouter>(relaxed = true)
             val vm = vm(listOf(zashi(id = 1, isSelected = true)), navigationRouter = navigationRouter)
@@ -352,8 +366,9 @@ class AccountListVMTest {
             promo.onClick()
 
             verify(exactly = 1) {
-                navigationRouter.replace(ExternalUrl("https://keyst.one/shop/products/keystone-3-pro?discount=Zodl"))
+                navigationRouter.forward(ExternalUrl("https://keyst.one/shop/products/keystone-3-pro?discount=Zodl"))
             }
+            verify(exactly = 0) { navigationRouter.replace(*anyVararg()) }
         }
 
     @Test
@@ -510,6 +525,7 @@ class AccountListVMTest {
         unifiedAddress = "u-view-only",
         transparentAddress = "t-view-only",
         orchardBalance = balance(balance),
+        saplingBalance = balance(balance?.let { Zatoshi(0) }),
         ironwoodBalance = balance(balance),
         transparentBalance = balance,
         isSelected = isSelected,

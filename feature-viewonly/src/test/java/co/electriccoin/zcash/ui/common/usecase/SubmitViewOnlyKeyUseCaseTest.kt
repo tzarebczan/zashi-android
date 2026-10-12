@@ -1,8 +1,11 @@
 package co.electriccoin.zcash.ui.common.usecase
 
+import cash.z.ecc.android.sdk.Synchronizer
 import cash.z.ecc.android.sdk.model.Account
-import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
-import co.electriccoin.zcash.ui.common.model.WalletAccount
+import cash.z.ecc.android.sdk.model.ZcashNetwork
+import co.electriccoin.zcash.ui.common.model.ufvk.UfvkFixtures
+import co.electriccoin.zcash.ui.common.model.ufvk.UnifiedFullViewingKeyEncoding.Item
+import co.electriccoin.zcash.ui.common.provider.SynchronizerProvider
 import co.electriccoin.zcash.ui.common.repository.PendingViewOnlyImport
 import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepositoryImpl
 import io.mockk.coEvery
@@ -14,60 +17,116 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 /**
- * A submitted key becomes the pending import only when it is importable and not in the wallet yet;
- * the wallet's own keys count as already imported, whatever their case.
+ * A submitted key becomes the pending import only when it is importable and shares no Orchard,
+ * Sapling or transparent component with an account the wallet holds: an identical key, a key that
+ * contains an existing one, a key an existing one contains and a key that overlaps one all count as
+ * already imported, while an unrelated key is accepted.
  */
 class SubmitViewOnlyKeyUseCaseTest {
     private val repository = ViewOnlyPendingImportRepositoryImpl()
 
+    private val fullItems = UfvkFixtures.itemsOf(UfvkFixtures.MAINNET_FULL)
+
+    private val full = UfvkFixtures.MAINNET_FULL
+
+    private val saplingAndOrchard = encode(fullItems.filter { it.typecode != P2PKH })
+
+    private val transparentAndOrchard = encode(fullItems.filter { it.typecode != SAPLING })
+
+    private val transparentAndSapling = encode(fullItems.filter { it.typecode != ORCHARD })
+
+    private val unrelated = encode(fullItems.map { item -> Item(item.typecode, item.data.flipped()) })
+
     @Test
-    fun anImportableNewKeyBecomesThePendingImport() =
+    fun anUnrelatedKeyBecomesThePendingImport() =
         runTest {
-            val result = useCase(validation = UfvkValidation.Valid(KEY), existingKeys = listOf(OTHER_KEY))("  input ")
+            val result = useCase(candidate = unrelated, existingKeys = listOf(full, null)).submit("  input ")
 
             assertEquals(SubmitViewOnlyKeyResult.Accepted, result)
-            assertEquals(PendingViewOnlyImport(ufvk = KEY, name = ""), repository.get())
+            assertEquals(PendingViewOnlyImport(ufvk = unrelated, name = ""), repository.get())
         }
 
     @Test
-    fun aKeyTheWalletHoldsIsAlreadyImported() =
+    fun anIdenticalKeyIsAlreadyImportedWhateverItsCase() =
         runTest {
-            val useCase =
-                useCase(validation = UfvkValidation.Valid(KEY), existingKeys = listOf(OTHER_KEY, KEY.uppercase()))
-            val result = useCase("input")
+            assertAlreadyImported(candidate = full, existing = full)
+            assertAlreadyImported(candidate = full, existing = full.uppercase())
+        }
 
-            assertEquals(SubmitViewOnlyKeyResult.AlreadyImported, result)
-            assertNull(repository.get())
+    @Test
+    fun aKeyThatContainsAnExistingKeyIsAlreadyImported() =
+        runTest {
+            assertAlreadyImported(candidate = full, existing = saplingAndOrchard)
+        }
+
+    @Test
+    fun aKeyThatAnExistingKeyContainsIsAlreadyImported() =
+        runTest {
+            assertAlreadyImported(candidate = transparentAndOrchard, existing = full)
+        }
+
+    @Test
+    fun aKeyThatOverlapsAnExistingKeyIsAlreadyImported() =
+        runTest {
+            assertAlreadyImported(candidate = transparentAndOrchard, existing = saplingAndOrchard)
+            assertAlreadyImported(candidate = transparentAndOrchard, existing = transparentAndSapling)
         }
 
     @Test
     fun anInvalidKeyIsNotKept() =
         runTest {
-            val result = useCase(validation = UfvkValidation.Invalid, existingKeys = emptyList())("input")
+            val result = useCase(candidate = null, existingKeys = emptyList()).submit("input")
 
             assertEquals(SubmitViewOnlyKeyResult.Invalid, result)
             assertNull(repository.get())
         }
 
+    @Test
+    fun accountsThatCannotBeReadLeaveTheCheckToTheImport() =
+        runTest {
+            val synchronizer = mockk<Synchronizer> { coEvery { getAccounts() } throws IllegalStateException("db") }
+            val result = useCase(candidate = full, synchronizer = synchronizer).submit("input")
+
+            assertEquals(SubmitViewOnlyKeyResult.Accepted, result)
+        }
+
+    private suspend fun assertAlreadyImported(
+        candidate: String,
+        existing: String,
+    ) {
+        repository.clear()
+        val result = useCase(candidate = candidate, existingKeys = listOf(unrelated, existing)).submit("input")
+
+        assertEquals(SubmitViewOnlyKeyResult.AlreadyImported, result)
+        assertNull(repository.get())
+    }
+
     private fun useCase(
-        validation: UfvkValidation,
-        existingKeys: List<String?>,
+        candidate: String?,
+        existingKeys: List<String?> = emptyList(),
+        synchronizer: Synchronizer =
+            mockk { coEvery { getAccounts() } returns existingKeys.map(::account) },
     ) = SubmitViewOnlyKeyUseCase(
-        validateUfvk = mockk { coEvery { this@mockk.invoke(any(), any()) } returns validation },
-        accountDataSource =
-            mockk<AccountDataSource> {
-                coEvery { getAllAccounts() } returns existingKeys.map(::account)
+        validateUfvk =
+            mockk {
+                coEvery { this@mockk.invoke(any(), any()) } returns
+                    (candidate?.let { UfvkValidation.Valid(it) } ?: UfvkValidation.Invalid)
             },
+        synchronizerProvider = mockk<SynchronizerProvider> { coEvery { getSynchronizer() } returns synchronizer },
         pendingImportRepository = repository,
     )
 
-    private fun account(ufvk: String?): WalletAccount {
-        val sdkAccount = mockk<Account> { every { this@mockk.ufvk } returns ufvk }
-        return mockk { every { this@mockk.sdkAccount } returns sdkAccount }
-    }
+    private suspend fun SubmitViewOnlyKeyUseCase.submit(input: String) = invoke(input, ZcashNetwork.Mainnet)
+
+    private fun account(ufvk: String?): Account = mockk { every { this@mockk.ufvk } returns ufvk }
+
+    private fun encode(items: List<Item>) = UfvkFixtures.encode("uview", items)
+
+    private fun ByteArray.flipped() = ByteArray(size) { (this[it].toInt() xor 0xFF).toByte() }
 
     private companion object {
-        const val KEY = "uview1pendingkeyfixture"
-        const val OTHER_KEY = "uview1otherkeyfixture"
+        const val P2PKH = 0x00
+        const val SAPLING = 0x02
+        const val ORCHARD = 0x03
     }
 }

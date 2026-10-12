@@ -100,6 +100,19 @@ class ViewOnlyEditAccountVMTest {
         }
 
     @Test
+    fun emojiCountOnceAndAreNeverCutInHalf() =
+        runTest {
+            val vm = vm()
+            collect(vm)
+
+            type(vm, LOCK.repeat(13))
+
+            val state = assertNotNull(vm.state.value)
+            assertEquals(LOCK.repeat(12), state.field.value.text())
+            assertEquals(listOf(12, 12), state.counter.args())
+        }
+
+    @Test
     fun saveNeedsANewNameThatIsNotBlank() =
         runTest {
             val vm = vm()
@@ -244,3 +257,5 @@ class ViewOnlyEditAccountVMTest {
         const val DEFAULT_NAME_RES = 1
     }
 }
+
+private const val LOCK = "\uD83D\uDD10"

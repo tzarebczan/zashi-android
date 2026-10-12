@@ -15,6 +15,7 @@ import co.electriccoin.zcash.ui.common.usecase.DisconnectUseCase
 import co.electriccoin.zcash.ui.common.usecase.ErrorMapperUseCase
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
 import co.electriccoin.zcash.ui.design.util.StringResource
+import co.electriccoin.zcash.ui.screen.accountlist.AccountListArgs
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -166,7 +167,8 @@ class DisconnectVMTest {
             runCurrent()
 
             coVerify(exactly = 1) { disconnect.invoke(ledger) }
-            verify(exactly = 1) { navigationRouter.backToRoot() }
+            verify(exactly = 1) { navigationRouter.backTo(AccountListArgs::class) }
+            verify(exactly = 0) { navigationRouter.backToRoot() }
             verify(exactly = 0) { navigationRouter.back() }
         }
 
@@ -190,27 +192,62 @@ class DisconnectVMTest {
         }
 
     @Test
-    fun theDisconnectUseCaseDeletesTheAccountAndSelectsTheSoftwareWallet() =
+    fun theDisconnectUseCaseDeletesTheSelectedAccountAndSelectsTheSoftwareWallet() =
         runTest {
-            val account = ledger()
+            val account = ledger(isSelected = true).copy(sdkAccount = Account.new(otherUuid))
             val zashi = zashi()
             val accountDataSource =
                 mockk<AccountDataSource>(relaxed = true) {
                     coEvery { getAllAccounts() } returns listOf(zashi, account)
                     coEvery { getZashiAccount() } returns zashi
                 }
-            val useCase =
-                DisconnectUseCase(
-                    accountDataSource = accountDataSource,
-                    biometricRepository = mockk(relaxed = true),
-                    migrationAppHooks = mockk(relaxed = true),
-                )
 
-            useCase(account)
+            disconnectUseCase(accountDataSource)(account)
 
             coVerify(exactly = 1) { accountDataSource.deleteAccount(account) }
             coVerify(exactly = 1) { accountDataSource.selectAccount(zashi) }
         }
+
+    @Test
+    fun disconnectingAnUnselectedAccountLeavesTheSelectionAlone() =
+        runTest {
+            val account = ledger(isSelected = false).copy(sdkAccount = Account.new(otherUuid))
+            val zashi = zashi(isSelected = true)
+            val accountDataSource =
+                mockk<AccountDataSource>(relaxed = true) {
+                    coEvery { getAllAccounts() } returns listOf(zashi, account)
+                    coEvery { getZashiAccount() } returns zashi
+                }
+
+            disconnectUseCase(accountDataSource)(account)
+
+            coVerify(exactly = 1) { accountDataSource.deleteAccount(account) }
+            coVerify(exactly = 0) { accountDataSource.selectAccount(any<WalletAccount>()) }
+            coVerify(exactly = 0) { accountDataSource.selectAccount(any<Account>()) }
+        }
+
+    @Test
+    fun theSelectionIsReadAgainRatherThanTakenFromTheStaleAccount() =
+        runTest {
+            val stale = ledger(isSelected = false).copy(sdkAccount = Account.new(otherUuid))
+            val zashi = zashi()
+            val accountDataSource =
+                mockk<AccountDataSource>(relaxed = true) {
+                    coEvery { getAllAccounts() } returns listOf(zashi, stale.copy(isSelected = true))
+                    coEvery { getZashiAccount() } returns zashi
+                }
+
+            disconnectUseCase(accountDataSource)(stale)
+
+            coVerify(exactly = 1) { accountDataSource.selectAccount(zashi) }
+        }
+
+    private fun disconnectUseCase(accountDataSource: AccountDataSource) =
+        DisconnectUseCase(
+            accountDataSource = accountDataSource,
+            biometricRepository = mockk(relaxed = true),
+            migrationAppHooks = mockk(relaxed = true),
+        )
 
     private fun vm(
         selected: MutableStateFlow<WalletAccount?>,

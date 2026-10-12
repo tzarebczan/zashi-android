@@ -19,16 +19,19 @@ import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.provider.AccountNameProvider
 import co.electriccoin.zcash.ui.common.provider.LedgerAccountBindingProvider
+import co.electriccoin.zcash.ui.common.provider.SelectedAccountUUIDProvider
 import co.electriccoin.zcash.ui.common.provider.SynchronizerProvider
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
 import co.electriccoin.zcash.ui.design.util.stringRes
 import io.mockk.CapturingSlot
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -82,7 +85,7 @@ class AccountDataSourceImplViewOnlyTest {
             assertFalse(viewOnly.isSpendable)
             assertNull(viewOnly.hdAccountIndex)
             assertNull(viewOnly.saplingAddress)
-            assertNull(viewOnly.saplingBalance)
+            assertEquals(zeroBalance(), viewOnly.saplingBalance)
             assertEquals("unified-address", viewOnly.unifiedAddress)
             assertEquals("transparent-address", viewOnly.transparentAddress)
             assertEquals(Zatoshi(100L), viewOnly.spendableShieldedBalance)
@@ -90,6 +93,78 @@ class AccountDataSourceImplViewOnlyTest {
             assertEquals(listOf<UnifiedAddressRequest>(UnifiedAddressRequest.Orchard), requests)
             coVerify(exactly = 0) { synchronizer.getSaplingAddress(any()) }
         }
+
+    @Test
+    fun aViewOnlyAccountCountsItsSaplingBalanceInEveryTotal() =
+        runBlocking {
+            val synchronizer =
+                mockk<Synchronizer> {
+                    every { accountsFlow } returns
+                        MutableStateFlow(listOf(viewOnlySdkAccount(name = "Savings", uuid = accountUuid)))
+                    every { walletBalances } returns
+                        MutableStateFlow(
+                            accountBalance(
+                                available = 100L,
+                                unshielded = 5L,
+                                sapling =
+                                    WalletBalance(
+                                        available = Zatoshi(40L),
+                                        changePending = Zatoshi(2L),
+                                        valuePending = Zatoshi(3L),
+                                    ),
+                            )
+                        )
+                    coEvery { getCustomUnifiedAddress(any(), any()) } returns "unified-address"
+                    coEvery { getTransparentAddress(any()) } returns "transparent-address"
+                }
+
+            val accounts =
+                withTimeout(5_000) {
+                    dataSource(synchronizer, relaxedBindingProvider()).allAccounts.filterNotNull().first()
+                }
+
+            val viewOnly = accounts.single() as ViewOnlyAccount
+            assertNull(viewOnly.saplingAddress)
+            assertEquals(Zatoshi(45L), viewOnly.saplingBalance?.total)
+            assertEquals(Zatoshi(145L), viewOnly.totalShieldedBalance)
+            assertEquals(Zatoshi(150L), viewOnly.totalBalance)
+            assertEquals(Zatoshi(140L), viewOnly.spendableShieldedBalance)
+            assertEquals(Zatoshi(5L), viewOnly.pendingShieldedBalance)
+            coVerify(exactly = 0) { synchronizer.getSaplingAddress(any()) }
+        }
+
+    @Test
+    fun aViewOnlyAccountFoldsSaplingLikeTheZodlAccount() {
+        val orchard = WalletBalance(Zatoshi(10L), Zatoshi(1L), Zatoshi(2L))
+        val sapling = WalletBalance(Zatoshi(20L), Zatoshi(3L), Zatoshi(4L))
+        val ironwood = WalletBalance(Zatoshi(30L), Zatoshi(5L), Zatoshi(6L))
+        val viewOnly =
+            viewOnlyAccount().copy(
+                orchardBalance = orchard,
+                saplingBalance = sapling,
+                ironwoodBalance = ironwood,
+                transparentBalance = Zatoshi(7L),
+            )
+        val zashi =
+            ZashiAccount(
+                sdkAccount = account,
+                unifiedAddress = "u",
+                transparentAddress = "t",
+                saplingAddress = "s",
+                orchardBalance = orchard,
+                saplingBalance = sapling,
+                ironwoodBalance = ironwood,
+                transparentBalance = Zatoshi(7L),
+                isSelected = false,
+            )
+
+        assertEquals(zashi.totalBalance, viewOnly.totalBalance)
+        assertEquals(zashi.totalShieldedBalance, viewOnly.totalShieldedBalance)
+        assertEquals(zashi.spendableShieldedBalance, viewOnly.spendableShieldedBalance)
+        assertEquals(zashi.pendingShieldedBalance, viewOnly.pendingShieldedBalance)
+        assertEquals(Zatoshi(88L), viewOnly.totalBalance)
+        assertNull(viewOnly.copy(saplingBalance = null).totalBalance)
+    }
 
     @Test
     fun aViewOnlyAccountWithABlankNameFallsBackToTheDefaultName() =
@@ -178,6 +253,62 @@ class AccountDataSourceImplViewOnlyTest {
 
             coVerify(exactly = 1) { synchronizer.deleteAccount(accountUuid) }
             coVerify(exactly = 1) { nameProvider.clear(accountUuid) }
+        }
+
+    @Test
+    fun deletingTheSelectedViewOnlyAccountClearsTheSelectionAfterwards() =
+        runBlocking {
+            val selection = selectionProvider(selected = accountUuid)
+            val synchronizer =
+                mockk<Synchronizer>(relaxed = true) {
+                    every { accountsFlow } returns MutableStateFlow(listOf(account))
+                    every { walletBalances } returns MutableStateFlow(null)
+                    coEvery { deleteAccount(accountUuid) } returns true
+                }
+
+            dataSource(synchronizer, relaxedBindingProvider(), selectedAccountUUIDProvider = selection)
+                .deleteAccount(viewOnlyAccount().copy(isSelected = true))
+
+            coVerifyOrder {
+                synchronizer.deleteAccount(accountUuid)
+                selection.clearUUID()
+            }
+        }
+
+    @Test
+    fun aFailedDeletionKeepsTheSelection() =
+        runBlocking {
+            val selection = selectionProvider(selected = accountUuid)
+            val synchronizer =
+                mockk<Synchronizer>(relaxed = true) {
+                    every { accountsFlow } returns MutableStateFlow(listOf(account))
+                    every { walletBalances } returns MutableStateFlow(null)
+                    coEvery { deleteAccount(accountUuid) } returns false
+                }
+
+            assertFailsWith<AccountDeletionException> {
+                dataSource(synchronizer, relaxedBindingProvider(), selectedAccountUUIDProvider = selection)
+                    .deleteAccount(viewOnlyAccount().copy(isSelected = true))
+            }
+
+            coVerify(exactly = 0) { selection.clearUUID() }
+        }
+
+    @Test
+    fun deletingAnUnselectedAccountKeepsTheSelection() =
+        runBlocking {
+            val selection = selectionProvider(selected = null)
+            val synchronizer =
+                mockk<Synchronizer>(relaxed = true) {
+                    every { accountsFlow } returns MutableStateFlow(listOf(account))
+                    every { walletBalances } returns MutableStateFlow(null)
+                    coEvery { deleteAccount(accountUuid) } returns true
+                }
+
+            dataSource(synchronizer, relaxedBindingProvider(), selectedAccountUUIDProvider = selection)
+                .deleteAccount(viewOnlyAccount())
+
+            coVerify(exactly = 0) { selection.clearUUID() }
         }
 
     @Test
@@ -365,6 +496,78 @@ class AccountDataSourceImplViewOnlyTest {
         }
 
     @Test
+    fun anSdkAccountCollisionIsReportedAsAlreadyImportedWithoutItsMessage() =
+        runBlocking {
+            val collision =
+                RuntimeException(
+                    "Failed to import new account based on UFVK due to: Error while initializing accounts: " +
+                        "An account corresponding to the data provided already exists in the wallet with UUID " +
+                        "AccountUuid(0102). $UFVK",
+                    RuntimeException(
+                        "An account corresponding to the data provided already exists in the wallet with UUID x."
+                    )
+                )
+            val synchronizer =
+                mockk<Synchronizer>(relaxed = true) {
+                    every { accountsFlow } returns MutableStateFlow(listOf(account))
+                    every { walletBalances } returns MutableStateFlow(null)
+                    coEvery { getAccounts() } returns listOf(account)
+                    coEvery { importAccountByUfvk(any()) } throws collision
+                }
+
+            val thrown =
+                assertFailsWith<ViewOnlyAccountAlreadyExistsException> {
+                    dataSource(synchronizer, relaxedBindingProvider())
+                        .importViewOnlyAccount(ufvk = UFVK, name = "Savings", birthday = null)
+                }
+
+            val causes = generateSequence<Throwable>(thrown) { it.cause }
+            assertTrue(causes.all { it is ViewOnlyAccountAlreadyExistsException })
+            assertFalse(thrown.stackTraceToString().contains("uview"))
+            assertFalse(thrown.stackTraceToString().contains("AccountUuid"))
+        }
+
+    @Test
+    fun aCollisionDeeperInTheCauseChainIsStillRecognised() =
+        runBlocking<Unit> {
+            val synchronizer =
+                mockk<Synchronizer>(relaxed = true) {
+                    every { accountsFlow } returns MutableStateFlow(listOf(account))
+                    every { walletBalances } returns MutableStateFlow(null)
+                    coEvery { getAccounts() } returns listOf(account)
+                    coEvery { importAccountByUfvk(any()) } throws
+                        IllegalStateException(
+                            null,
+                            RuntimeException(
+                                "An account corresponding to the data provided already exists in the wallet."
+                            )
+                        )
+                }
+
+            assertFailsWith<ViewOnlyAccountAlreadyExistsException> {
+                dataSource(synchronizer, relaxedBindingProvider())
+                    .importViewOnlyAccount(ufvk = UFVK, name = "Savings", birthday = null)
+            }
+        }
+
+    @Test
+    fun aCancelledImportIsRethrownNotWrapped() =
+        runBlocking<Unit> {
+            val synchronizer =
+                mockk<Synchronizer>(relaxed = true) {
+                    every { accountsFlow } returns MutableStateFlow(listOf(account))
+                    every { walletBalances } returns MutableStateFlow(null)
+                    coEvery { getAccounts() } returns listOf(account)
+                    coEvery { importAccountByUfvk(any()) } throws CancellationException("cancelled")
+                }
+
+            assertFailsWith<CancellationException> {
+                dataSource(synchronizer, relaxedBindingProvider())
+                    .importViewOnlyAccount(ufvk = UFVK, name = "Savings", birthday = null)
+            }
+        }
+
+    @Test
     fun noWrappedImportExceptionLeaksAKeyInItsStackTrace() {
         listOf(
             ViewOnlyAccountImportException(),
@@ -391,6 +594,7 @@ class AccountDataSourceImplViewOnlyTest {
             unifiedAddress = "u1secretaddress",
             transparentAddress = "t1secretaddress",
             orchardBalance = null,
+            saplingBalance = null,
             ironwoodBalance = null,
             transparentBalance = null,
             isSelected = false,
@@ -421,11 +625,12 @@ class AccountDataSourceImplViewOnlyTest {
     private fun accountBalance(
         available: Long,
         unshielded: Long,
+        sapling: WalletBalance = zeroBalance(),
     ): Map<AccountUuid, AccountBalance> =
         mapOf(
             accountUuid to
                 AccountBalance(
-                    sapling = zeroBalance(),
+                    sapling = sapling,
                     orchard = zeroBalance().copy(available = Zatoshi(available)),
                     ironwood = zeroBalance(),
                     unshielded = Zatoshi(unshielded),
@@ -437,10 +642,17 @@ class AccountDataSourceImplViewOnlyTest {
             every { observe(any()) } returns storedName
         }
 
+    private fun selectionProvider(selected: AccountUuid?) =
+        mockk<SelectedAccountUUIDProvider>(relaxed = true) {
+            every { uuid } returns MutableStateFlow(selected)
+            coEvery { getUUID() } returns selected
+        }
+
     private fun dataSource(
         synchronizer: Synchronizer,
         ledgerAccountBindingProvider: LedgerAccountBindingProvider,
         accountNameProvider: AccountNameProvider = nameProvider(),
+        selectedAccountUUIDProvider: SelectedAccountUUIDProvider = selectionProvider(selected = null),
     ): AccountDataSourceImpl {
         val synchronizerProvider =
             mockk<SynchronizerProvider> {
@@ -449,10 +661,7 @@ class AccountDataSourceImplViewOnlyTest {
             }
         return AccountDataSourceImpl(
             synchronizerProvider = synchronizerProvider,
-            selectedAccountUUIDProvider =
-                mockk {
-                    every { uuid } returns MutableStateFlow(null)
-                },
+            selectedAccountUUIDProvider = selectedAccountUUIDProvider,
             persistableWalletProvider =
                 mockk {
                     every { persistableWallet } returns MutableStateFlow(mockk(relaxed = true))

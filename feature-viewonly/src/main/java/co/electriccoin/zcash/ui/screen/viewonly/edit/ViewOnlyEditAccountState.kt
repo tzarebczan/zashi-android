@@ -1,6 +1,7 @@
 package co.electriccoin.zcash.ui.screen.viewonly.edit
 
 import androidx.compose.runtime.Immutable
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountNameLimit
 import co.electriccoin.zcash.ui.design.component.ButtonState
 import co.electriccoin.zcash.ui.design.component.ButtonStyle
 import co.electriccoin.zcash.ui.design.component.TextFieldState
@@ -59,7 +60,12 @@ data class ViewOnlyEditAccountState(
             fieldLabel = stringRes(R.string.view_only_name_label),
             field = TextFieldState(value = stringRes(name), onValueChange = onValueChange),
             placeholder = stringRes(R.string.view_only_name_placeholder),
-            counter = stringRes(R.string.view_only_name_counter, name.length, ViewOnlyNameState.MAX_NAME_LENGTH),
+            counter =
+                stringRes(
+                    R.string.view_only_name_counter,
+                    ViewOnlyAccountNameLimit.lengthOf(name),
+                    ViewOnlyNameState.MAX_NAME_LENGTH
+                ),
             removeInfoIcon = ImageResource.ByDrawable(R.drawable.view_only_ic_info),
             removeInfo = stringRes(R.string.view_only_edit_remove_info),
             removeButton =

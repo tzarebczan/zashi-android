@@ -23,6 +23,16 @@ class RenameViewOnlyAccountUseCaseTest {
         }
 
     @Test
+    fun aLongNameIsCappedByCodePointsWithoutSplittingAnEmoji() =
+        runTest {
+            useCase(ViewOnlyAccountFixtures.viewOnly(), "Vault " + LOCK.repeat(7))
+
+            coVerify(exactly = 1) {
+                accountNameProvider.save(ViewOnlyAccountFixtures.viewOnlyUuid, "Vault " + LOCK.repeat(6))
+            }
+        }
+
+    @Test
     fun aBlankNameIsIgnored() =
         runTest {
             useCase(ViewOnlyAccountFixtures.viewOnly(), "   ")
@@ -30,3 +40,5 @@ class RenameViewOnlyAccountUseCaseTest {
             coVerify(exactly = 0) { accountNameProvider.save(any(), any()) }
         }
 }
+
+private const val LOCK = "\uD83D\uDD10"

@@ -40,7 +40,7 @@ class ViewOnlyScanVMTest {
 
     private val submit =
         mockk<SubmitViewOnlyKeyUseCase> {
-            coEvery { this@mockk.invoke(any()) } answers { results.getValue(firstArg()) }
+            coEvery { this@mockk.invoke(any(), any()) } answers { results.getValue(firstArg()) }
         }
 
     @BeforeTest
@@ -68,7 +68,7 @@ class ViewOnlyScanVMTest {
             runCurrent()
 
             verify(exactly = 1) { navigationRouter.replace(ViewOnlyNameArgs) }
-            coVerify(exactly = 1) { submit.invoke(any()) }
+            coVerify(exactly = 1) { submit.invoke(any(), any()) }
             assertEquals(ScanValidationState.VALID, vm.state.value.validation)
         }
 

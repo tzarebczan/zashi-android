@@ -21,6 +21,7 @@ import co.electriccoin.zcash.ui.design.component.ButtonState
 import co.electriccoin.zcash.ui.design.component.ButtonStyle
 import co.electriccoin.zcash.ui.design.component.ZashiConfirmationState
 import co.electriccoin.zcash.ui.design.util.stringRes
+import co.electriccoin.zcash.ui.screen.accountlist.AccountListArgs
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,6 +34,8 @@ import kotlinx.coroutines.launch
 /**
  * Disconnects the hardware wallet account [DisconnectArgs.accountKeyId] names, or the selected
  * account when it names none. Opening it for anything but a hardware wallet account goes back.
+ * A disconnect started from the Wallets & Hardware screen (a named account) returns to that list,
+ * as removing a view-only account does; one started from the advanced settings returns to the root.
  */
 class DisconnectVM(
     args: DisconnectArgs,
@@ -62,7 +65,7 @@ class DisconnectVM(
     /**
      * Skips non-hardware and missing accounts instead of mapping them to null, so the screen keeps
      * showing the disconnected account while it is deleted, the selection moves to the software
-     * wallet and [NavigationRouter.backToRoot] unwinds it.
+     * wallet and the navigation unwinds it.
      */
     private val hwAccount: Flow<HWWalletAccount> =
         if (accountKeyId == null) {
@@ -161,7 +164,11 @@ class DisconnectVM(
         confirmationDialogFlow.value = null
         disconnectLce.execute {
             disconnect(hwAccount)
-            navigationRouter.backToRoot()
+            if (accountKeyId == null) {
+                navigationRouter.backToRoot()
+            } else {
+                navigationRouter.backTo(AccountListArgs::class)
+            }
         }
     }
 

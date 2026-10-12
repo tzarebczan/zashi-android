@@ -69,15 +69,22 @@ class HWEstimationVM(
         primaryButton =
             ButtonState(
                 text = branding.connect,
+                isEnabled = !isLoading,
                 isLoading = isLoading,
                 onClick = ::onConfirmClick,
                 hapticFeedbackType = HapticFeedbackType.Confirm,
             ),
     )
 
+    /**
+     * A second tap while the import runs is ignored: restarting would cancel the running import
+     * inside the SDK call, after the account exists but before it is selected.
+     */
     private fun onConfirmClick() =
-        createAccountLce.execute {
-            createHWWalletAccount(args.enrollment, BlockHeight.new(args.blockHeight))
+        createAccountLce.guardLoading {
+            createAccountLce.execute {
+                createHWWalletAccount(args.enrollment, BlockHeight.new(args.blockHeight))
+            }
         }
 
     private fun onInfoClick() = navigationRouter.forward(HeightInfoArgs)

@@ -19,6 +19,11 @@ import kotlinx.coroutines.withContext
  * account and waits for every one of them, and the Orchard or transparent address of a key without
  * that component would never arrive, which would stall every account in the wallet.
  *
+ * Every whitespace character in the input, line breaks and zero-width spaces included, is dropped
+ * first, since a key copied from an email or a PDF is often broken across lines. What remains has
+ * to be all lower case or all upper case, as Bech32m requires; a mixed-case key is rejected. An
+ * accepted key is returned in its canonical lower-case form.
+ *
  * The input is never logged or echoed, and an SDK failure is reduced to a rejection without its
  * message, which can contain the key.
  */
@@ -29,9 +34,11 @@ class ValidateUfvkUseCase(
         input: String,
         network: ZcashNetwork = VersionInfo.NETWORK,
     ): UfvkValidation {
-        val candidate = input.trim().lowercase()
+        val compact = input.filterNot { it.isWhitespace() || it in INVISIBLE_CHARACTERS }
+        val isSingleCase = compact == compact.lowercase() || compact == compact.uppercase()
+        val candidate = compact.lowercase()
         val items =
-            if (candidate.startsWith(keyPrefixOf(network))) {
+            if (isSingleCase && candidate.startsWith(keyPrefixOf(network))) {
                 withContext(Dispatchers.Default) { UnifiedFullViewingKeyEncoding.decode(candidate, hrpOf(network)) }
             } else {
                 null
@@ -49,11 +56,17 @@ class ValidateUfvkUseCase(
         private const val TESTNET_HRP = "uviewtest"
         private const val SEPARATOR = "1"
 
+        /**
+         * Zero-width characters that [Char.isWhitespace] does not cover but copied text often
+         * carries: zero-width space, non-joiner and joiner, word joiner and the byte-order mark.
+         */
+        private val INVISIBLE_CHARACTERS = setOf('\u200B', '\u200C', '\u200D', '\u2060', '\uFEFF')
+
         /** How every full viewing key for [network] starts, such as `uview1` on mainnet. */
         fun keyPrefixOf(network: ZcashNetwork) = hrpOf(network) + SEPARATOR
 
-        private fun hrpOf(network: ZcashNetwork) =
-            if (network == ZcashNetwork.Mainnet) MAINNET_HRP else TESTNET_HRP
+        /** The human-readable part of a full viewing key for [network], such as `uview` on mainnet. */
+        fun hrpOf(network: ZcashNetwork) = if (network == ZcashNetwork.Mainnet) MAINNET_HRP else TESTNET_HRP
     }
 }
 

@@ -101,8 +101,10 @@ interface AccountDataSource {
      * message, which can echo the key.
      *
      * @throws ViewOnlyAccountAlreadyExistsException if the wallet already holds an account for
-     *         [ufvk]. When this is only detectable after the import (the SDK returned an existing
-     *         account), the SDK has already updated that account; this reports it, it cannot undo it.
+     *         [ufvk], or the SDK refused the key because it shares a component with an account the
+     *         wallet holds. When this is only detectable after the import (the SDK returned an
+     *         existing account), the SDK has already updated that account; this reports it, it
+     *         cannot undo it.
      * @throws ViewOnlyAccountImportException if the SDK rejected the import.
      */
     suspend fun importViewOnlyAccount(
@@ -299,7 +301,11 @@ class AccountDataSourceImpl(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    throw ViewOnlyAccountImportException()
+                    throw if (e.isAccountCollision()) {
+                        ViewOnlyAccountAlreadyExistsException()
+                    } else {
+                        ViewOnlyAccountImportException()
+                    }
                 }
             if (existing.any { it.accountUuid == created.accountUuid }) {
                 throw ViewOnlyAccountAlreadyExistsException()
@@ -334,27 +340,30 @@ class AccountDataSourceImpl(
     }
 
     /**
-     * Clearing a Ledger account's stored binding, or a view-only account's stored name, happens
-     * after the deletion has already succeeded, and only best-effort: the account is gone by then,
-     * so reporting a failure would tell the user to retry something that cannot be retried. An
-     * orphaned binding or name is keyed by an account UUID that no longer resolves.
+     * The selection is cleared only once the SDK has deleted the account, so a failed deletion
+     * leaves the account selected as it was. Clearing a Ledger account's stored binding, or a
+     * view-only account's stored name, also happens after the deletion has succeeded, and only
+     * best-effort: the account is gone by then, so reporting a failure would tell the user to retry
+     * something that cannot be retried. An orphaned binding or name is keyed by an account UUID that
+     * no longer resolves.
      */
     @Suppress("TooGenericExceptionCaught")
     override suspend fun deleteAccount(account: WalletAccount) =
         withContext(Dispatchers.IO) {
+            val accountUuid = account.sdkAccount.accountUuid
             try {
                 val synchronizer = synchronizerProvider.getSynchronizer()
-                // Reset selected account to null if the deleted account was selected
-                if (account.isSelected) {
-                    selectedAccountUUIDProvider.clearUUID()
-                }
-                val deleted = synchronizer.deleteAccount(account.sdkAccount.accountUuid)
+                val deleted = synchronizer.deleteAccount(accountUuid)
                 if (!deleted) {
                     throw AccountDeletionException("Failed to delete account")
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                // Re-throw as specific exception
                 throw AccountDeletionException("Failed to delete account: ${e.message}", e)
+            }
+            if (account.isSelected || selectedAccountUUIDProvider.getUUID() == accountUuid) {
+                selectedAccountUUIDProvider.clearUUID()
             }
             if (account is LedgerAccount) {
                 runCatching { ledgerAccountBindingProvider.clear(account.sdkAccount.accountUuid) }
@@ -428,6 +437,7 @@ class AccountDataSourceImpl(
                     unifiedAddress = snapshot.unifiedAddress,
                     transparentAddress = snapshot.transparentAddress,
                     orchardBalance = snapshot.balance?.orchard,
+                    saplingBalance = snapshot.balance?.sapling,
                     ironwoodBalance = snapshot.balance?.ironwood,
                     transparentBalance = snapshot.balance?.unshielded,
                     isSelected = snapshot.isSelected,
@@ -567,6 +577,23 @@ class AccountDataSourceImpl(
             }
         }
 }
+
+/**
+ * Whether the SDK refused an import because the key overlaps an account the wallet already holds:
+ * librustzcash's `AccountCollision`, which reaches Kotlin only as text inside the SDK's import
+ * exception. The messages of the cause chain are only matched against, never logged or copied.
+ */
+private fun Throwable.isAccountCollision(): Boolean =
+    generateSequence(this) { it.cause }
+        .take(MAX_CAUSE_DEPTH)
+        .any { it.message?.contains(ACCOUNT_COLLISION_MARKER) == true }
+
+/**
+ * The start of the text `SqliteClientError::AccountCollision` displays as.
+ */
+private const val ACCOUNT_COLLISION_MARKER = "An account corresponding to the data provided already exists"
+
+private const val MAX_CAUSE_DEPTH = 8
 
 private data class AddressRequest(
     val accountUuid: AccountUuid,

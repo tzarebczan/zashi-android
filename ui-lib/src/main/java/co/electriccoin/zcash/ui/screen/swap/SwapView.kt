@@ -543,77 +543,7 @@ private fun Preview() {
 private fun ViewOnlyAccountPreview() {
     ZcashTheme {
         SwapView(
-            state =
-                SwapState(
-                    swapInfoButton = IconButtonState(R.drawable.ic_help) {},
-                    amountTextField =
-                        SwapAmountTextFieldState(
-                            title = stringRes("From"),
-                            error = null,
-                            token =
-                                AssetCardState.Data(
-                                    token = stringRes("USDT"),
-                                    bigIcon = null,
-                                    smallIcon = null,
-                                    isEnabled = true,
-                                    onClick = {}
-                                ),
-                            textFieldPrefix = null,
-                            textField = NumberTextFieldState {},
-                            secondaryText = stringResByDynamicCurrencyNumber(100, "$"),
-                            max = null,
-                            onSwapChange = {}
-                        ),
-                    slippage =
-                        ButtonState(
-                            stringRes("1%"),
-                            trailingIcon = R.drawable.ic_swap_slippage
-                        ),
-                    amountText =
-                        SwapAmountTextState(
-                            token =
-                                AssetCardState.Data(
-                                    token = stringRes("ZEC"),
-                                    bigIcon = null,
-                                    smallIcon = null,
-                                    isEnabled = false,
-                                    onClick = {}
-                                ),
-                            title = stringRes("To"),
-                            text = stringResByDynamicCurrencyNumber(2.47123, "ZEC"),
-                            secondaryText = stringResByDynamicCurrencyNumber(101, "$"),
-                            subtitle = null
-                        ),
-                    infoItems =
-                        listOf(
-                            SimpleListItemState(
-                                title = stringRes("Rate"),
-                                text = stringRes("1 ZEC = 51.74 USDC")
-                            )
-                        ),
-                    addressBookButton =
-                        IconButtonState(
-                            icon = R.drawable.send_address_book,
-                            onClick = {}
-                        ),
-                    addressLocation = TOP,
-                    onAddressClick = {},
-                    address = TextFieldState(stringRes("")) {},
-                    addressPlaceholder = stringRes(co.electriccoin.zcash.ui.design.R.string.general_enter_address),
-                    qrScannerButton =
-                        IconButtonState(
-                            icon = R.drawable.qr_code_icon,
-                            onClick = {}
-                        ),
-                    errorFooter = null,
-                    primaryButton =
-                        ButtonState(
-                            stringRes("Get a quote")
-                        ),
-                    infoFooter = null,
-                    onBack = {},
-                    changeModeButton = null
-                ),
+            state = SwapState.previewViewOnly,
             appBarState = ZashiMainTopAppBarStateFixture.new(),
         )
     }

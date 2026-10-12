@@ -204,13 +204,16 @@ data class AccountListState(
                         IconButtonState(
                             icon = R.drawable.ic_wallet_list_more,
                             contentDescription =
-                                stringRes(co.electriccoin.zcash.ui.R.string.hwWallet_walletOptions_contentDescription),
+                                stringRes(
+                                    co.electriccoin.zcash.ui.R.string.hwWallet_walletOptions_contentDescription,
+                                    name
+                                ),
                             onClick = onOptionsClick,
                         )
                     } else {
                         IconButtonState(
                             icon = R.drawable.ic_wallet_list_chevron,
-                            contentDescription = name,
+                            contentDescription = null,
                             onClick = onClick,
                         )
                     },

@@ -12,6 +12,7 @@ plugins {
 
 android {
     namespace = "co.electriccoin.zcash.viewonly"
+    resourcePrefix = "view_only_"
 
     buildFeatures {
         compose = true

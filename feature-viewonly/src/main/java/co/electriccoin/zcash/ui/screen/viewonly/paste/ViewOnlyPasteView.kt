@@ -2,6 +2,9 @@ package co.electriccoin.zcash.ui.screen.viewonly.paste
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,17 +23,23 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import co.electriccoin.zcash.ui.common.compose.WithoutPersonalizedLearning
 import co.electriccoin.zcash.ui.design.component.BlankBgScaffold
@@ -49,6 +58,7 @@ import co.electriccoin.zcash.ui.design.theme.colors.ZashiColors
 import co.electriccoin.zcash.ui.design.theme.typography.ZashiTypography
 import co.electriccoin.zcash.ui.design.util.Compose
 import co.electriccoin.zcash.ui.design.util.getValue
+import co.electriccoin.zcash.ui.design.util.pressMorph
 import co.electriccoin.zcash.ui.design.util.scaffoldPadding
 import co.electriccoin.zcash.ui.screen.viewonly.ViewOnlyHeader
 import co.electriccoin.zcash.ui.screen.viewonly.ViewOnlyTopAppBar
@@ -149,31 +159,66 @@ private fun KeyField(state: ViewOnlyPasteState) {
     }
 }
 
+/**
+ * Figma's 32 dp bordered scan button inside the 40 dp key field. It reports 32 dp to the field so the
+ * field keeps its height, while the tap target around it is [SCAN_TOUCH_TARGET], centred on it. The
+ * press-morph, the ripple and the click share one interaction source, as the design-system buttons do.
+ */
 @Composable
 private fun ScanButton(state: IconButtonState) {
+    val haptic = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
     val description = state.contentDescription?.getValue()
-    Surface(
-        onClick = state.onClick,
-        enabled = state.isEnabled,
+    Box(
         modifier =
             Modifier
                 .padding(end = 4.dp)
-                .size(32.dp)
+                .layout { measurable, _ ->
+                    val placeable = measurable.measure(Constraints())
+                    val size = SCAN_BUTTON_SIZE.roundToPx()
+                    layout(size, size) {
+                        placeable.place((size - placeable.width) / 2, (size - placeable.height) / 2)
+                    }
+                }.size(SCAN_TOUCH_TARGET)
                 .testTag(ViewOnlyPasteTag.SCAN_BUTTON)
-                .semantics { if (description != null) contentDescription = description },
-        shape = RoundedCornerShape(8.dp),
-        color = ZashiColors.Surfaces.bgPrimary,
-        border = BorderStroke(1.dp, ZashiColors.Surfaces.strokeSecondary),
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    enabled = state.isEnabled,
+                    role = Role.Button,
+                    onClick = {
+                        state.hapticFeedbackType?.let { runCatching { haptic.performHapticFeedback(it) } }
+                        state.onClick()
+                    },
+                ).semantics { if (description != null) contentDescription = description },
+        contentAlignment = Alignment.Center,
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Image(
-                painter = painterResource(state.icon),
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-            )
+        Surface(
+            modifier =
+                Modifier
+                    .pressMorph(interactionSource)
+                    .size(SCAN_BUTTON_SIZE),
+            shape = RoundedCornerShape(8.dp),
+            color = ZashiColors.Surfaces.bgPrimary,
+            border = BorderStroke(1.dp, ZashiColors.Surfaces.strokeSecondary),
+        ) {
+            Box(
+                modifier = Modifier.indication(interactionSource, ripple()),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    painter = painterResource(state.icon),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
         }
     }
 }
+
+private val SCAN_BUTTON_SIZE = 32.dp
+
+private val SCAN_TOUCH_TARGET = 48.dp
 
 @Composable
 private fun Disclaimer(state: ViewOnlyPasteState) {

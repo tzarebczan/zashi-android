@@ -138,6 +138,7 @@ class AdvancedSettingsViewOnlyVMTest {
             unifiedAddress = "u",
             transparentAddress = "t",
             orchardBalance = null,
+            saplingBalance = null,
             ironwoodBalance = null,
             transparentBalance = null,
             isSelected = isSelected,

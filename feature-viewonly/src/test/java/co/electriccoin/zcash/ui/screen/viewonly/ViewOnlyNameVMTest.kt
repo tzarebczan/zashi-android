@@ -71,6 +71,34 @@ class ViewOnlyNameVMTest {
         }
 
     @Test
+    fun emojiCountOnceAndAreNeverCutInHalf() =
+        runTest {
+            val vm = vm()
+            collect(vm)
+
+            type(vm, "Vault " + LOCK.repeat(8))
+
+            assertEquals(
+                "Vault " + LOCK.repeat(6),
+                vm.state.value.field.value
+                    .text()
+            )
+            assertEquals(
+                listOf(12, 12),
+                vm.state.value.counter
+                    .args()
+            )
+
+            type(vm, LOCK.repeat(3))
+
+            assertEquals(
+                listOf(3, 12),
+                vm.state.value.counter
+                    .args()
+            )
+        }
+
+    @Test
     fun theCounterFollowsTheName() =
         runTest {
             val vm = vm()
@@ -167,3 +195,5 @@ class ViewOnlyNameVMTest {
         const val UFVK = "uview1namefixture"
     }
 }
+
+private const val LOCK = "\uD83D\uDD10"

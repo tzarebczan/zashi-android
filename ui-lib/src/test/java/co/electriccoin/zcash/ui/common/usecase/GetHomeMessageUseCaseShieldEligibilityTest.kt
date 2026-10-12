@@ -52,6 +52,7 @@ class GetHomeMessageUseCaseShieldEligibilityTest {
             unifiedAddress = "u",
             transparentAddress = "t",
             orchardBalance = null,
+            saplingBalance = null,
             ironwoodBalance = null,
             transparentBalance = transparent,
             isSelected = true,

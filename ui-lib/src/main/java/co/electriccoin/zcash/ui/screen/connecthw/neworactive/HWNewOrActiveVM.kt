@@ -41,6 +41,7 @@ class HWNewOrActiveVM(
                     newDevice =
                         ButtonState(
                             text = branding.connectNewDevice,
+                            isEnabled = !lce.loading,
                             isLoading = lce.loading,
                             onClick = ::onNewDeviceClick,
                             hapticFeedbackType = HapticFeedbackType.Confirm,
@@ -64,9 +65,15 @@ class HWNewOrActiveVM(
         }
     }
 
+    /**
+     * A second tap while the import runs is ignored: restarting would cancel the running import
+     * inside the SDK call, after the account exists but before it is selected.
+     */
     private fun onNewDeviceClick() =
-        createAccountLce.execute {
-            createHWWalletAccount(args.enrollment, birthday = null)
+        createAccountLce.guardLoading {
+            createAccountLce.execute {
+                createHWWalletAccount(args.enrollment, birthday = null)
+            }
         }
 
     private fun onActiveDeviceClick() =

@@ -23,6 +23,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -246,6 +247,54 @@ class HWEnrollmentVMTest {
                     createAccount.invoke(enrollment, BlockHeight.new(VALID_HEIGHT.toLong()))
                 }
             }
+        }
+
+    @Test
+    fun aSecondTapOnNewDeviceWhileImportingStartsNoSecondImport() =
+        runTest {
+            enrollments.forEach { enrollment ->
+                val importing = CompletableDeferred<Unit>()
+                val createAccount = suspendedUseCase(importing)
+                val vm = newOrActiveVM(enrollment, createAccount)
+                collect { vm.state.collect { } }
+
+                assertNotNull(vm.state.value.content).newDevice.onClick()
+                runCurrent()
+                val loading = assertNotNull(vm.state.value.content)
+                assertFalse(loading.newDevice.isEnabled)
+                loading.newDevice.onClick()
+                runCurrent()
+
+                coVerify(exactly = 1) { createAccount.invoke(enrollment, null) }
+                importing.complete(Unit)
+            }
+        }
+
+    @Test
+    fun aSecondTapOnImportWhileImportingStartsNoSecondImport() =
+        runTest {
+            enrollments.forEach { enrollment ->
+                val importing = CompletableDeferred<Unit>()
+                val createAccount = suspendedUseCase(importing)
+                val vm = estimationVM(enrollment, createAccount)
+                collect { vm.state.collect { } }
+
+                assertNotNull(vm.state.value.content).primaryButton.onClick()
+                runCurrent()
+                val loading = assertNotNull(vm.state.value.content)
+                assertFalse(loading.primaryButton.isEnabled)
+                loading.primaryButton.onClick()
+                runCurrent()
+
+                coVerify(exactly = 1) { createAccount.invoke(enrollment, BlockHeight.new(ESTIMATED_HEIGHT)) }
+                importing.complete(Unit)
+            }
+        }
+
+    private fun suspendedUseCase(importing: CompletableDeferred<Unit>) =
+        mockk<CreateHWWalletAccountUseCase>(relaxed = true) {
+            every { isReady(any()) } returns true
+            coEvery { this@mockk.invoke(any(), any()) } coAnswers { importing.await() }
         }
 
     private fun heightText(amount: String) =

@@ -1,6 +1,7 @@
 package co.electriccoin.zcash.ui.screen.viewonly.name
 
 import androidx.compose.runtime.Immutable
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountNameLimit
 import co.electriccoin.zcash.ui.design.component.ButtonState
 import co.electriccoin.zcash.ui.design.component.ButtonStyle
 import co.electriccoin.zcash.ui.design.component.TextFieldState
@@ -12,7 +13,8 @@ import co.electriccoin.zcash.viewonly.R
 /**
  * Names the account being imported.
  *
- * @param counter how many of the allowed characters [field] uses, shown under it.
+ * @param counter how many of the allowed characters [field] uses, counted in code points, shown
+ *        under it.
  */
 @Immutable
 data class ViewOnlyNameState(
@@ -29,7 +31,7 @@ data class ViewOnlyNameState(
     val onBack: () -> Unit,
 ) {
     companion object {
-        const val MAX_NAME_LENGTH = 12
+        const val MAX_NAME_LENGTH = ViewOnlyAccountNameLimit.MAX_LENGTH
 
         val preview: ViewOnlyNameState = preview(name = "")
 
@@ -54,7 +56,12 @@ data class ViewOnlyNameState(
             fieldLabel = stringRes(R.string.view_only_name_label),
             field = TextFieldState(value = stringRes(name), onValueChange = onValueChange),
             placeholder = stringRes(R.string.view_only_name_placeholder),
-            counter = stringRes(R.string.view_only_name_counter, name.length, MAX_NAME_LENGTH),
+            counter =
+                stringRes(
+                    R.string.view_only_name_counter,
+                    ViewOnlyAccountNameLimit.lengthOf(name),
+                    MAX_NAME_LENGTH
+                ),
             continueButton =
                 ButtonState(
                     text = stringRes(R.string.view_only_continue),

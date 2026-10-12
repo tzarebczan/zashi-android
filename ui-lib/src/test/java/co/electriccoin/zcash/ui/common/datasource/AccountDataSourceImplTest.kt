@@ -513,6 +513,7 @@ class AccountDataSourceImplTest {
             selectedAccountUUIDProvider =
                 mockk {
                     every { uuid } returns MutableStateFlow(null)
+                    coEvery { getUUID() } returns null
                 },
             persistableWalletProvider =
                 mockk {

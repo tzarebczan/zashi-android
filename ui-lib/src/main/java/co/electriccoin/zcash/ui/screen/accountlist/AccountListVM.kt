@@ -89,10 +89,10 @@ class AccountListVM(
         viewOnlyNavigator.forwardToEditAccount(account.sdkAccount.accountUuid)
 
     /**
-     * Opens the Keystone shop in the in-app browser, replacing this screen as the account picker did
-     * before it lost its promo row.
+     * Opens the Keystone shop in the in-app browser on top of this screen, so closing the browser
+     * returns to the wallet list.
      */
-    private fun onKeystonePromoClick() = navigationRouter.replace(ExternalUrl(KEYSTONE_PROMO_URL))
+    private fun onKeystonePromoClick() = navigationRouter.forward(ExternalUrl(KEYSTONE_PROMO_URL))
 
     /**
      * Opens the "Add Account" options, which offer a hardware wallet only while a vendor is still

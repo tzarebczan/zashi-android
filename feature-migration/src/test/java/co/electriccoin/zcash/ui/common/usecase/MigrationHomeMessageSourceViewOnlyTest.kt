@@ -90,6 +90,7 @@ class MigrationHomeMessageSourceViewOnlyTest {
             unifiedAddress = "u",
             transparentAddress = "t",
             orchardBalance = null,
+            saplingBalance = null,
             ironwoodBalance = null,
             transparentBalance = null,
             isSelected = true,

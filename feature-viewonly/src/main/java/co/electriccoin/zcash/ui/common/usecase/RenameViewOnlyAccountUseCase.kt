@@ -1,6 +1,7 @@
 package co.electriccoin.zcash.ui.common.usecase
 
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountNameLimit
 import co.electriccoin.zcash.ui.common.provider.AccountNameProvider
 
 /**
@@ -12,13 +13,14 @@ class RenameViewOnlyAccountUseCase(
     private val accountNameProvider: AccountNameProvider,
 ) {
     /**
-     * Saves [name] trimmed. A blank name is ignored, so the account never loses its name.
+     * Saves [name] trimmed and capped at [ViewOnlyAccountNameLimit.MAX_LENGTH] code points. A blank
+     * name is ignored, so the account never loses its name.
      */
     suspend operator fun invoke(
         account: ViewOnlyAccount,
         name: String
     ) {
-        val trimmed = name.trim()
+        val trimmed = ViewOnlyAccountNameLimit.cap(name.trim()).trim()
         if (trimmed.isEmpty()) return
         accountNameProvider.save(account.sdkAccount.accountUuid, trimmed)
     }

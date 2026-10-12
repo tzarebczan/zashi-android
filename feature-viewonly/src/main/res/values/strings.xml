@@ -71,7 +71,7 @@
     <string name="view_only_remove_account">Remove Account</string>
 
     <string name="view_only_remove_title">Remove this account?</string>
-    <string name="view_only_remove_message">Removing this account clears its data from Zodl on this device, but your address book contacts and other account metadata are kept. Removing the account does not remove the on-chain history. You can bring it back anytime by re-adding the account or restoring your wallet.</string>
+    <string name="view_only_remove_message">Removing this account clears its data from Zodl on this device, but your address book contacts and other account metadata are kept. Removing the account does not remove the on-chain history. You can bring it back anytime by re-adding the account.</string>
     <string name="view_only_remove_cancel">Cancel</string>
     <string name="view_only_remove_biometric_message">Confirm to remove this account</string>
 </resources>

@@ -2,6 +2,7 @@ package co.electriccoin.zcash.ui.screen.viewonly.name
 
 import androidx.lifecycle.ViewModel
 import co.electriccoin.zcash.ui.NavigationRouter
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountNameLimit
 import co.electriccoin.zcash.ui.common.model.stateIn
 import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepository
 import co.electriccoin.zcash.ui.screen.connecthw.HWWalletEnrollment
@@ -13,7 +14,7 @@ import kotlinx.coroutines.flow.update
 
 /**
  * Names the pending view-only account, then goes on to the shared birthday question. The name is
- * capped at [ViewOnlyNameState.MAX_NAME_LENGTH] characters as it is typed. Without a pending key,
+ * capped at [ViewOnlyNameState.MAX_NAME_LENGTH] code points as it is typed. Without a pending key,
  * after process death, there is nothing to name and the flow returns to the root.
  */
 class ViewOnlyNameVM(
@@ -39,7 +40,7 @@ class ViewOnlyNameVM(
             onBack = ::onBack,
         )
 
-    private fun onValueChange(value: String) = name.update { value.take(ViewOnlyNameState.MAX_NAME_LENGTH) }
+    private fun onValueChange(value: String) = name.update { ViewOnlyAccountNameLimit.cap(value) }
 
     private fun onContinueClick() {
         val trimmed = name.value.trim()

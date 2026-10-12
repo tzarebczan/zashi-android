@@ -3,6 +3,7 @@ package co.electriccoin.zcash.ui.common.model.ufvk
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
@@ -125,7 +126,99 @@ class UnifiedFullViewingKeyEncodingTest {
         }
     }
 
+    @Test
+    fun theSameKeyWithAPlainBech32ChecksumIsRejected() {
+        val bech32 = withBech32Checksum(UfvkFixtures.MAINNET_FULL)
+
+        assertNotEquals(UfvkFixtures.MAINNET_FULL, bech32)
+        assertEquals(UfvkFixtures.MAINNET_FULL.dropLast(6), bech32.dropLast(6))
+        assertNull(UnifiedFullViewingKeyEncoding.decode(bech32, "uview"))
+    }
+
+    @Test
+    fun aNonMinimalCompactSizeIsRejected() {
+        val items = UfvkFixtures.itemsOf(UfvkFixtures.MAINNET_FULL)
+        val minimal = body(items)
+        val orchard = items.last()
+        val nonMinimalTypecode =
+            body(items.dropLast(1)) + byteArrayOf(0xFD.toByte(), 0x03, 0x00, orchard.data.size.toByte()) + orchard.data
+
+        assertNotNull(UnifiedFullViewingKeyEncoding.decode(encodeRaw("uview", minimal), "uview"))
+        assertNull(UnifiedFullViewingKeyEncoding.decode(encodeRaw("uview", nonMinimalTypecode), "uview"))
+    }
+
+    @Test
+    fun anItemWhoseLengthNeedsThreeBytesIsRead() {
+        val items = UfvkFixtures.itemsOf(UfvkFixtures.MAINNET_FULL)
+        val long = ByteArray(LONG_ITEM_LENGTH) { it.toByte() }
+        val raw =
+            body(items) + byteArrayOf(UNKNOWN_TYPECODE.toByte(), 0xFD.toByte(), LONG_ITEM_LENGTH.toByte(), 0x00) + long
+
+        val decoded = assertNotNull(UnifiedFullViewingKeyEncoding.decode(encodeRaw("uview", raw), "uview"))
+
+        assertEquals(listOf(0x00, 0x02, 0x03, UNKNOWN_TYPECODE), decoded.map { it.typecode })
+        assertContentEquals(long, decoded.last().data)
+    }
+
+    @Test
+    fun anUnknownTypecodeInOrderIsAccepted() {
+        val items = UfvkFixtures.itemsOf(UfvkFixtures.MAINNET_FULL)
+        val withUnknown = items + UnifiedFullViewingKeyEncoding.Item(UNKNOWN_TYPECODE, ByteArray(5) { 7 })
+
+        val decoded =
+            assertNotNull(UnifiedFullViewingKeyEncoding.decode(UfvkFixtures.encode("uview", withUnknown), "uview"))
+
+        assertEquals(listOf(0x00, 0x02, 0x03, UNKNOWN_TYPECODE), decoded.map { it.typecode })
+    }
+
+    @Test
+    fun aP2shItemIsRejected() {
+        val items = UfvkFixtures.itemsOf(UfvkFixtures.MAINNET_FULL)
+        val withP2sh =
+            listOf(UnifiedFullViewingKeyEncoding.Item(UnifiedFullViewingKeyEncoding.TYPECODE_P2SH, ByteArray(20))) +
+                items.drop(1)
+
+        assertNull(UnifiedFullViewingKeyEncoding.decode(UfvkFixtures.encode("uview", withP2sh), "uview"))
+    }
+
+    @Test
+    fun aHumanReadablePartLongerThanThePaddingIsRejected() {
+        val hrp = "uviewlongerthan16"
+        val items = UfvkFixtures.itemsOf(UfvkFixtures.MAINNET_FULL)
+        val text = Bech32m.encode(hrp, F4Jumble.jumble(body(items) + hrp.toByteArray().copyOf(16)))
+
+        assertNull(UnifiedFullViewingKeyEncoding.decode(text, hrp))
+    }
+
+    /**
+     * Re-checksums a Bech32m string with the original Bech32 constant (1): both checksums are the
+     * same polynomial residue XORed with their constant, so swapping the constant swaps the scheme.
+     */
+    private fun withBech32Checksum(bech32m: String): String {
+        val charset = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
+        val checksum = bech32m.takeLast(6).fold(0) { acc, c -> (acc shl 5) or charset.indexOf(c) }
+        val swapped = checksum xor BECH32M_CONSTANT xor 1
+        val swappedChars = (5 downTo 0).joinToString("") { charset[(swapped ushr (5 * it)) and 31].toString() }
+        return bech32m.dropLast(6) + swappedChars
+    }
+
+    private fun body(items: List<UnifiedFullViewingKeyEncoding.Item>) =
+        items
+            .flatMap { listOf(it.typecode.toByte(), it.data.size.toByte()) + it.data.toList() }
+            .toByteArray()
+
+    private fun encodeRaw(
+        hrp: String,
+        body: ByteArray,
+    ) = Bech32m.encode(hrp, F4Jumble.jumble(body + UnifiedFullViewingKeyEncoding.padding(hrp)))
+
     private fun ByteArray.toHex() = joinToString("") { "%02x".format(it) }
 
     private fun String.fromHex() = chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+
+    private companion object {
+        const val BECH32M_CONSTANT = 0x2bc830a3
+        const val UNKNOWN_TYPECODE = 0x10
+        const val LONG_ITEM_LENGTH = 0xFD
+    }
 }

@@ -196,6 +196,7 @@ class ZashiTopAppBarVMTest {
             unifiedAddress = "u-view-only",
             transparentAddress = "t-view-only",
             orchardBalance = null,
+            saplingBalance = null,
             ironwoodBalance = null,
             transparentBalance = null,
             isSelected = isSelected,

@@ -100,7 +100,7 @@
     <string name="hwWallet_section_keystone_plural">Keystone Wallets</string>
     <string name="hwWallet_section_ledger">Ledger Wallet</string>
     <string name="hwWallet_section_ledger_plural">Ledger Wallets</string>
-    <string name="hwWallet_walletOptions_contentDescription">Wallet options</string>
+    <string name="hwWallet_walletOptions_contentDescription">Options for %1$s</string>
     <string name="hwWallet_promo_title">Keystone Hardware Wallet</string>
     <string name="hwWallet_promo_message">Get 5%% off an airgapped hardware wallet. Promo code “Zodl”.</string>
     <string name="hwWallet_options_title">Wallet Options</string>
