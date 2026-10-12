@@ -22,9 +22,9 @@
     <string name="view_only_continue">Continue</string>
 
     <string name="view_only_paste_heading">Add Viewing Key</string>
-    <string name="view_only_paste_message">Paste your Unified Full Viewing Key (UFVK) to add a view only account.</string>
+    <string name="view_only_paste_message">Paste your Unified Full Viewing Key (UFVK)\nto add a view only account.</string>
     <string name="view_only_paste_label">Viewing Key</string>
-    <string name="view_only_paste_placeholder">Paste viewing key…</string>
+    <string name="view_only_paste_placeholder">Paste viewing key...</string>
     <string name="view_only_paste_scan">Scan QR code</string>
     <string name="view_only_paste_disclaimer">This Account will be view and receive only. You can track its balance and activity, but can\'t use it to spend funds.</string>
 
@@ -46,11 +46,11 @@
     <string name="view_only_name_heading">Customize Account</string>
     <string name="view_only_name_message">Choose a name to tell it apart from your other accounts.</string>
     <string name="view_only_name_label">Account Name</string>
-    <string name="view_only_name_placeholder">Enter…</string>
+    <string name="view_only_name_placeholder">Enter...</string>
     <string name="view_only_name_counter">%1$d/%2$d</string>
 
     <string name="view_only_imported_heading">Account Imported</string>
-    <string name="view_only_imported_message">Your view only account has been added. Track its balance and activity anytime.</string>
+    <string name="view_only_imported_message">Your view only account has been added.\nTrack its balance and activity anytime.</string>
     <string name="view_only_imported_done">Done</string>
 
     <string name="view_only_birthday_question">Has this wallet been used before?</string>

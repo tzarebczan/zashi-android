@@ -49,6 +49,7 @@ internal fun ViewOnlyTopAppBar(
         subtitle = subtitle?.getValue(),
         navigationAction = { ZashiTopAppBarBackNavigation(onBack = onBack) },
         colors = ZcashTheme.colors.topAppBarColors.copyColors(containerColor = Color.Transparent),
+        subtitleAllCaps = false,
     )
 }
 

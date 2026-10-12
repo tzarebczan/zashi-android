@@ -53,7 +53,7 @@ fun ViewOnlyNameView(state: ViewOnlyNameState) {
                         .verticalScroll(rememberScrollState())
                         .scaffoldPadding(paddingValues)
             ) {
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(4.dp))
                 ViewOnlyHeader(avatar = state.avatar, heading = state.heading, message = state.message)
                 Spacer(Modifier.height(32.dp))
                 ViewOnlyNameField(

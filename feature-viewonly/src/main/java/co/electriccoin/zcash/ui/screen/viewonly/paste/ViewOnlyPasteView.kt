@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -37,6 +38,7 @@ import co.electriccoin.zcash.ui.design.component.IconButtonState
 import co.electriccoin.zcash.ui.design.component.ZashiButton
 import co.electriccoin.zcash.ui.design.component.ZashiConfirmationBottomSheet
 import co.electriccoin.zcash.ui.design.component.ZashiTextField
+import co.electriccoin.zcash.ui.design.component.ZashiTextFieldDefaults
 import co.electriccoin.zcash.ui.design.component.ZashiTextFieldPlaceholder
 import co.electriccoin.zcash.ui.design.component.rememberZashiFrostState
 import co.electriccoin.zcash.ui.design.component.zashiFrostSource
@@ -91,7 +93,7 @@ private fun Content(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(4.dp))
         ViewOnlyHeader(avatar = state.avatar, heading = state.heading, message = state.message)
         Spacer(Modifier.height(32.dp))
         KeyField(state)
@@ -126,6 +128,7 @@ private fun KeyField(state: ViewOnlyPasteState) {
                     Modifier
                         .fillMaxWidth()
                         .testTag(ViewOnlyPasteTag.FIELD),
+                innerModifier = ZashiTextFieldDefaults.innerModifier.height(KEY_FIELD_HEIGHT),
                 textStyle = ZashiTypography.textSm,
                 singleLine = true,
                 placeholder = { ZashiTextFieldPlaceholder(state.placeholder) },
@@ -140,6 +143,7 @@ private fun KeyField(state: ViewOnlyPasteState) {
                         onDone = { if (state.continueButton.isEnabled) state.continueButton.onClick() }
                     ),
                 trailingIcon = { ScanButton(state.scanButton) },
+                contentPadding = KEY_FIELD_CONTENT_PADDING,
             )
         }
     }
@@ -174,7 +178,10 @@ private fun ScanButton(state: IconButtonState) {
 @Composable
 private fun Disclaimer(state: ViewOnlyPasteState) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         state.disclaimerIcon.Compose(modifier = Modifier.size(16.dp))
@@ -187,6 +194,14 @@ private fun Disclaimer(state: ViewOnlyPasteState) {
         )
     }
 }
+
+/**
+ * Figma draws the key field 40 high. The trailing scan button's slot would otherwise grow it to 48, so
+ * the field is fixed at that height and its vertical padding centres one line of small text in it.
+ */
+private val KEY_FIELD_HEIGHT = 40.dp
+
+private val KEY_FIELD_CONTENT_PADDING = PaddingValues(start = 14.dp, end = 12.dp, top = 10.dp, bottom = 10.dp)
 
 @PreviewScreens
 @Composable

@@ -417,6 +417,7 @@ fun SmallTopAppBar(
     titleText: String? = null,
     titleStyle: TextStyle = SecondaryTypography.headlineSmall,
     windowInsets: WindowInsets = TopAppBarDefaults.windowInsets,
+    subTitleAllCaps: Boolean = true,
 ) {
     CenterAlignedTopAppBar(
         windowInsets = windowInsets,
@@ -448,7 +449,7 @@ fun SmallTopAppBar(
 
                     @Suppress("MagicNumber")
                     Text(
-                        text = subTitle.uppercase(),
+                        text = if (subTitleAllCaps) subTitle.uppercase() else subTitle,
                         style = ZcashTheme.extendedTypography.restoringTopAppBarStyle,
                         color = colors.subTitleColor,
                         modifier = Modifier.fillMaxWidth(0.75f),

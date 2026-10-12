@@ -26,6 +26,7 @@ fun ZashiSmallTopAppBar(
     hamburgerMenuActions: (@Composable RowScope.() -> Unit)? = null,
     regularActions: (@Composable RowScope.() -> Unit)? = null,
     windowInsets: WindowInsets = TopAppBarDefaults.windowInsets,
+    subtitleAllCaps: Boolean = true,
 ) {
     SmallTopAppBar(
         windowInsets = windowInsets,
@@ -37,7 +38,8 @@ fun ZashiSmallTopAppBar(
         subTitle = subtitle,
         showTitleLogo = showTitleLogo,
         titleText = title,
-        titleStyle = SecondaryTypography.headlineSmall.copy(fontWeight = FontWeight.SemiBold)
+        titleStyle = SecondaryTypography.headlineSmall.copy(fontWeight = FontWeight.SemiBold),
+        subTitleAllCaps = subtitleAllCaps,
     )
 }
 
