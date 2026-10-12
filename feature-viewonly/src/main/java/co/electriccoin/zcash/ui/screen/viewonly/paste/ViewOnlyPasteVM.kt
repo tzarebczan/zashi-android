@@ -10,7 +10,10 @@ import co.electriccoin.zcash.ui.common.usecase.ClearClipboardUseCase
 import co.electriccoin.zcash.ui.common.usecase.SubmitViewOnlyKeyResult
 import co.electriccoin.zcash.ui.common.usecase.SubmitViewOnlyKeyUseCase
 import co.electriccoin.zcash.ui.common.usecase.ValidateUfvkUseCase
+import co.electriccoin.zcash.ui.common.usecase.ViewOnlyKeyCheckException
 import co.electriccoin.zcash.ui.design.component.ZashiConfirmationState
+import co.electriccoin.zcash.ui.screen.error.ErrorArgs
+import co.electriccoin.zcash.ui.screen.error.NavigateToErrorUseCase
 import co.electriccoin.zcash.ui.screen.viewonly.ViewOnlyAlreadyImportedArgs
 import co.electriccoin.zcash.ui.screen.viewonly.ViewOnlyNameArgs
 import co.electriccoin.zcash.ui.screen.viewonly.ViewOnlyScanArgs
@@ -35,12 +38,16 @@ import kotlin.time.Duration.Companion.milliseconds
  * a long run of text. When one happened, the clipboard is cleared on Continue and on back, so the
  * key does not stay there. The clipboard is never read: on recent Android versions every read
  * shows a system notice.
+ *
+ * When the SDK fails to read the key, the general error screen opens instead of the invalid-key
+ * sheet, since nothing is known about the key then, and Continue can be tried again.
  */
 internal class ViewOnlyPasteVM(
     private val submitViewOnlyKey: SubmitViewOnlyKeyUseCase,
     private val clearClipboard: ClearClipboardUseCase,
     private val pendingImportRepository: ViewOnlyPendingImportRepository,
     private val navigationRouter: NavigationRouter,
+    private val navigateToError: NavigateToErrorUseCase,
 ) : ViewModel() {
     private val text = MutableStateFlow("")
 
@@ -122,6 +129,8 @@ internal class ViewOnlyPasteVM(
                             isInvalidKeySheetVisible.update { true }
                         }
                     }
+                } catch (e: ViewOnlyKeyCheckException) {
+                    navigateToError(ErrorArgs.General(e))
                 } finally {
                     isSubmitting.update { false }
                 }

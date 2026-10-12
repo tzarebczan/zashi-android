@@ -32,7 +32,13 @@ internal object UfvkFixtures {
 
     /**
      * [MAINNET_FULL] without its Sapling item: its transparent and Orchard items re-encoded as a
-     * ZIP 316 mainnet UFVK, the shape of a key a hardware wallet exports.
+     * ZIP 316 mainnet UFVK, the shape of a key a hardware wallet exports. It is the public
+     * [MAINNET_FULL] vector with only the Sapling item removed, so it is no one's key either.
+     *
+     * It was generated once with a throwaway re-encoder built on the app's own UFVK parser
+     * (`UnifiedFullViewingKeyEncoding`, `Bech32m` and `F4Jumble` under `common/model/ufvk`), which
+     * has since been removed in favour of the SDK. Regenerating it means taking that parser back
+     * from git history: it is present in every commit of this feature up to `5b9e1d7c9`.
      */
     const val MAINNET_TRANSPARENT_AND_ORCHARD =
         "uview1xy8u8atfr6u072crzfzyjzelemcwe72ay4n5k88qn3pqjlcm2u99s78k7np2qn0kpgttjhp4uq8dm5jyyx24" +

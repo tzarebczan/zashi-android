@@ -26,6 +26,9 @@ internal class SubmitViewOnlyKeyUseCase(
     private val synchronizerProvider: SynchronizerProvider,
     private val pendingImportRepository: ViewOnlyPendingImportRepository,
 ) {
+    /**
+     * @throws ViewOnlyKeyCheckException if the SDK failed to read the key; nothing is kept then.
+     */
     suspend operator fun invoke(
         input: String,
         network: ZcashNetwork = VersionInfo.NETWORK,
@@ -46,16 +49,20 @@ internal class SubmitViewOnlyKeyUseCase(
         }
 
     /**
-     * A key matching several accounts is reported by the SDK as a collision, which is a key not to
-     * import. When the lookup fails, or no synchronizer is ready within [SYNCHRONIZER_TIMEOUT], the
-     * import goes on without this check: the import itself still reports a key the SDK finds in the
-     * wallet as already imported. The SDK's exception is dropped without its message.
+     * An early answer for the user, not the guard: the import repeats the lookup right before it
+     * runs and refuses any overlap there. A key matching several accounts is reported by the SDK as
+     * a collision, which is a key not to import. When the lookup fails, or getting the synchronizer
+     * and the lookup together take longer than [LOOKUP_TIMEOUT], the key is accepted and the import's
+     * own check decides. The SDK's exception is dropped without its message.
      */
     @Suppress("TooGenericExceptionCaught", "SwallowedException")
     private suspend fun isAlreadyImported(ufvk: String): Boolean =
         try {
-            withTimeoutOrNull(SYNCHRONIZER_TIMEOUT) { synchronizerProvider.getSynchronizer() }
-                ?.findAccountSharingKeyComponents(UnifiedFullViewingKey(ufvk)) != null
+            withTimeoutOrNull(LOOKUP_TIMEOUT) {
+                synchronizerProvider
+                    .getSynchronizer()
+                    .findAccountSharingKeyComponents(UnifiedFullViewingKey(ufvk)) != null
+            } ?: false
         } catch (e: CancellationException) {
             throw e
         } catch (e: InitializeException.ImportAccountCollisionException) {
@@ -65,7 +72,7 @@ internal class SubmitViewOnlyKeyUseCase(
         }
 
     private companion object {
-        val SYNCHRONIZER_TIMEOUT = 5.seconds
+        val LOOKUP_TIMEOUT = 5.seconds
     }
 }
 

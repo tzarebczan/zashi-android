@@ -3,6 +3,9 @@ package co.electriccoin.zcash.ui.screen.viewonly
 import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.common.usecase.SubmitViewOnlyKeyResult
 import co.electriccoin.zcash.ui.common.usecase.SubmitViewOnlyKeyUseCase
+import co.electriccoin.zcash.ui.common.usecase.ViewOnlyKeyCheckException
+import co.electriccoin.zcash.ui.screen.error.ErrorArgs
+import co.electriccoin.zcash.ui.screen.error.NavigateToErrorUseCase
 import co.electriccoin.zcash.ui.screen.scan.ImageToQrCodeResult
 import co.electriccoin.zcash.ui.screen.scan.ScanValidationState
 import co.electriccoin.zcash.ui.screen.viewonly.scan.ViewOnlyScanVM
@@ -25,12 +28,14 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 /**
  * The scanner takes the first importable key and replaces itself with the naming screen; a code
- * that is not one opens the invalid-code sheet, which pauses further results until it is closed.
+ * that is not one opens the invalid-code sheet, which pauses further results until it is closed. A
+ * key the SDK fails to read stops the scanner and opens the general error screen on the paste screen.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ViewOnlyScanVMTest {
@@ -40,8 +45,13 @@ class ViewOnlyScanVMTest {
 
     private val submit =
         mockk<SubmitViewOnlyKeyUseCase> {
-            coEvery { this@mockk.invoke(any(), any()) } answers { results.getValue(firstArg()) }
+            coEvery { this@mockk.invoke(any(), any()) } answers {
+                if (firstArg<String>() == UNREADABLE) throw ViewOnlyKeyCheckException()
+                results.getValue(firstArg())
+            }
         }
+
+    private val navigateToError = mockk<NavigateToErrorUseCase>(relaxed = true)
 
     @BeforeTest
     fun setUp() {
@@ -108,6 +118,27 @@ class ViewOnlyScanVMTest {
         }
 
     @Test
+    fun aKeyTheSdkCannotReadReturnsToThePasteScreenWithTheErrorScreenNotTheSheet() =
+        runTest {
+            val vm = vm()
+            collect(vm)
+
+            vm.onScanned(UNREADABLE)
+            runCurrent()
+
+            assertNull(vm.invalidQrSheet.value)
+            verify(exactly = 1) { navigationRouter.back() }
+            verify(exactly = 1) {
+                navigateToError(match { assertIs<ErrorArgs.General>(it).exception is ViewOnlyKeyCheckException }, any())
+            }
+
+            vm.onScanned(KEY)
+            runCurrent()
+            verify(exactly = 0) { navigationRouter.replace(any()) }
+            coVerify(exactly = 1) { submit.invoke(any(), any()) }
+        }
+
+    @Test
     fun pasteInsteadHidesTheSheetThenReturnsToThePasteScreen() =
         runTest {
             val vm = vm()
@@ -163,7 +194,12 @@ class ViewOnlyScanVMTest {
             verify(exactly = 1) { navigationRouter.back() }
         }
 
-    private fun vm() = ViewOnlyScanVM(submitViewOnlyKey = submit, navigationRouter = navigationRouter)
+    private fun vm() =
+        ViewOnlyScanVM(
+            submitViewOnlyKey = submit,
+            navigationRouter = navigationRouter,
+            navigateToError = navigateToError,
+        )
 
     private fun TestScope.collect(vm: ViewOnlyScanVM) {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.state.collect { } }
@@ -176,6 +212,7 @@ class ViewOnlyScanVMTest {
         const val OTHER_KEY = "uview1otherfixture"
         const val HELD_KEY = "uview1heldfixture"
         const val GARBAGE = "https://example.com"
+        const val UNREADABLE = "uview1unreadablefixture"
         const val HIDE_DELAY_MS = 351L
     }
 }

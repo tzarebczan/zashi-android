@@ -26,12 +26,19 @@ import kotlinx.coroutines.withContext
  * to be all lower case or all upper case, as the key encoding requires; a mixed-case key is
  * rejected. An accepted key is returned in its canonical lower-case form.
  *
- * The input is never logged or echoed, and an SDK failure is reduced to a rejection without its
- * message.
+ * The SDK's reading of the key is the source of truth for its validity; the steps here only
+ * normalise the text and pre-filter what cannot be a key for the network before the SDK is asked.
+ *
+ * The input is never logged or echoed. The SDK answers an invalid key with no components, so an
+ * exception from it is a fault, not a verdict on the key: it is reported as
+ * [ViewOnlyKeyCheckException], without the SDK's exception or message, never as an invalid key.
  */
 internal class ValidateUfvkUseCase(
     private val ufvkDescriber: UfvkDescriber,
 ) {
+    /**
+     * @throws ViewOnlyKeyCheckException if the SDK failed to read the key.
+     */
     suspend operator fun invoke(
         input: String,
         network: ZcashNetwork = VersionInfo.NETWORK,
@@ -41,13 +48,26 @@ internal class ValidateUfvkUseCase(
         val candidate = compact.lowercase()
         val components =
             if (isSingleCase && candidate.startsWith(keyPrefixOf(network))) {
-                ufvkDescriber.describe(candidate, network)
+                describe(candidate, network)
             } else {
                 null
             }
         val isValid = components != null && components.hasOrchard && components.hasP2pkh
         return if (isValid) UfvkValidation.Valid(candidate) else UfvkValidation.Invalid
     }
+
+    @Suppress("TooGenericExceptionCaught", "SwallowedException")
+    private suspend fun describe(
+        ufvk: String,
+        network: ZcashNetwork,
+    ): UnifiedFullViewingKeyComponents? =
+        try {
+            ufvkDescriber.describe(ufvk, network)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            throw ViewOnlyKeyCheckException()
+        }
 
     companion object {
         private const val MAINNET_HRP = "uview"
@@ -85,9 +105,17 @@ sealed interface UfvkValidation {
 }
 
 /**
+ * Checking a viewing key failed in the SDK, so whether it is valid is unknown. Deliberately carries
+ * neither the SDK's exception as its cause nor its message: both could echo the key back, and the
+ * error screen prints and emails the stack trace.
+ */
+internal class ViewOnlyKeyCheckException : Exception("The viewing key could not be checked.")
+
+/**
  * The SDK's reading of a viewing key: which components it carries, or `null` when it is not a valid
- * key for the network. Decoding the key also checks that the keys inside are valid curve points. A
- * seam so that the use case can be tested without the native library.
+ * key for the network. Decoding the key also checks that the keys inside are valid curve points. An
+ * exception means the key could not be read at all, which says nothing about the key. A seam so that
+ * the use case can be tested without the native library.
  */
 internal interface UfvkDescriber {
     suspend fun describe(
@@ -98,20 +126,14 @@ internal interface UfvkDescriber {
 
 internal class SdkUfvkDescriber : UfvkDescriber {
     /**
-     * Any SDK exception is reduced to `null` on purpose, so nothing about the key travels further.
+     * The SDK returns `null` for an invalid key and throws only on a fault, so an exception is passed
+     * on to [ValidateUfvkUseCase], which reports it without its message.
      */
-    @Suppress("TooGenericExceptionCaught", "SwallowedException")
     override suspend fun describe(
         ufvk: String,
         network: ZcashNetwork,
     ): UnifiedFullViewingKeyComponents? =
         withContext(Dispatchers.Default) {
-            try {
-                DerivationTool.getInstance().describeUnifiedFullViewingKey(UnifiedFullViewingKey(ufvk), network)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                null
-            }
+            DerivationTool.getInstance().describeUnifiedFullViewingKey(UnifiedFullViewingKey(ufvk), network)
         }
 }

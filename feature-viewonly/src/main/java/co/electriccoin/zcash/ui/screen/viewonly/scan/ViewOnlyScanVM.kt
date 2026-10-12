@@ -6,7 +6,10 @@ import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.common.model.stateIn
 import co.electriccoin.zcash.ui.common.usecase.SubmitViewOnlyKeyResult
 import co.electriccoin.zcash.ui.common.usecase.SubmitViewOnlyKeyUseCase
+import co.electriccoin.zcash.ui.common.usecase.ViewOnlyKeyCheckException
 import co.electriccoin.zcash.ui.design.component.ZashiConfirmationState
+import co.electriccoin.zcash.ui.screen.error.ErrorArgs
+import co.electriccoin.zcash.ui.screen.error.NavigateToErrorUseCase
 import co.electriccoin.zcash.ui.screen.scan.ImageToQrCodeResult
 import co.electriccoin.zcash.ui.screen.scan.ScanValidationState
 import co.electriccoin.zcash.ui.screen.viewonly.ViewOnlyAlreadyImportedArgs
@@ -28,11 +31,16 @@ import kotlin.time.Duration.Companion.milliseconds
  * importable key replaces the scanner with the naming screen, so back from there returns to the
  * paste screen. The key is never logged.
  *
+ * When the SDK fails to read a key, nothing is known about it, so the invalid-code sheet would be
+ * wrong: the scanner stops taking results, returns to the paste screen and opens the general error
+ * screen there, from where the user can scan again.
+ *
  * Checking a key suspends, so the scanned-once guard runs under a mutex.
  */
 internal class ViewOnlyScanVM(
     private val submitViewOnlyKey: SubmitViewOnlyKeyUseCase,
     private val navigationRouter: NavigationRouter,
+    private val navigateToError: NavigateToErrorUseCase,
 ) : ViewModel() {
     private val validation = MutableStateFlow(ScanValidationState.NONE)
 
@@ -41,6 +49,8 @@ internal class ViewOnlyScanVM(
     private val mutex = Mutex()
 
     private var hasBeenScannedSuccessfully = false
+
+    private var hasCheckFailed = false
 
     private var sheetJob: Job? = null
 
@@ -75,8 +85,17 @@ internal class ViewOnlyScanVM(
 
     private suspend fun handle(text: String) =
         mutex.withLock {
-            if (hasBeenScannedSuccessfully || isInvalidQrSheetVisible.value) return@withLock
-            when (submitViewOnlyKey(text)) {
+            if (hasBeenScannedSuccessfully || hasCheckFailed || isInvalidQrSheetVisible.value) return@withLock
+            val result =
+                try {
+                    submitViewOnlyKey(text)
+                } catch (e: ViewOnlyKeyCheckException) {
+                    hasCheckFailed = true
+                    navigationRouter.back()
+                    navigateToError(ErrorArgs.General(e))
+                    return@withLock
+                }
+            when (result) {
                 SubmitViewOnlyKeyResult.Accepted -> {
                     hasBeenScannedSuccessfully = true
                     setValidation(ScanValidationState.VALID)

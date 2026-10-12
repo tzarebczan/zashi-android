@@ -101,11 +101,15 @@ interface AccountDataSource {
      * Imports [ufvk] as a view-only account named [name]. An SDK failure is reported without the
      * SDK's exception or message.
      *
-     * @throws ViewOnlyAccountAlreadyExistsException if the SDK refused the key because it shares a
-     *         component with an account the wallet holds, or the import returned an account the
-     *         wallet already held. In that second case the SDK has already widened that account with
-     *         [ufvk]; this reports it, it cannot undo it.
-     * @throws ViewOnlyAccountImportException if the SDK rejected the import.
+     * The SDK is asked right before the import whether [ufvk] shares a component with an account the
+     * wallet holds; any overlap refuses the import, so an existing account is never widened.
+     *
+     * @throws ViewOnlyAccountAlreadyExistsException if [ufvk] shares a component with an account the
+     *         wallet holds, or the import returned an account the wallet already held. In that last
+     *         case, only possible when the wallet changed between the check and the import, the SDK
+     *         has already widened that account with [ufvk]; this reports it, it cannot undo it.
+     * @throws ViewOnlyAccountImportException if the overlap check failed or the SDK rejected the
+     *         import.
      */
     suspend fun importViewOnlyAccount(
         ufvk: String,
@@ -280,6 +284,13 @@ class AccountDataSourceImpl(
             created
         }
 
+    /**
+     * The SDK lookup right before the import is the guard that keeps an existing account intact: an
+     * import of a key that would widen an account succeeds in the SDK and replaces that account's
+     * key, so any overlap the lookup finds refuses the import. A failed lookup fails the import
+     * closed, since importing unchecked could widen an account; the caller can retry. The account
+     * list compared after the import is a last guard for an account added in between.
+     */
     @Suppress("TooGenericExceptionCaught", "SwallowedException")
     override suspend fun importViewOnlyAccount(
         ufvk: String,
@@ -288,6 +299,19 @@ class AccountDataSourceImpl(
     ): Account =
         withContext(Dispatchers.IO) {
             val synchronizer = synchronizerProvider.getSynchronizer()
+            val overlap =
+                try {
+                    synchronizer.findAccountSharingKeyComponents(UnifiedFullViewingKey(ufvk))
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: InitializeException.ImportAccountCollisionException) {
+                    throw ViewOnlyAccountAlreadyExistsException()
+                } catch (e: Exception) {
+                    throw ViewOnlyAccountImportException()
+                }
+            if (overlap != null) {
+                throw ViewOnlyAccountAlreadyExistsException()
+            }
             val existing = synchronizer.getAccounts()
             val created =
                 try {

@@ -24,7 +24,8 @@ import kotlin.test.assertNull
  * A submitted key becomes the pending import only when it is importable and the SDK finds no account
  * sharing a key component with it. Every overlap the SDK reports, an upgrade of an existing account
  * included, and a key the SDK reports as colliding with several accounts count as already imported.
- * When the lookup fails or no synchronizer is ready, the check is left to the import itself.
+ * When the lookup fails, or the synchronizer or the lookup does not answer in time, the check is left
+ * to the import itself.
  */
 class SubmitViewOnlyKeyUseCaseTest {
     private val repository = ViewOnlyPendingImportRepositoryImpl()
@@ -126,6 +127,20 @@ class SubmitViewOnlyKeyUseCaseTest {
         }
 
     @Test
+    fun aLookupThatNeverCompletesLeavesTheCheckToTheImport() =
+        runTest {
+            val synchronizer =
+                mockk<Synchronizer> {
+                    coEvery { findAccountSharingKeyComponents(any()) } coAnswers { awaitCancellation() }
+                }
+
+            val result = useCase(synchronizer).submit("input")
+
+            assertEquals(SubmitViewOnlyKeyResult.Accepted, result)
+            assertEquals(PendingViewOnlyImport(ufvk = key, name = ""), repository.get())
+        }
+
+    @Test
     fun aCancelledLookupIsRethrown() =
         runTest {
             val synchronizer =
@@ -145,6 +160,27 @@ class SubmitViewOnlyKeyUseCaseTest {
             val result = useCase(synchronizer, validation = UfvkValidation.Invalid).submit("input")
 
             assertEquals(SubmitViewOnlyKeyResult.Invalid, result)
+            assertNull(repository.get())
+            coVerify(exactly = 0) { synchronizer.findAccountSharingKeyComponents(any()) }
+        }
+
+    @Test
+    fun aKeyTheSdkFailsToReadIsReportedAndNeitherLookedUpNorKept() =
+        runTest {
+            val synchronizer = synchronizerFinding(null)
+            val failingValidation =
+                mockk<ValidateUfvkUseCase> {
+                    coEvery { this@mockk.invoke(any(), any()) } throws ViewOnlyKeyCheckException()
+                }
+            val useCase =
+                SubmitViewOnlyKeyUseCase(
+                    validateUfvk = failingValidation,
+                    synchronizerProvider =
+                        mockk<SynchronizerProvider> { coEvery { getSynchronizer() } returns synchronizer },
+                    pendingImportRepository = repository,
+                )
+
+            assertFailsWith<ViewOnlyKeyCheckException> { useCase.submit("input") }
             assertNull(repository.get())
             coVerify(exactly = 0) { synchronizer.findAccountSharingKeyComponents(any()) }
         }

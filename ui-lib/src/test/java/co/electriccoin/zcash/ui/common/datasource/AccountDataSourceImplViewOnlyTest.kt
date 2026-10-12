@@ -5,9 +5,11 @@ import cash.z.ecc.android.sdk.exception.InitializeException
 import cash.z.ecc.android.sdk.model.Account
 import cash.z.ecc.android.sdk.model.AccountBalance
 import cash.z.ecc.android.sdk.model.AccountImportSetup
+import cash.z.ecc.android.sdk.model.AccountKeyOverlap
 import cash.z.ecc.android.sdk.model.AccountPurpose
 import cash.z.ecc.android.sdk.model.AccountUuid
 import cash.z.ecc.android.sdk.model.UnifiedAddressRequest
+import cash.z.ecc.android.sdk.model.UnifiedFullViewingKey
 import cash.z.ecc.android.sdk.model.WalletBalance
 import cash.z.ecc.android.sdk.model.Zatoshi
 import cash.z.ecc.android.sdk.model.Zip32AccountIndex
@@ -351,6 +353,7 @@ class AccountDataSourceImplViewOnlyTest {
                     every { accountsFlow } returns MutableStateFlow(listOf(account))
                     every { walletBalances } returns MutableStateFlow(null)
                     coEvery { getAccounts() } returns listOf(account)
+                    coEvery { findAccountSharingKeyComponents(any()) } returns null
                     coEvery { importAccountByUfvk(capture(setup)) } returns imported
                 }
 
@@ -363,6 +366,7 @@ class AccountDataSourceImplViewOnlyTest {
             assertEquals(VIEW_ONLY_KEYSOURCE, setup.captured.keySource)
             assertEquals("Savings", setup.captured.accountName)
             assertEquals(UFVK, setup.captured.ufvk.encoding)
+            coVerify(exactly = 1) { synchronizer.findAccountSharingKeyComponents(UnifiedFullViewingKey(UFVK)) }
         }
 
     @Test
@@ -378,6 +382,7 @@ class AccountDataSourceImplViewOnlyTest {
                     every { accountsFlow } returns MutableStateFlow(listOf(account))
                     every { walletBalances } returns MutableStateFlow(null)
                     coEvery { getAccounts() } returns listOf(existing)
+                    coEvery { findAccountSharingKeyComponents(any()) } returns null
                     coEvery { importAccountByUfvk(any()) } returns existing
                 }
 
@@ -399,6 +404,7 @@ class AccountDataSourceImplViewOnlyTest {
                     every { accountsFlow } returns MutableStateFlow(listOf(account))
                     every { walletBalances } returns MutableStateFlow(null)
                     coEvery { getAccounts() } returns listOf(account)
+                    coEvery { findAccountSharingKeyComponents(any()) } returns null
                     coEvery { importAccountByUfvk(any()) } throws
                         IllegalArgumentException("Invalid UFVK: $UFVK", RuntimeException("parse_ufvk($UFVK)"))
                 }
@@ -425,6 +431,7 @@ class AccountDataSourceImplViewOnlyTest {
                     every { accountsFlow } returns MutableStateFlow(listOf(account))
                     every { walletBalances } returns MutableStateFlow(null)
                     coEvery { getAccounts() } returns listOf(account)
+                    coEvery { findAccountSharingKeyComponents(any()) } returns null
                     coEvery { importAccountByUfvk(any()) } throws collision
                 }
 
@@ -453,6 +460,7 @@ class AccountDataSourceImplViewOnlyTest {
                     every { accountsFlow } returns MutableStateFlow(listOf(account))
                     every { walletBalances } returns MutableStateFlow(null)
                     coEvery { getAccounts() } returns listOf(existing)
+                    coEvery { findAccountSharingKeyComponents(any()) } returns null
                     coEvery { importAccountByUfvk(any()) } throws
                         InitializeException.ImportAccountCollisionException(null)
                 }
@@ -471,6 +479,7 @@ class AccountDataSourceImplViewOnlyTest {
                     every { accountsFlow } returns MutableStateFlow(listOf(account))
                     every { walletBalances } returns MutableStateFlow(null)
                     coEvery { getAccounts() } returns listOf(account)
+                    coEvery { findAccountSharingKeyComponents(any()) } returns null
                     coEvery { importAccountByUfvk(any()) } throws
                         InitializeException.ImportAccountException(
                             RuntimeException(
@@ -493,6 +502,7 @@ class AccountDataSourceImplViewOnlyTest {
                     every { accountsFlow } returns MutableStateFlow(listOf(account))
                     every { walletBalances } returns MutableStateFlow(null)
                     coEvery { getAccounts() } returns listOf(account)
+                    coEvery { findAccountSharingKeyComponents(any()) } returns null
                     coEvery { importAccountByUfvk(any()) } throws CancellationException("cancelled")
                 }
 
@@ -500,6 +510,99 @@ class AccountDataSourceImplViewOnlyTest {
                 dataSource(synchronizer, relaxedBindingProvider())
                     .importViewOnlyAccount(ufvk = UFVK, name = "Savings", birthday = null)
             }
+        }
+
+    @Test
+    fun anOverlapOfAnyKindRefusesTheImportWithoutImporting() =
+        runBlocking {
+            AccountKeyOverlap.Kind.entries.forEach { kind ->
+                val synchronizer =
+                    mockk<Synchronizer>(relaxed = true) {
+                        every { accountsFlow } returns MutableStateFlow(listOf(account))
+                        every { walletBalances } returns MutableStateFlow(null)
+                        coEvery { getAccounts() } returns listOf(account)
+                        coEvery { findAccountSharingKeyComponents(any()) } returns AccountKeyOverlap(account, kind)
+                    }
+
+                assertFailsWith<ViewOnlyAccountAlreadyExistsException>(kind.name) {
+                    dataSource(synchronizer, relaxedBindingProvider())
+                        .importViewOnlyAccount(ufvk = UFVK, name = "Savings", birthday = null)
+                }
+                coVerify(exactly = 0) { synchronizer.importAccountByUfvk(any()) }
+            }
+        }
+
+    @Test
+    fun aCollisionFoundByTheLookupIsReportedAsAlreadyImportedWithoutImporting() =
+        runBlocking {
+            val synchronizer =
+                mockk<Synchronizer>(relaxed = true) {
+                    every { accountsFlow } returns MutableStateFlow(listOf(account))
+                    every { walletBalances } returns MutableStateFlow(null)
+                    coEvery { getAccounts() } returns listOf(account)
+                    coEvery { findAccountSharingKeyComponents(any()) } throws
+                        InitializeException.ImportAccountCollisionException(
+                            RuntimeException("$UFVK matches several accounts")
+                        )
+                }
+
+            val thrown =
+                assertFailsWith<ViewOnlyAccountAlreadyExistsException> {
+                    dataSource(synchronizer, relaxedBindingProvider())
+                        .importViewOnlyAccount(ufvk = UFVK, name = "Savings", birthday = null)
+                }
+
+            val causes = generateSequence<Throwable>(thrown) { it.cause }
+            assertTrue(causes.all { it is ViewOnlyAccountAlreadyExistsException })
+            assertFalse(thrown.stackTraceToString().contains("uview"))
+            coVerify(exactly = 0) { synchronizer.importAccountByUfvk(any()) }
+        }
+
+    /**
+     * Importing a key that was never checked could widen an existing account, so a failed lookup
+     * fails the import instead of going on without it.
+     */
+    @Test
+    fun aFailedLookupFailsTheImportClosedWithoutTheKeyInItsStackTrace() =
+        runBlocking {
+            val synchronizer =
+                mockk<Synchronizer>(relaxed = true) {
+                    every { accountsFlow } returns MutableStateFlow(listOf(account))
+                    every { walletBalances } returns MutableStateFlow(null)
+                    coEvery { getAccounts() } returns listOf(account)
+                    coEvery { findAccountSharingKeyComponents(any()) } throws
+                        InitializeException.FindAccountSharingKeyComponentsException(
+                            RuntimeException("lookup_ufvk($UFVK)")
+                        )
+                }
+
+            val thrown =
+                assertFailsWith<ViewOnlyAccountImportException> {
+                    dataSource(synchronizer, relaxedBindingProvider())
+                        .importViewOnlyAccount(ufvk = UFVK, name = "Savings", birthday = null)
+                }
+
+            assertTrue(generateSequence<Throwable>(thrown) { it.cause }.all { it is ViewOnlyAccountImportException })
+            assertFalse(thrown.stackTraceToString().contains("uview"))
+            coVerify(exactly = 0) { synchronizer.importAccountByUfvk(any()) }
+        }
+
+    @Test
+    fun aCancelledLookupIsRethrownWithoutImporting() =
+        runBlocking {
+            val synchronizer =
+                mockk<Synchronizer>(relaxed = true) {
+                    every { accountsFlow } returns MutableStateFlow(listOf(account))
+                    every { walletBalances } returns MutableStateFlow(null)
+                    coEvery { getAccounts() } returns listOf(account)
+                    coEvery { findAccountSharingKeyComponents(any()) } throws CancellationException("cancelled")
+                }
+
+            assertFailsWith<CancellationException> {
+                dataSource(synchronizer, relaxedBindingProvider())
+                    .importViewOnlyAccount(ufvk = UFVK, name = "Savings", birthday = null)
+            }
+            coVerify(exactly = 0) { synchronizer.importAccountByUfvk(any()) }
         }
 
     @Test

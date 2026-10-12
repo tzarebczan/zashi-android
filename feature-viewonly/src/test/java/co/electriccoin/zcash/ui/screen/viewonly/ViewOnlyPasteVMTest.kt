@@ -1,11 +1,19 @@
 package co.electriccoin.zcash.ui.screen.viewonly
 
+import cash.z.ecc.android.sdk.model.UnifiedFullViewingKeyComponents
+import cash.z.ecc.android.sdk.model.ZcashNetwork
 import co.electriccoin.zcash.ui.NavigationRouter
+import co.electriccoin.zcash.ui.common.model.VersionInfo
 import co.electriccoin.zcash.ui.common.repository.PendingViewOnlyImport
 import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepositoryImpl
 import co.electriccoin.zcash.ui.common.usecase.ClearClipboardUseCase
 import co.electriccoin.zcash.ui.common.usecase.SubmitViewOnlyKeyResult
 import co.electriccoin.zcash.ui.common.usecase.SubmitViewOnlyKeyUseCase
+import co.electriccoin.zcash.ui.common.usecase.UfvkDescriber
+import co.electriccoin.zcash.ui.common.usecase.ValidateUfvkUseCase
+import co.electriccoin.zcash.ui.common.usecase.ViewOnlyKeyCheckException
+import co.electriccoin.zcash.ui.screen.error.ErrorArgs
+import co.electriccoin.zcash.ui.screen.error.NavigateToErrorUseCase
 import co.electriccoin.zcash.ui.screen.viewonly.paste.ViewOnlyPasteVM
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -27,6 +35,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -34,7 +43,8 @@ import kotlin.test.assertTrue
 /**
  * The paste screen enables Continue for any text, submits it once, and routes by the outcome: an
  * importable key to naming, a key the wallet holds to the "already imported" sheet, anything else
- * to the invalid-key sheet. A pasted key is wiped from the clipboard on Continue and on back, and
+ * to the invalid-key sheet. A key the SDK fails to read opens the general error screen instead, and
+ * Continue can be tried again. A pasted key is wiped from the clipboard on Continue and on back, and
  * the key never shows up in the state's text.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -44,6 +54,8 @@ class ViewOnlyPasteVMTest {
     private val clearClipboard = mockk<ClearClipboardUseCase>(relaxed = true)
 
     private val repository = ViewOnlyPendingImportRepositoryImpl()
+
+    private val navigateToError = mockk<NavigateToErrorUseCase>(relaxed = true)
 
     private var result = SubmitViewOnlyKeyResult.Accepted
 
@@ -125,6 +137,45 @@ class ViewOnlyPasteVMTest {
             sheet.primaryAction.onClick()
             runCurrent()
             assertNull(vm.invalidKeySheet.value)
+        }
+
+    @Test
+    fun aKeyTheSdkFailsToReadOpensTheErrorScreenNotTheInvalidKeySheet() =
+        runTest {
+            val vm = vm(submitWithDescriber { throw IllegalStateException("native failure") })
+            collect(vm)
+            type(vm, SDK_KEY)
+
+            vm.state.value.continueButton
+                .onClick()
+            runCurrent()
+
+            assertNull(vm.invalidKeySheet.value)
+            verify(exactly = 1) {
+                navigateToError(match { assertIs<ErrorArgs.General>(it).exception is ViewOnlyKeyCheckException }, any())
+            }
+            verify(exactly = 0) { navigationRouter.forward(any()) }
+            assertNull(repository.get())
+            assertTrue(vm.state.value.continueButton.isEnabled)
+            assertFalse(vm.state.value.continueButton.isLoading)
+        }
+
+    @Test
+    fun aKeyTheSdkReadsAsInvalidOpensTheInvalidKeySheetNotTheErrorScreen() =
+        runTest {
+            val vm = vm(submitWithDescriber { null })
+            collect(vm)
+            type(vm, SDK_KEY)
+
+            vm.state.value.continueButton
+                .onClick()
+            runCurrent()
+
+            assertNotNull(vm.invalidKeySheet.value)
+            verify(exactly = 0) { navigateToError(any(), any()) }
+            assertNull(repository.get())
+            assertTrue(vm.state.value.continueButton.isEnabled)
+            assertFalse(vm.state.value.continueButton.isLoading)
         }
 
     @Test
@@ -278,12 +329,32 @@ class ViewOnlyPasteVMTest {
         runCurrent()
     }
 
-    private fun vm() =
+    private fun vm(submitViewOnlyKey: SubmitViewOnlyKeyUseCase = submit) =
         ViewOnlyPasteVM(
-            submitViewOnlyKey = submit,
+            submitViewOnlyKey = submitViewOnlyKey,
             clearClipboard = clearClipboard,
             pendingImportRepository = repository,
             navigationRouter = navigationRouter,
+            navigateToError = navigateToError,
+        )
+
+    /**
+     * The real submit and validation with only the SDK's reading of the key faked, so the test covers
+     * how the describer's answer reaches the screen.
+     */
+    private fun submitWithDescriber(describe: () -> UnifiedFullViewingKeyComponents?) =
+        SubmitViewOnlyKeyUseCase(
+            validateUfvk =
+                ValidateUfvkUseCase(
+                    object : UfvkDescriber {
+                        override suspend fun describe(
+                            ufvk: String,
+                            network: ZcashNetwork,
+                        ): UnifiedFullViewingKeyComponents? = describe()
+                    }
+                ),
+            synchronizerProvider = mockk(),
+            pendingImportRepository = repository,
         )
 
     /**
@@ -305,6 +376,9 @@ class ViewOnlyPasteVMTest {
 
     private companion object {
         const val TYPED = "uview1thisisafixturethatisnotarealkey"
+
+        /** Text that passes the use case's pre-filter for the build's network, so the SDK is asked. */
+        val SDK_KEY = ValidateUfvkUseCase.keyPrefixOf(VersionInfo.NETWORK) + "thisisafixturethatisnotarealkey"
         const val HIDE_DELAY_MS = 351L
     }
 }

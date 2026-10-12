@@ -3,9 +3,11 @@ package co.electriccoin.zcash.ui.common.usecase
 import cash.z.ecc.android.sdk.model.UnifiedFullViewingKeyComponents
 import cash.z.ecc.android.sdk.model.ZcashNetwork
 import co.electriccoin.zcash.ui.common.model.ufvk.UfvkFixtures
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
@@ -13,12 +15,15 @@ import kotlin.test.assertTrue
 /**
  * Only a full viewing key for the wallet's network that the SDK reads as carrying both an Orchard
  * and a transparent P2PKH component is importable. Text that is mixed case or does not start with
- * the network's key prefix is rejected without reaching the SDK, and no outcome prints the key.
+ * the network's key prefix is rejected without reaching the SDK, and no outcome prints the key. A key
+ * the SDK fails to read is a fault, reported as such without the SDK's exception, never as invalid.
  */
 class ValidateUfvkUseCaseTest {
     private val describedKeys = mutableListOf<Pair<String, ZcashNetwork>>()
 
     private var sdkComponents: UnifiedFullViewingKeyComponents? = FULL_COMPONENTS
+
+    private var sdkFailure: Exception? = null
 
     private val useCase =
         ValidateUfvkUseCase(
@@ -28,6 +33,7 @@ class ValidateUfvkUseCaseTest {
                     network: ZcashNetwork,
                 ): UnifiedFullViewingKeyComponents? {
                     describedKeys += ufvk to network
+                    sdkFailure?.let { throw it }
                     return sdkComponents
                 }
             }
@@ -184,6 +190,26 @@ class ValidateUfvkUseCaseTest {
             ).forEach { input ->
                 assertInvalid(useCase(input, ZcashNetwork.Mainnet))
             }
+        }
+
+    @Test
+    fun aKeyTheSdkFailsToReadIsAFaultWithoutTheKeyInItsStackTrace() =
+        runTest {
+            sdkFailure = IllegalStateException("describe(${UfvkFixtures.MAINNET_FULL})", RuntimeException("uview"))
+
+            val thrown =
+                assertFailsWith<ViewOnlyKeyCheckException> { useCase(UfvkFixtures.MAINNET_FULL, ZcashNetwork.Mainnet) }
+
+            assertTrue(generateSequence<Throwable>(thrown) { it.cause }.all { it is ViewOnlyKeyCheckException })
+            assertFalse(thrown.stackTraceToString().contains("uview"))
+        }
+
+    @Test
+    fun aCancelledSdkReadIsRethrownNotReportedAsAFault() =
+        runTest {
+            sdkFailure = CancellationException("cancelled")
+
+            assertFailsWith<CancellationException> { useCase(UfvkFixtures.MAINNET_FULL, ZcashNetwork.Mainnet) }
         }
 
     @Test
