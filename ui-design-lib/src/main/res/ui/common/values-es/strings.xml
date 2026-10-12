@@ -89,6 +89,18 @@
     <!-- ===== account_list ===== -->
     <string name="hwWallet_drawer_title">Billeteras y Dispositivos</string>
     <string name="hwWallet_connect">Conectar Billetera de Hardware</string>
+    <string name="hwWallet_section_zodl">Billetera Zodl</string>
+    <string name="hwWallet_section_keystone">Billetera Keystone</string>
+    <string name="hwWallet_section_keystone_plural">Billeteras Keystone</string>
+    <string name="hwWallet_section_ledger">Billetera Ledger</string>
+    <string name="hwWallet_section_ledger_plural">Billeteras Ledger</string>
+    <string name="hwWallet_walletOptions_contentDescription">Opciones de billetera</string>
+    <string name="hwWallet_promo_title">Billetera de Hardware Keystone</string>
+    <string name="hwWallet_promo_message">Obtén un 5%% de descuento en una billetera de hardware aislada. Código promocional “Zodl”.</string>
+    <string name="hwWallet_options_title">Opciones de billetera</string>
+    <string name="hwWallet_options_disconnect_title">Desconectar billetera de hardware</string>
+    <string name="hwWallet_options_disconnect_keystone">Desvincula tu dispositivo Keystone.</string>
+    <string name="hwWallet_options_disconnect_ledger">Desvincula tu dispositivo Ledger.</string>
 
     <!-- ===== add_contact ===== -->
     <string name="addressBook_addNewContact">Agregar nuevo contacto</string>

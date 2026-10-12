@@ -24,7 +24,8 @@ import co.electriccoin.zcash.ui.design.util.getValue
  * One bordered row of a bottom sheet as Figma draws it: a 40 dp logo 12 dp from a Text SM Medium
  * title, the subtitle in Text XS right under it, and the trailing chevron. The logo and text sit
  * together in the content slot because [BaseListItem]'s leading slot is spaced for a 48 dp item.
- * The account list and the "Add Account" sheet both build their rows with it.
+ * The "Add Account" and "Wallet Options" sheets build their rows with it; the Wallets & Hardware
+ * screen's wallet rows are [ZashiWalletListItem].
  */
 @Composable
 fun ZashiSheetListItem(

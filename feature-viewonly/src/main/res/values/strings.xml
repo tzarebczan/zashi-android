@@ -3,6 +3,8 @@
     <string name="view_only_account_default_name">View Only Account</string>
     <string name="view_only_top_bar_subtitle">View Only</string>
     <string name="view_only_add_account">Add Account</string>
+    <string name="view_only_account_list_section">View Only Account</string>
+    <string name="view_only_account_list_section_plural">View Only Accounts</string>
     <string name="view_only_unsupported_title">Not available</string>
     <string name="view_only_unsupported_message">This account was imported with a viewing key. It can see its balance and activity, but it cannot send, shield, swap, vote or migrate funds.</string>
     <string name="view_only_receive_shielded_title">Zcash Shielded Address</string>

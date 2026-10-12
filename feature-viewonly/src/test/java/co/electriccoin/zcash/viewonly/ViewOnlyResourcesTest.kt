@@ -30,6 +30,8 @@ class ViewOnlyResourcesTest {
             listOf(
                 content.defaultAccountName,
                 content.topBarSubtitle,
+                content.accountListSection,
+                content.accountListSectionPlural,
                 content.addAccountButton,
                 content.unsupportedOperationTitle,
                 content.unsupportedOperationMessage,

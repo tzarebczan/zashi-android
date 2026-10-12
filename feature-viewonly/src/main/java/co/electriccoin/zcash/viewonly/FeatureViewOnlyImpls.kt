@@ -2,6 +2,7 @@ package co.electriccoin.zcash.viewonly
 
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import cash.z.ecc.android.sdk.model.AccountUuid
 import cash.z.ecc.android.sdk.model.BlockHeight
 import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepository
@@ -35,6 +36,10 @@ class ViewOnlyContentImpl : ViewOnlyContent {
     override val defaultAccountName = stringRes(R.string.view_only_account_default_name)
 
     override val topBarSubtitle = stringRes(R.string.view_only_top_bar_subtitle)
+
+    override val accountListSection = stringRes(R.string.view_only_account_list_section)
+
+    override val accountListSectionPlural = stringRes(R.string.view_only_account_list_section_plural)
 
     override val addAccountButton = stringRes(R.string.view_only_add_account)
 
@@ -102,6 +107,13 @@ class ViewOnlyNavigatorImpl(
     override fun forwardToImport() = navigationRouter.forward(ViewOnlyImportArgs)
 
     override fun forwardToImported() = navigationRouter.forward(ViewOnlyImportedArgs)
+
+    /**
+     * Part A placeholder: the edit and remove flow for a view-only account (Part B) does not exist
+     * yet, so this navigates nowhere. Part B replaces it with a forward to its options route, keyed
+     * by `accountUuid.toStorageKeyId()`.
+     */
+    override fun forwardToEditAccount(accountUuid: AccountUuid) = Unit
 }
 
 class ViewOnlyNavContributorImpl : ViewOnlyNavContributor {

@@ -2,6 +2,7 @@ package co.electriccoin.zcash.ui.common.viewonly
 
 import androidx.annotation.DrawableRes
 import androidx.navigation.NavGraphBuilder
+import cash.z.ecc.android.sdk.model.AccountUuid
 import cash.z.ecc.android.sdk.model.BlockHeight
 import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.screen.connecthw.HWWalletBranding
@@ -17,8 +18,15 @@ import co.electriccoin.zcash.ui.screen.connecthw.HWWalletBranding
  * and reaches ui-lib through [ViewOnlyContent].
  */
 interface ViewOnlyNavigator {
-    /** Opens the "Add Account" options sheet. */
+    /** Opens the "Add Account" options sheet from the Wallets & Hardware screen. */
     fun forwardToAddAccount()
+
+    /**
+     * Opens the options of the view-only account [accountUuid], the destination of its "..." button
+     * on the Wallets & Hardware screen. Implementations put only the account's storage-key id
+     * (`AccountUuid.toStorageKeyId()`) in a route, never the viewing key or any other secret.
+     */
+    fun forwardToEditAccount(accountUuid: AccountUuid)
 
     /** Starts importing a full viewing key. */
     fun forwardToImport()
@@ -66,6 +74,12 @@ interface ViewOnlyContent {
 
     /** The small label under the account name in the top app bar. */
     val topBarSubtitle: StringResource
+
+    /** The Wallets & Hardware section header above a single view-only account. */
+    val accountListSection: StringResource
+
+    /** The Wallets & Hardware section header above several view-only accounts. */
+    val accountListSectionPlural: StringResource
 
     /** The account list's call to action that opens the "Add Account" options. */
     val addAccountButton: StringResource

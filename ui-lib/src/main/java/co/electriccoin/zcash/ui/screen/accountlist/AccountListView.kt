@@ -1,160 +1,298 @@
 package co.electriccoin.zcash.ui.screen.accountlist
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import co.electriccoin.zcash.ui.design.R
-import co.electriccoin.zcash.ui.design.component.ButtonState
-import co.electriccoin.zcash.ui.design.component.LottieProgress
+import co.electriccoin.zcash.ui.design.component.BlankBgScaffold
+import co.electriccoin.zcash.ui.design.component.ShimmerRectangle
 import co.electriccoin.zcash.ui.design.component.ZashiButton
-import co.electriccoin.zcash.ui.design.component.ZashiButtonDefaults
-import co.electriccoin.zcash.ui.design.component.ZashiFrostedSheetHeader
-import co.electriccoin.zcash.ui.design.component.ZashiScreenModalBottomSheet
-import co.electriccoin.zcash.ui.design.component.listitem.ZashiSheetListItem
-import co.electriccoin.zcash.ui.design.component.rememberScreenModalBottomSheetState
+import co.electriccoin.zcash.ui.design.component.ZashiHorizontalDivider
+import co.electriccoin.zcash.ui.design.component.ZashiSmallTopAppBar
+import co.electriccoin.zcash.ui.design.component.ZashiTopAppBarCloseNavigation
+import co.electriccoin.zcash.ui.design.component.listitem.BaseListItem
+import co.electriccoin.zcash.ui.design.component.listitem.ZashiWalletListItem
 import co.electriccoin.zcash.ui.design.component.rememberZashiFrostState
+import co.electriccoin.zcash.ui.design.component.rememberZashiShimmer
 import co.electriccoin.zcash.ui.design.component.zashiFrostSource
-import co.electriccoin.zcash.ui.design.newcomponent.PreviewScreens
+import co.electriccoin.zcash.ui.design.component.zashiFrostedHeader
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.design.theme.colors.ZashiColors
 import co.electriccoin.zcash.ui.design.theme.typography.ZashiTypography
+import co.electriccoin.zcash.ui.design.util.ImageResource
 import co.electriccoin.zcash.ui.design.util.getValue
-import co.electriccoin.zcash.ui.design.util.imageRes
-import co.electriccoin.zcash.ui.design.util.stringRes
-import co.electriccoin.zcash.ui.design.util.stringResByAddress
+import co.electriccoin.zcash.ui.design.util.scaffoldScrollPadding
+import com.valentinilk.shimmer.shimmer
+
+/**
+ * Lays the sections out in one scrolling column whose minimum height is the viewport, with a
+ * weighted spacer before the promo card and the "Add Account" button: while the wallets fit, the
+ * card and the button sit at the bottom of the screen; once they do not, the whole column scrolls
+ * and the button follows the last section.
+ */
+@Composable
+fun AccountListView(state: AccountListState) {
+    val hazeState = rememberZashiFrostState()
+    BlankBgScaffold(
+        topBar = {
+            AccountListTopAppBar(
+                state = state,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .zashiFrostedHeader(hazeState)
+            )
+        }
+    ) { paddingValues ->
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .zashiFrostSource(hazeState)
+        ) {
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .scaffoldScrollPadding(paddingValues),
+            ) {
+                if (state.sections == null) {
+                    LoadingSection()
+                } else {
+                    state.sections.forEachIndexed { index, section ->
+                        if (index != 0) {
+                            Spacer(Modifier.height(16.dp))
+                            ZashiHorizontalDivider(
+                                modifier = Modifier.padding(horizontal = 4.dp),
+                                thickness = 1.dp,
+                            )
+                            Spacer(Modifier.height(16.dp))
+                        }
+                        Section(section)
+                    }
+                }
+                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.weight(1f))
+                state.keystonePromo?.let {
+                    KeystonePromoCard(
+                        state = it,
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp)
+                    )
+                    Spacer(Modifier.height(32.dp))
+                }
+                state.addAccountButton?.let {
+                    ZashiButton(
+                        state = it,
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp),
+                        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp),
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
-internal fun AccountListView(
-    state: AccountListState?,
-    sheetState: SheetState = rememberScreenModalBottomSheetState(),
+private fun AccountListTopAppBar(
+    state: AccountListState,
+    modifier: Modifier = Modifier,
 ) {
-    ZashiScreenModalBottomSheet(
-        state = state,
-        sheetState = sheetState,
-        dragHandle = null,
-        content = { state, contentPadding ->
-            BottomSheetContent(
-                state = state,
-                contentPadding = contentPadding,
-                modifier = Modifier.weight(1f, false)
-            )
+    ZashiSmallTopAppBar(
+        title = state.title.getValue(),
+        modifier = modifier,
+        navigationAction = {
+            ZashiTopAppBarCloseNavigation(onBack = state.onBack)
         },
+        colors =
+            ZcashTheme.colors.topAppBarColors.copyColors(
+                containerColor = Color.Transparent
+            ),
     )
 }
 
 @Composable
-private fun BottomSheetContent(
-    state: AccountListState,
-    contentPadding: PaddingValues,
-    modifier: Modifier = Modifier
-) {
-    val hazeState = rememberZashiFrostState()
-    var headerHeight by remember { mutableStateOf(0.dp) }
-    Box(modifier = modifier) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .zashiFrostSource(hazeState)
-                    .verticalScroll(rememberScrollState())
-                    .padding(
-                        top = headerHeight,
-                        bottom = contentPadding.calculateBottomPadding()
-                    )
+private fun Section(state: AccountListSectionState) {
+    Column {
+        Row(
+            modifier = Modifier.padding(horizontal = 24.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            state.items?.forEachIndexed { index, item ->
-                if (index != 0) {
-                    Spacer(Modifier.height(8.dp))
-                }
-                ZashiSheetListItem(
-                    modifier = Modifier.padding(horizontal = 24.dp),
-                    icon = imageRes(item.icon),
-                    title = item.title,
-                    subtitle = item.subtitle,
-                    badge =
-                        if (item.isSelected) {
-                            imageRes(co.electriccoin.zcash.ui.R.drawable.ic_account_selected_badge)
-                        } else {
-                            null
-                        },
-                    onClick = item.onClick,
-                )
+            Text(
+                text = state.title.getValue(),
+                style = ZashiTypography.textSm,
+                fontWeight = FontWeight.Medium,
+                color = ZashiColors.Text.textTertiary,
+            )
+            state.count?.let {
+                Spacer(Modifier.width(8.dp))
+                CountTag(it.getValue())
             }
-            if (state.isLoading) {
-                Spacer(Modifier.height(24.dp))
-                LottieProgress(
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
-            }
-            if (state.addWalletButton != null) {
-                Spacer(modifier = Modifier.height(24.dp))
-                ZashiButton(
-                    state = state.addWalletButton,
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp),
-                    defaultSecondaryColors =
-                        ZashiButtonDefaults.secondaryColors(
-                            borderColor = ZashiColors.Btns.Secondary.btnSecondaryBorder
-                        )
+        }
+        Spacer(Modifier.height(12.dp))
+        Column(
+            modifier = Modifier.padding(horizontal = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            state.items.forEach { item ->
+                ZashiWalletListItem(
+                    state = item,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         }
-
-        ZashiFrostedSheetHeader(
-            hazeState = hazeState,
-            modifier = Modifier.align(Alignment.TopCenter),
-            onHeightChanged = { headerHeight = it },
-            title = {
-                Text(
-                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 16.dp),
-                    text = stringResource(co.electriccoin.zcash.ui.R.string.hwWallet_drawer_title),
-                    style = ZashiTypography.textXl,
-                    fontWeight = FontWeight.SemiBold,
-                    color = ZashiColors.Text.textPrimary
-                )
-            }
-        )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@PreviewScreens
 @Composable
-private fun Preview() =
-    ZcashTheme {
-        AccountListView(state = AccountListState.preview)
-    }
+private fun CountTag(count: String) {
+    Text(
+        modifier =
+            Modifier
+                .background(ZashiColors.Utility.Gray.utilityGray50, CircleShape)
+                .padding(horizontal = 6.dp),
+        text = count,
+        style = ZashiTypography.textSm,
+        fontWeight = FontWeight.Medium,
+        color = ZashiColors.Text.textTertiary,
+    )
+}
 
-@OptIn(ExperimentalMaterial3Api::class)
-@PreviewScreens
+/**
+ * The shape of one section with two rows, shimmering until the wallets load.
+ */
 @Composable
-private fun LoadingPreview() =
-    ZcashTheme {
-        AccountListView(state = AccountListState.previewLoading)
+private fun LoadingSection() {
+    Column(
+        modifier =
+            Modifier
+                .padding(horizontal = 24.dp)
+                .shimmer(rememberZashiShimmer()),
+    ) {
+        ShimmerRectangle(width = 96.dp, height = 20.dp)
+        Spacer(Modifier.height(12.dp))
+        repeat(LOADING_ROWS) { index ->
+            if (index != 0) {
+                Spacer(Modifier.height(8.dp))
+            }
+            ShimmerRectangle(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(60.dp),
+                shape = RoundedCornerShape(12.dp),
+            )
+        }
     }
+}
+
+private const val LOADING_ROWS = 2
+
+/**
+ * Keystone's own card artwork: a dark card in both themes, its photo fading into the text panel.
+ */
+@Composable
+private fun KeystonePromoCard(
+    state: KeystonePromoState,
+    modifier: Modifier = Modifier,
+) {
+    BaseListItem(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        color = PromoBackground,
+        contentPadding = PaddingValues(0.dp),
+        leading = null,
+        trailing = null,
+        onClick = state.onClick,
+        content = {
+            Row(
+                modifier = it,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (state.image is ImageResource.ByDrawable) {
+                    Box(modifier = Modifier.size(width = 99.dp, height = 98.dp)) {
+                        Image(
+                            modifier = Modifier.matchParentSize(),
+                            painter = painterResource(state.image.resource),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                        )
+                        Box(
+                            modifier =
+                                Modifier
+                                    .matchParentSize()
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            PROMO_FADE_START to Color.Transparent,
+                                            1f to PromoBackground,
+                                        )
+                                    )
+                        )
+                    }
+                }
+                Column(
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .heightIn(min = 98.dp)
+                            .padding(start = 16.dp, top = 20.dp, end = 20.dp, bottom = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
+                ) {
+                    Text(
+                        text = state.title.getValue(),
+                        style = ZashiTypography.textMd,
+                        fontWeight = FontWeight.SemiBold,
+                        color = PromoTitle,
+                    )
+                    Text(
+                        text = state.message.getValue(),
+                        style = ZashiTypography.textXs,
+                        color = PromoMessage,
+                    )
+                }
+            }
+        },
+    )
+}
+
+@Suppress("MagicNumber")
+private val PromoBackground = Color(0xFF101213)
+
+@Suppress("MagicNumber")
+private val PromoTitle = Color(0xFFFFFFFF)
+
+@Suppress("MagicNumber")
+private val PromoMessage = Color(0xFFC0BFB1)
+
+private const val PROMO_FADE_START = 0.49f

@@ -95,6 +95,18 @@
     <!-- ===== account_list ===== -->
     <string name="hwWallet_drawer_title">Wallets &amp; Hardware</string>
     <string name="hwWallet_connect">Connect Hardware Wallet</string>
+    <string name="hwWallet_section_zodl">Zodl Wallet</string>
+    <string name="hwWallet_section_keystone">Keystone Wallet</string>
+    <string name="hwWallet_section_keystone_plural">Keystone Wallets</string>
+    <string name="hwWallet_section_ledger">Ledger Wallet</string>
+    <string name="hwWallet_section_ledger_plural">Ledger Wallets</string>
+    <string name="hwWallet_walletOptions_contentDescription">Wallet options</string>
+    <string name="hwWallet_promo_title">Keystone Hardware Wallet</string>
+    <string name="hwWallet_promo_message">Get 5%% off an airgapped hardware wallet. Promo code “Zodl”.</string>
+    <string name="hwWallet_options_title">Wallet Options</string>
+    <string name="hwWallet_options_disconnect_title">Disconnect hardware wallet</string>
+    <string name="hwWallet_options_disconnect_keystone">Unpair your Keystone device.</string>
+    <string name="hwWallet_options_disconnect_ledger">Unpair your Ledger device.</string>
 
     <!-- ===== add_contact ===== -->
     <string name="addressBook_addNewContact">Add New Contact</string>

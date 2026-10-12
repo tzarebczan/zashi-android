@@ -18,6 +18,8 @@ import co.electriccoin.zcash.ui.screen.about.AboutArgs
 import co.electriccoin.zcash.ui.screen.about.AboutScreen
 import co.electriccoin.zcash.ui.screen.accountlist.AccountListArgs
 import co.electriccoin.zcash.ui.screen.accountlist.AccountListScreen
+import co.electriccoin.zcash.ui.screen.accountlist.options.WalletOptionsArgs
+import co.electriccoin.zcash.ui.screen.accountlist.options.WalletOptionsScreen
 import co.electriccoin.zcash.ui.screen.addressbook.AddressBookArgs
 import co.electriccoin.zcash.ui.screen.addressbook.AddressBookScreen
 import co.electriccoin.zcash.ui.screen.addressbook.SelectABRecipientArgs
@@ -270,7 +272,8 @@ fun NavGraphBuilder.walletNavGraph(
         composable<ScanKeystoneSignInRequest> { WrapScanKeystoneSignInRequest() }
         composable<ScanKeystonePCZTRequest> { WrapScanKeystonePCZTRequest() }
         composable<SignKeystoneTransactionArgs> { SignKeystoneTransactionScreen() }
-        dialogComposable<AccountListArgs> { AccountListScreen() }
+        composable<AccountListArgs> { AccountListScreen() }
+        dialogComposable<WalletOptionsArgs> { WalletOptionsScreen(it.toRoute()) }
         composable<ScanArgs> { ScanZashiAddressScreen(it.toRoute()) }
         composable(NavigationTargets.EXPORT_PRIVATE_DATA) { WrapExportPrivateData() }
         composable<ExportVKArgs> { ExportVKScreen() }
@@ -383,7 +386,7 @@ fun NavGraphBuilder.walletNavGraph(
         composable<ResyncDateArgs> { ResyncDateScreen(it.toRoute()) }
         composable<ResyncEstimationArgs> { ResyncEstimationScreen(it.toRoute()) }
         composable<ResyncHeightArgs> { ResyncHeightScreen() }
-        composable<DisconnectArgs> { DisconnectScreen() }
+        composable<DisconnectArgs> { DisconnectScreen(it.toRoute()) }
         // Migration destinations are contributed by the feature-migration module — see
         // MigrationNavContributor in MigrationContracts.kt (wired via Koin in the app module).
         org.koin.mp.KoinPlatform.getKoin().getAll<MigrationNavContributor>().forEach {

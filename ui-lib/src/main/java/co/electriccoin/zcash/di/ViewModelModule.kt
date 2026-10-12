@@ -6,6 +6,7 @@ import co.electriccoin.zcash.ui.common.viewmodel.OldHomeViewModel
 import co.electriccoin.zcash.ui.common.viewmodel.WalletViewModel
 import co.electriccoin.zcash.ui.screen.ScreenTimeoutVM
 import co.electriccoin.zcash.ui.screen.accountlist.AccountListVM
+import co.electriccoin.zcash.ui.screen.accountlist.options.WalletOptionsVM
 import co.electriccoin.zcash.ui.screen.addressbook.AddressBookVM
 import co.electriccoin.zcash.ui.screen.addressbook.SelectABRecipientVM
 import co.electriccoin.zcash.ui.screen.advancedsettings.AdvancedSettingsVM
@@ -138,6 +139,7 @@ val viewModelModule =
         viewModelOf(::FeedbackVM)
         viewModelOf(::SignKeystoneTransactionVM)
         viewModelOf(::AccountListVM)
+        viewModelOf(::WalletOptionsVM)
         viewModelOf(::ZashiTopAppBarVM)
         viewModelOf(::SelectKeystoneAccountViewModel)
         viewModelOf(::ReviewTransactionVM)

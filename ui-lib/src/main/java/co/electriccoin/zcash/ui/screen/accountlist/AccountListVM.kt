@@ -2,20 +2,22 @@ package co.electriccoin.zcash.ui.screen.accountlist
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cash.z.ecc.sdk.ANDROID_STATE_FLOW_TIMEOUT
 import co.electriccoin.zcash.ui.NavigationRouter
+import co.electriccoin.zcash.ui.common.model.KeystoneAccount
+import co.electriccoin.zcash.ui.common.model.LedgerAccount
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
+import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.stateIn
+import co.electriccoin.zcash.ui.common.model.toStorageKeyId
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
 import co.electriccoin.zcash.ui.common.usecase.SelectWalletAccountUseCase
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyNavigator
-import co.electriccoin.zcash.ui.design.component.ButtonState
-import co.electriccoin.zcash.ui.design.component.ButtonStyle
-import co.electriccoin.zcash.ui.design.util.stringResByAddress
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.WhileSubscribed
+import co.electriccoin.zcash.ui.screen.ExternalUrl
+import co.electriccoin.zcash.ui.screen.accountlist.options.WalletOptionsArgs
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class AccountListVM(
@@ -25,47 +27,82 @@ class AccountListVM(
     private val viewOnlyNavigator: ViewOnlyNavigator,
     private val viewOnlyContent: ViewOnlyContent,
 ) : ViewModel() {
-    val state =
+    val state: StateFlow<AccountListState> =
         getWalletAccounts
             .observe()
-            .map { accounts ->
-                AccountListState(
-                    items =
-                        accounts?.map { account ->
-                            ZashiAccountListItemState(
-                                title = account.name,
-                                subtitle = stringResByAddress(account.unifiedAddress),
-                                icon = account.icon,
-                                isSelected = account.isSelected,
-                                onClick = { onAccountClicked(account) }
-                            )
-                        },
-                    isLoading = accounts == null,
-                    onBack = ::onBack,
-                    addWalletButton =
-                        ButtonState(
-                            text = viewOnlyContent.addAccountButton,
-                            style = ButtonStyle.PRIMARY,
-                            icon = viewOnlyContent.addAccountButtonIcon,
-                            onClick = ::onAddWalletButtonClicked
-                        ).takeIf { accounts != null }
-                )
-            }.stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.Companion.WhileSubscribed(ANDROID_STATE_FLOW_TIMEOUT),
-                initialValue = null
-            )
+            .map(::createState)
+            .stateIn(viewModel = this, initialValue = createState(null))
 
-    private fun onAccountClicked(account: WalletAccount) =
+    private fun createState(accounts: List<WalletAccount>?) =
+        AccountListState.create(
+            entries = accounts?.map(::toEntry),
+            viewOnlySection = viewOnlyContent.accountListSection,
+            viewOnlySectionPlural = viewOnlyContent.accountListSectionPlural,
+            viewOnlyLabel = viewOnlyContent.topBarSubtitle,
+            addAccountText = viewOnlyContent.addAccountButton,
+            addAccountIcon = viewOnlyContent.addAccountButtonIcon,
+            onKeystonePromoClick = ::onKeystonePromoClick,
+            onAddAccountClick = ::onAddAccountClick,
+            onBack = ::onBack,
+        )
+
+    private fun toEntry(account: WalletAccount) =
+        AccountListEntry(
+            kind =
+                when (account) {
+                    is ZashiAccount -> AccountListKind.ZODL
+                    is KeystoneAccount -> AccountListKind.KEYSTONE
+                    is LedgerAccount -> AccountListKind.LEDGER
+                    is ViewOnlyAccount -> AccountListKind.VIEW_ONLY
+                },
+            icon = account.icon,
+            name = account.name,
+            balance = account.totalBalance,
+            isSelected = account.isSelected,
+            onClick = { onAccountClick(account) },
+            onOptionsClick =
+                when (account) {
+                    is ZashiAccount -> {
+                        null
+                    }
+
+                    is KeystoneAccount, is LedgerAccount -> {
+                        { onHardwareWalletOptionsClick(account) }
+                    }
+
+                    is ViewOnlyAccount -> {
+                        { onViewOnlyOptionsClick(account) }
+                    }
+                },
+        )
+
+    /** Selects the account and closes the screen. */
+    private fun onAccountClick(account: WalletAccount) =
         viewModelScope.launch {
             selectWalletAccount(account)
         }
+
+    private fun onHardwareWalletOptionsClick(account: WalletAccount) =
+        navigationRouter.forward(WalletOptionsArgs(accountKeyId = account.sdkAccount.accountUuid.toStorageKeyId()))
+
+    private fun onViewOnlyOptionsClick(account: ViewOnlyAccount) =
+        viewOnlyNavigator.forwardToEditAccount(account.sdkAccount.accountUuid)
+
+    /**
+     * Opens the Keystone shop in the in-app browser, replacing this screen as the account picker did
+     * before it lost its promo row.
+     */
+    private fun onKeystonePromoClick() = navigationRouter.replace(ExternalUrl(KEYSTONE_PROMO_URL))
 
     /**
      * Opens the "Add Account" options, which offer a hardware wallet only while a vendor is still
      * unconnected and always offer importing a viewing key.
      */
-    private fun onAddWalletButtonClicked() = viewOnlyNavigator.forwardToAddAccount()
+    private fun onAddAccountClick() = viewOnlyNavigator.forwardToAddAccount()
 
     private fun onBack() = navigationRouter.back()
+
+    companion object {
+        const val KEYSTONE_PROMO_URL = "https://keyst.one/shop/products/keystone-3-pro?discount=Zodl"
+    }
 }

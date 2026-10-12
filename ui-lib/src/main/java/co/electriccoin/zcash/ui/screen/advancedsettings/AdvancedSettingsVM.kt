@@ -194,7 +194,7 @@ class AdvancedSettingsVM(
 
     private fun onResetWalletClick() = viewModelScope.launch { navigateToResetWallet() }
 
-    private fun onDisconnectHwWalletClick() = navigationRouter.forward(DisconnectArgs)
+    private fun onDisconnectHwWalletClick() = navigationRouter.forward(DisconnectArgs())
 
     private fun onRestartMigrationClick() = migrationNavigator.forwardToRestartMigration()
 

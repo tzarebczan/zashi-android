@@ -8,11 +8,14 @@ import co.electriccoin.zcash.ui.common.component.destructive
 import co.electriccoin.zcash.ui.common.model.HWWalletAccount
 import co.electriccoin.zcash.ui.common.model.LceState
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
+import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.mutableLce
 import co.electriccoin.zcash.ui.common.model.stateIn
+import co.electriccoin.zcash.ui.common.model.toStorageKeyId
 import co.electriccoin.zcash.ui.common.model.withLce
 import co.electriccoin.zcash.ui.common.usecase.DisconnectUseCase
 import co.electriccoin.zcash.ui.common.usecase.ErrorMapperUseCase
+import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveSelectedWalletAccountUseCase
 import co.electriccoin.zcash.ui.design.component.ButtonState
 import co.electriccoin.zcash.ui.design.component.ButtonStyle
@@ -23,11 +26,18 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 
+/**
+ * Disconnects the hardware wallet account [DisconnectArgs.accountKeyId] names, or the selected
+ * account when it names none. Opening it for anything but a hardware wallet account goes back.
+ */
 class DisconnectVM(
+    args: DisconnectArgs,
     observeSelectedWalletAccount: ObserveSelectedWalletAccountUseCase,
+    getWalletAccounts: GetWalletAccountsUseCase,
     private val disconnect: DisconnectUseCase,
     private val navigationRouter: NavigationRouter,
     private val errorStateMapper: ErrorMapperUseCase,
@@ -35,19 +45,31 @@ class DisconnectVM(
     private val confirmationDialogFlow = MutableStateFlow<ZashiConfirmationState?>(null)
     private val disconnectLce = mutableLce<Unit>()
 
+    private val accountKeyId = args.accountKeyId
+
     init {
         viewModelScope.launch {
-            if (observeSelectedWalletAccount.require().first() !is HWWalletAccount) navigationRouter.back()
+            val account =
+                if (accountKeyId == null) {
+                    observeSelectedWalletAccount.require().first()
+                } else {
+                    getWalletAccounts.require().first().findByKeyId(accountKeyId)
+                }
+            if (account !is HWWalletAccount) navigationRouter.back()
         }
     }
 
     /**
-     * Skips non-hardware selections instead of mapping them to null, so the screen keeps showing
-     * the disconnected account while the selection moves to the software wallet and
-     * [NavigationRouter.backToRoot] unwinds it.
+     * Skips non-hardware and missing accounts instead of mapping them to null, so the screen keeps
+     * showing the disconnected account while it is deleted, the selection moves to the software
+     * wallet and [NavigationRouter.backToRoot] unwinds it.
      */
     private val hwAccount: Flow<HWWalletAccount> =
-        observeSelectedWalletAccount().mapNotNull { it as? HWWalletAccount }
+        if (accountKeyId == null) {
+            observeSelectedWalletAccount()
+        } else {
+            getWalletAccounts.observe().map { it?.findByKeyId(accountKeyId) }
+        }.mapNotNull { it as? HWWalletAccount }
 
     private val screenStateFlow =
         combine(hwAccount, confirmationDialogFlow, disconnectLce.state) { hwAccount, confirmationDialog, lce ->
@@ -115,6 +137,9 @@ class DisconnectVM(
             confirmationDialog = confirmationDialog,
             onBack = ::onBack,
         )
+
+    private fun List<WalletAccount>.findByKeyId(keyId: String): WalletAccount? =
+        firstOrNull { it.sdkAccount.accountUuid.toStorageKeyId() == keyId }
 
     private fun onBack() = navigationRouter.back()
 

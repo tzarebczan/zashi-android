@@ -3,6 +3,8 @@
     <string name="view_only_account_default_name">Cuenta de solo lectura</string>
     <string name="view_only_top_bar_subtitle">Solo lectura</string>
     <string name="view_only_add_account">Añadir cuenta</string>
+    <string name="view_only_account_list_section">Cuenta de solo lectura</string>
+    <string name="view_only_account_list_section_plural">Cuentas de solo lectura</string>
     <string name="view_only_unsupported_title">No disponible</string>
     <string name="view_only_unsupported_message">Esta cuenta se importó con una clave de visualización. Puede ver su saldo y su actividad, pero no puede enviar, proteger, intercambiar, votar ni migrar fondos.</string>
     <string name="view_only_receive_shielded_title">Dirección protegida de Zcash</string>

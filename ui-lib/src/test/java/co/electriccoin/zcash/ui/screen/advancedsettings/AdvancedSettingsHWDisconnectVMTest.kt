@@ -104,7 +104,7 @@ class AdvancedSettingsHWDisconnectVMTest {
             assertNotNull(disconnectRow(vm)).onClick?.invoke()
             runCurrent()
 
-            verify(exactly = 1) { navigationRouter.forward(DisconnectArgs) }
+            verify(exactly = 1) { navigationRouter.forward(DisconnectArgs()) }
         }
 
     private fun disconnectRow(vm: AdvancedSettingsVM) =

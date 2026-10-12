@@ -10,8 +10,10 @@ import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.toStorageKeyId
 import co.electriccoin.zcash.ui.common.usecase.DisconnectUseCase
 import co.electriccoin.zcash.ui.common.usecase.ErrorMapperUseCase
+import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
 import co.electriccoin.zcash.ui.design.util.StringResource
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -36,14 +38,16 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 /**
- * The disconnect screen serves whichever hardware vendor is selected: it names and draws the one
- * being removed, and the confirmed disconnect deletes that account — which is also what drops a Ledger account's stored
- * binding — before selecting the software wallet again.
+ * The disconnect screen serves whichever hardware vendor is selected, or the hardware wallet the
+ * Wallets & Hardware screen names: it names and draws the one being removed, and the confirmed
+ * disconnect deletes that account — which is also what drops a Ledger account's stored binding —
+ * before selecting the software wallet again.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class DisconnectVMTest {
     private val defaultUuid = AccountUuid.new(ByteArray(16) { it.toByte() })
     private val sdkAccount = Account.new(defaultUuid)
+    private val otherUuid = AccountUuid.new(ByteArray(16) { (it + 16).toByte() })
 
     @BeforeTest
     fun setUp() {
@@ -137,6 +141,55 @@ class DisconnectVMTest {
         }
 
     @Test
+    fun aNamedHardwareWalletIsDisconnectedEvenWhileAnotherAccountIsSelected() =
+        runTest {
+            val zashi = zashi(isSelected = true)
+            val ledger = ledger(isSelected = false).copy(sdkAccount = Account.new(otherUuid))
+            val disconnect = mockk<DisconnectUseCase>(relaxed = true)
+            val navigationRouter = mockk<NavigationRouter>(relaxed = true)
+            val vm =
+                vm(
+                    selected = MutableStateFlow(zashi),
+                    disconnect = disconnect,
+                    navigationRouter = navigationRouter,
+                    accounts = MutableStateFlow(listOf(zashi, ledger)),
+                    args = DisconnectArgs(accountKeyId = otherUuid.toStorageKeyId()),
+                )
+            collect(vm)
+            assertShowsLedger(assertNotNull(vm.state.value.content))
+
+            assertNotNull(vm.state.value.content).disconnectButton.onClick()
+            runCurrent()
+            assertNotNull(
+                assertNotNull(vm.state.value.content).confirmationDialog
+            ).primaryAction.onClick()
+            runCurrent()
+
+            coVerify(exactly = 1) { disconnect.invoke(ledger) }
+            verify(exactly = 1) { navigationRouter.backToRoot() }
+            verify(exactly = 0) { navigationRouter.back() }
+        }
+
+    @Test
+    fun aNamedAccountThatIsMissingOrNotAHardwareWalletGoesBack() =
+        runTest {
+            val zashi = zashi(isSelected = true)
+            listOf(DisconnectArgs(accountKeyId = defaultUuid.toStorageKeyId()), DisconnectArgs("missing"))
+                .forEach { args ->
+                    val navigationRouter = mockk<NavigationRouter>(relaxed = true)
+                    vm(
+                        selected = MutableStateFlow(keystone(isSelected = true)),
+                        navigationRouter = navigationRouter,
+                        accounts = MutableStateFlow(listOf(zashi)),
+                        args = args,
+                    )
+                    runCurrent()
+
+                    verify(exactly = 1) { navigationRouter.back() }
+                }
+        }
+
+    @Test
     fun theDisconnectUseCaseDeletesTheAccountAndSelectsTheSoftwareWallet() =
         runTest {
             val account = ledger()
@@ -163,11 +216,19 @@ class DisconnectVMTest {
         selected: MutableStateFlow<WalletAccount?>,
         disconnect: DisconnectUseCase = mockk(relaxed = true),
         navigationRouter: NavigationRouter = mockk(relaxed = true),
+        accounts: MutableStateFlow<List<WalletAccount>?> = MutableStateFlow(null),
+        args: DisconnectArgs = DisconnectArgs(),
     ) = DisconnectVM(
+        args = args,
         observeSelectedWalletAccount =
             mockk {
                 every { this@mockk() } returns selected
                 every { require() } returns selected.filterNotNull()
+            },
+        getWalletAccounts =
+            mockk<GetWalletAccountsUseCase> {
+                every { observe() } returns accounts
+                every { require() } returns accounts.filterNotNull()
             },
         disconnect = disconnect,
         navigationRouter = navigationRouter,

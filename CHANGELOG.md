@@ -24,7 +24,7 @@ and this application adheres to [Semantic Versioning](https://semver.org/spec/v2
   account. After the wrong Ledger the signing sheet asks you to pick the device instead of
   reconnecting to the same one.
 - You can now add a view-only account by importing a Unified Full Viewing Key: tap Add Account in
-  the Wallets & Hardware sheet, choose Import full viewing key, paste the key or scan its QR code,
+  the Wallets & Hardware screen, choose Import full viewing key, paste the key or scan its QR code,
   name the account and, if it has been used before, tell Zodl when it was created. A view-only
   account shows its balance, addresses and activity, receives funds, swaps into ZEC, exports its
   viewing key and tax file, and is marked View Only under its name at the top of Home. It holds
@@ -35,13 +35,19 @@ and this application adheres to [Semantic Versioning](https://semver.org/spec/v2
 
 ### Changed:
 
-- The Wallets & Hardware sheet's Connect Hardware Wallet button is now Add Account, which offers
+- The account picker opened from the account switch at the top of Home is now the full-screen
+  Wallets & Hardware screen instead of a sheet. It groups the wallets into Zodl, Keystone, Ledger and
+  view-only sections, shows each wallet's balance, which hides with Hide Balances, and marks the
+  selected wallet. Tapping a wallet selects it; the "..." of a Keystone or Ledger wallet opens
+  Wallet Options, from which Disconnect hardware wallet disconnects that wallet even while another
+  one is selected. While no Keystone is connected the screen shows the Keystone shop offer again.
+- The Wallets & Hardware screen's Connect Hardware Wallet button is now Add Account, which offers
   connecting a hardware wallet, while one can still be added, and importing a viewing key.
 - Disconnect Hardware Wallet in Advanced Settings now shows only while a Keystone or Ledger account
   is selected, and disconnects that account; it used to show whenever the wallet held a Keystone
   account, whichever account was selected.
 - The integrations sheet no longer lists Connect Keystone; hardware wallets, Keystone or Ledger, are
-  connected from the accounts sheet.
+  connected from the Wallets & Hardware screen.
 
 ### Fixed:
 
