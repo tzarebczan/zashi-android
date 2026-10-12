@@ -6,9 +6,9 @@ import co.electriccoin.zcash.ui.common.usecase.GetViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.ImportViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.RemoveViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.RenameViewOnlyAccountUseCase
-import co.electriccoin.zcash.ui.common.usecase.SdkUfvkAddressDerivation
+import co.electriccoin.zcash.ui.common.usecase.SdkUfvkDescriber
 import co.electriccoin.zcash.ui.common.usecase.SubmitViewOnlyKeyUseCase
-import co.electriccoin.zcash.ui.common.usecase.UfvkAddressDerivation
+import co.electriccoin.zcash.ui.common.usecase.UfvkDescriber
 import co.electriccoin.zcash.ui.common.usecase.ValidateUfvkUseCase
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyAccountImporter
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
@@ -48,7 +48,7 @@ val featureViewOnlyModule =
 
         singleOf(::ViewOnlyPendingImportRepositoryImpl) bind ViewOnlyPendingImportRepository::class
 
-        factoryOf(::SdkUfvkAddressDerivation) bind UfvkAddressDerivation::class
+        factoryOf(::SdkUfvkDescriber) bind UfvkDescriber::class
         factoryOf(::ValidateUfvkUseCase)
         factoryOf(::SubmitViewOnlyKeyUseCase)
         singleOf(::ImportViewOnlyAccountUseCase)

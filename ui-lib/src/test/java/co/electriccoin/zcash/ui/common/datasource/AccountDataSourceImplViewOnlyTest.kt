@@ -1,6 +1,7 @@
 package co.electriccoin.zcash.ui.common.datasource
 
 import cash.z.ecc.android.sdk.Synchronizer
+import cash.z.ecc.android.sdk.exception.InitializeException
 import cash.z.ecc.android.sdk.model.Account
 import cash.z.ecc.android.sdk.model.AccountBalance
 import cash.z.ecc.android.sdk.model.AccountImportSetup
@@ -365,28 +366,6 @@ class AccountDataSourceImplViewOnlyTest {
         }
 
     @Test
-    fun importingAKeyTheWalletAlreadyHoldsIsRefusedBeforeTheSdkIsAsked() =
-        runBlocking {
-            val existing =
-                mockk<Account> {
-                    every { accountUuid } returns this@AccountDataSourceImplViewOnlyTest.accountUuid
-                    every { ufvk } returns UFVK
-                }
-            val synchronizer =
-                mockk<Synchronizer>(relaxed = true) {
-                    every { accountsFlow } returns MutableStateFlow(listOf(account))
-                    every { walletBalances } returns MutableStateFlow(null)
-                    coEvery { getAccounts() } returns listOf(existing)
-                }
-
-            assertFailsWith<ViewOnlyAccountAlreadyExistsException> {
-                dataSource(synchronizer, relaxedBindingProvider())
-                    .importViewOnlyAccount(ufvk = UFVK, name = "Savings", birthday = null)
-            }
-            coVerify(exactly = 0) { synchronizer.importAccountByUfvk(any()) }
-        }
-
-    @Test
     fun anImportThatReturnsAnExistingAccountIsReportedAsAlreadyImported() =
         runBlocking<Unit> {
             val existing =
@@ -435,16 +414,11 @@ class AccountDataSourceImplViewOnlyTest {
         }
 
     @Test
-    fun anSdkAccountCollisionIsReportedAsAlreadyImportedWithoutItsMessage() =
+    fun anSdkAccountCollisionIsReportedAsAlreadyImportedWithoutItsCause() =
         runBlocking {
             val collision =
-                RuntimeException(
-                    "Failed to import new account based on UFVK due to: Error while initializing accounts: " +
-                        "An account corresponding to the data provided already exists in the wallet with UUID " +
-                        "AccountUuid(0102). $UFVK",
-                    RuntimeException(
-                        "An account corresponding to the data provided already exists in the wallet with UUID x."
-                    )
+                InitializeException.ImportAccountCollisionException(
+                    RuntimeException("An account corresponding to $UFVK already exists with AccountUuid(0102).")
                 )
             val synchronizer =
                 mockk<Synchronizer>(relaxed = true) {
@@ -467,7 +441,30 @@ class AccountDataSourceImplViewOnlyTest {
         }
 
     @Test
-    fun aCollisionDeeperInTheCauseChainIsStillRecognised() =
+    fun aKeyIdenticalToAnAccountsKeyIsLeftToTheSdkAndReportedAsAlreadyImported() =
+        runBlocking<Unit> {
+            val existing =
+                mockk<Account> {
+                    every { accountUuid } returns this@AccountDataSourceImplViewOnlyTest.accountUuid
+                    every { ufvk } returns UFVK
+                }
+            val synchronizer =
+                mockk<Synchronizer>(relaxed = true) {
+                    every { accountsFlow } returns MutableStateFlow(listOf(account))
+                    every { walletBalances } returns MutableStateFlow(null)
+                    coEvery { getAccounts() } returns listOf(existing)
+                    coEvery { importAccountByUfvk(any()) } throws
+                        InitializeException.ImportAccountCollisionException(null)
+                }
+
+            assertFailsWith<ViewOnlyAccountAlreadyExistsException> {
+                dataSource(synchronizer, relaxedBindingProvider())
+                    .importViewOnlyAccount(ufvk = UFVK, name = "Savings", birthday = null)
+            }
+        }
+
+    @Test
+    fun anUntypedErrorMentioningACollisionIsAnImportFailure() =
         runBlocking<Unit> {
             val synchronizer =
                 mockk<Synchronizer>(relaxed = true) {
@@ -475,15 +472,14 @@ class AccountDataSourceImplViewOnlyTest {
                     every { walletBalances } returns MutableStateFlow(null)
                     coEvery { getAccounts() } returns listOf(account)
                     coEvery { importAccountByUfvk(any()) } throws
-                        IllegalStateException(
-                            null,
+                        InitializeException.ImportAccountException(
                             RuntimeException(
                                 "An account corresponding to the data provided already exists in the wallet."
                             )
                         )
                 }
 
-            assertFailsWith<ViewOnlyAccountAlreadyExistsException> {
+            assertFailsWith<ViewOnlyAccountImportException> {
                 dataSource(synchronizer, relaxedBindingProvider())
                     .importViewOnlyAccount(ufvk = UFVK, name = "Savings", birthday = null)
             }

@@ -2,6 +2,7 @@ package co.electriccoin.zcash.ui.common.datasource
 
 import android.content.Context
 import cash.z.ecc.android.sdk.Synchronizer
+import cash.z.ecc.android.sdk.exception.InitializeException
 import cash.z.ecc.android.sdk.ledger.LedgerAccountPairing
 import cash.z.ecc.android.sdk.model.Account
 import cash.z.ecc.android.sdk.model.AccountBalance
@@ -97,15 +98,13 @@ interface AccountDataSource {
     ): Account
 
     /**
-     * Imports [ufvk] as a view-only account named [name]. The key is checked against the accounts
-     * the wallet already holds first; an SDK failure is reported without the SDK's exception or
-     * message, which can echo the key.
+     * Imports [ufvk] as a view-only account named [name]. An SDK failure is reported without the
+     * SDK's exception or message.
      *
-     * @throws ViewOnlyAccountAlreadyExistsException if the wallet already holds an account for
-     *         [ufvk], or the SDK refused the key because it shares a component with an account the
-     *         wallet holds. When this is only detectable after the import (the SDK returned an
-     *         existing account), the SDK has already updated that account; this reports it, it
-     *         cannot undo it.
+     * @throws ViewOnlyAccountAlreadyExistsException if the SDK refused the key because it shares a
+     *         component with an account the wallet holds, or the import returned an account the
+     *         wallet already held. In that second case the SDK has already widened that account with
+     *         [ufvk]; this reports it, it cannot undo it.
      * @throws ViewOnlyAccountImportException if the SDK rejected the import.
      */
     suspend fun importViewOnlyAccount(
@@ -290,9 +289,6 @@ class AccountDataSourceImpl(
         withContext(Dispatchers.IO) {
             val synchronizer = synchronizerProvider.getSynchronizer()
             val existing = synchronizer.getAccounts()
-            if (existing.any { it.ufvk == ufvk }) {
-                throw ViewOnlyAccountAlreadyExistsException()
-            }
             val created =
                 try {
                     synchronizer.importAccountByUfvk(
@@ -306,12 +302,10 @@ class AccountDataSourceImpl(
                     )
                 } catch (e: CancellationException) {
                     throw e
+                } catch (e: InitializeException.ImportAccountCollisionException) {
+                    throw ViewOnlyAccountAlreadyExistsException()
                 } catch (e: Exception) {
-                    throw if (e.isAccountCollision()) {
-                        ViewOnlyAccountAlreadyExistsException()
-                    } else {
-                        ViewOnlyAccountImportException()
-                    }
+                    throw ViewOnlyAccountImportException()
                 }
             if (existing.any { it.accountUuid == created.accountUuid }) {
                 throw ViewOnlyAccountAlreadyExistsException()
@@ -629,30 +623,6 @@ class AccountDataSourceImpl(
             }
         }
 }
-
-/**
- * Whether the SDK refused an import because the key overlaps an account the wallet already holds:
- * librustzcash's `AccountCollision`, which reaches Kotlin only as text inside the SDK's import
- * exception. The messages of the cause chain are only matched against, never logged or copied.
- *
- * Matching the SDK's text is a stopgap and breaks silently if librustzcash rewords the error. It is
- * to be replaced by a typed collision error from the SDK, a listed follow-up of the SDK's account
- * describe API (zodl-android-wallet-sdk-private PR 53,
- * https://github.com/zodl-inc/zodl-android-wallet-sdk-private/pull/53); until then a reworded
- * message makes a colliding import fail as [ViewOnlyAccountImportException] instead of
- * [ViewOnlyAccountAlreadyExistsException].
- */
-private fun Throwable.isAccountCollision(): Boolean =
-    generateSequence(this) { it.cause }
-        .take(MAX_CAUSE_DEPTH)
-        .any { it.message?.contains(ACCOUNT_COLLISION_MARKER) == true }
-
-/**
- * The start of the text `SqliteClientError::AccountCollision` displays as.
- */
-private const val ACCOUNT_COLLISION_MARKER = "An account corresponding to the data provided already exists"
-
-private const val MAX_CAUSE_DEPTH = 8
 
 private data class AddressRequest(
     val accountUuid: AccountUuid,

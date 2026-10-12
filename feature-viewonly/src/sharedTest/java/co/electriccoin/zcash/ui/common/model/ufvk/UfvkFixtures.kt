@@ -1,12 +1,9 @@
 package co.electriccoin.zcash.ui.common.model.ufvk
 
-import co.electriccoin.zcash.ui.common.model.ufvk.UnifiedFullViewingKeyEncoding.Item
-import java.io.ByteArrayOutputStream
-
 /**
  * Public test vectors from librustzcash (`zcash_keys/src/keys.rs`, the UFVK and UIVK encoding
- * tests), derived there from a fixed test seed. They are no one's wallet keys. Variants the tests
- * need (another network, a missing component) are re-encoded from them with [encode].
+ * tests), derived there from a fixed test seed, and one variant of them. They are no one's wallet
+ * keys.
  */
 internal object UfvkFixtures {
     /** Mainnet UFVK with transparent, Sapling and Orchard components. */
@@ -33,31 +30,13 @@ internal object UfvkFixtures {
             "8d66esvk6fgacggqnswg5g9gkv6t6fj9ajhyd0gmel4yzscprpzduncc0e2lywufup6fvzf6y8cefez2r99pgge5yy" +
             "fuus0r60khgu895pln5e7nn77q6s9kh2uwf6lrfu06ma2kd7r05jjvl4hn6nupge8fajh0cazd7mkmz23t79w"
 
-    fun encode(
-        hrp: String,
-        items: List<Item>,
-    ): String {
-        val raw = ByteArrayOutputStream()
-        items.forEach { item ->
-            writeCompactSize(raw, item.typecode.toLong())
-            writeCompactSize(raw, item.data.size.toLong())
-            raw.write(item.data)
-        }
-        raw.write(UnifiedFullViewingKeyEncoding.padding(hrp))
-        return Bech32m.encode(hrp, F4Jumble.jumble(raw.toByteArray()))
-    }
-
-    fun itemsOf(
-        ufvk: String,
-        hrp: String = "uview",
-    ): List<Item> = checkNotNull(UnifiedFullViewingKeyEncoding.decode(ufvk, hrp))
-
-    @Suppress("MagicNumber")
-    private fun writeCompactSize(
-        out: ByteArrayOutputStream,
-        value: Long,
-    ) {
-        require(value < 0xFD)
-        out.write(value.toInt())
-    }
+    /**
+     * [MAINNET_FULL] without its Sapling item: its transparent and Orchard items re-encoded as a
+     * ZIP 316 mainnet UFVK, the shape of a key a hardware wallet exports.
+     */
+    const val MAINNET_TRANSPARENT_AND_ORCHARD =
+        "uview1xy8u8atfr6u072crzfzyjzelemcwe72ay4n5k88qn3pqjlcm2u99s78k7np2qn0kpgttjhp4uq8dm5jyyx24" +
+            "kktkfa73ylev92k905uzszsdpaw5xnpepqtts9xmkts7gnl7a6w3yq8n4y4s2xyjggxz9huxhkfp3xnd9x2qwldkyy" +
+            "tz2mu7apmj4g75wxdjhs3ks57h2chrpa4t8ha5ekhrxr8hcrztmtrgt0ryq6hrj98xrdu82gvvzcp392q9uxa7hcuw" +
+            "um7jtl7907rumvtnackt0hns0guark6x"
 }

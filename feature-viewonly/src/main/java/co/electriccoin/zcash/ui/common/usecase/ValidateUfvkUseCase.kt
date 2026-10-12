@@ -1,9 +1,10 @@
 package co.electriccoin.zcash.ui.common.usecase
 
+import cash.z.ecc.android.sdk.model.UnifiedFullViewingKey
+import cash.z.ecc.android.sdk.model.UnifiedFullViewingKeyComponents
 import cash.z.ecc.android.sdk.model.ZcashNetwork
 import cash.z.ecc.android.sdk.tool.DerivationTool
 import co.electriccoin.zcash.ui.common.model.VersionInfo
-import co.electriccoin.zcash.ui.common.model.ufvk.UnifiedFullViewingKeyEncoding
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -13,22 +14,23 @@ import kotlinx.coroutines.withContext
  * import as a view-only account.
  *
  * Accepted is only a key for the wallet's own network (`uview1` on mainnet, `uviewtest1` on
- * testnet) that carries both an Orchard and a transparent component, and that the SDK can derive
- * an address from. An incoming viewing key (`uivk`), any other text, a key for the other network
- * and a key missing either component are rejected: the account list combines one address flow per
- * account and waits for every one of them, and the Orchard or transparent address of a key without
- * that component would never arrive, which would stall every account in the wallet.
+ * testnet) that the SDK decodes as valid for that network and that carries both an Orchard and a
+ * transparent P2PKH component. An incoming viewing key (`uivk`), any other text, a key for the
+ * other network and a key missing either component are rejected: the account list combines one
+ * address flow per account and waits for every one of them, and the Orchard or transparent address
+ * of a key without that component would never arrive, which would stall every account in the
+ * wallet.
  *
  * Every whitespace character in the input, line breaks and zero-width spaces included, is dropped
  * first, since a key copied from an email or a PDF is often broken across lines. What remains has
- * to be all lower case or all upper case, as Bech32m requires; a mixed-case key is rejected. An
- * accepted key is returned in its canonical lower-case form.
+ * to be all lower case or all upper case, as the key encoding requires; a mixed-case key is
+ * rejected. An accepted key is returned in its canonical lower-case form.
  *
  * The input is never logged or echoed, and an SDK failure is reduced to a rejection without its
- * message, which can contain the key.
+ * message.
  */
 internal class ValidateUfvkUseCase(
-    private val ufvkAddressDerivation: UfvkAddressDerivation,
+    private val ufvkDescriber: UfvkDescriber,
 ) {
     suspend operator fun invoke(
         input: String,
@@ -37,18 +39,14 @@ internal class ValidateUfvkUseCase(
         val compact = input.filterNot { it.isWhitespace() || it in INVISIBLE_CHARACTERS }
         val isSingleCase = compact == compact.lowercase() || compact == compact.uppercase()
         val candidate = compact.lowercase()
-        val items =
+        val components =
             if (isSingleCase && candidate.startsWith(keyPrefixOf(network))) {
-                withContext(Dispatchers.Default) { UnifiedFullViewingKeyEncoding.decode(candidate, hrpOf(network)) }
+                ufvkDescriber.describe(candidate, network)
             } else {
                 null
             }
-        val typecodes = items.orEmpty().map { it.typecode }.toSet()
-        val isValid =
-            UnifiedFullViewingKeyEncoding.TYPECODE_ORCHARD in typecodes &&
-                UnifiedFullViewingKeyEncoding.TYPECODE_P2PKH in typecodes &&
-                ufvkAddressDerivation.canDeriveAddress(candidate, network)
-        return if (isValid && items != null) UfvkValidation.Valid(candidate, items) else UfvkValidation.Invalid
+        val isValid = components != null && components.hasOrchard && components.hasP2pkh
+        return if (isValid) UfvkValidation.Valid(candidate) else UfvkValidation.Invalid
     }
 
     companion object {
@@ -66,7 +64,7 @@ internal class ValidateUfvkUseCase(
         fun keyPrefixOf(network: ZcashNetwork) = hrpOf(network) + SEPARATOR
 
         /** The human-readable part of a full viewing key for [network], such as `uview` on mainnet. */
-        fun hrpOf(network: ZcashNetwork) = if (network == ZcashNetwork.Mainnet) MAINNET_HRP else TESTNET_HRP
+        private fun hrpOf(network: ZcashNetwork) = if (network == ZcashNetwork.Mainnet) MAINNET_HRP else TESTNET_HRP
     }
 }
 
@@ -75,12 +73,10 @@ internal class ValidateUfvkUseCase(
  */
 sealed interface UfvkValidation {
     /**
-     * [ufvk] is importable; [items] are its decoded components, so later checks need not decode it
-     * again. [toString] leaves the key and its components out.
+     * [ufvk] is importable. [toString] leaves the key out.
      */
     class Valid internal constructor(
         val ufvk: String,
-        internal val items: List<UnifiedFullViewingKeyEncoding.Item>,
     ) : UfvkValidation {
         override fun toString() = "Valid(ufvk=***)"
     }
@@ -89,33 +85,33 @@ sealed interface UfvkValidation {
 }
 
 /**
- * The SDK's last word on a viewing key that is well formed: whether it can derive an address from
- * it, which also checks that the keys inside are valid curve points. A seam so that the use case can
- * be tested without the native library.
+ * The SDK's reading of a viewing key: which components it carries, or `null` when it is not a valid
+ * key for the network. Decoding the key also checks that the keys inside are valid curve points. A
+ * seam so that the use case can be tested without the native library.
  */
-internal interface UfvkAddressDerivation {
-    suspend fun canDeriveAddress(
+internal interface UfvkDescriber {
+    suspend fun describe(
         ufvk: String,
         network: ZcashNetwork,
-    ): Boolean
+    ): UnifiedFullViewingKeyComponents?
 }
 
-internal class SdkUfvkAddressDerivation : UfvkAddressDerivation {
+internal class SdkUfvkDescriber : UfvkDescriber {
     /**
-     * The SDK's exception is swallowed on purpose: its message can echo the key.
+     * Any SDK exception is reduced to `null` on purpose, so nothing about the key travels further.
      */
     @Suppress("TooGenericExceptionCaught", "SwallowedException")
-    override suspend fun canDeriveAddress(
+    override suspend fun describe(
         ufvk: String,
         network: ZcashNetwork,
-    ): Boolean =
+    ): UnifiedFullViewingKeyComponents? =
         withContext(Dispatchers.Default) {
             try {
-                DerivationTool.getInstance().deriveUnifiedAddress(viewingKey = ufvk, network = network).isNotBlank()
+                DerivationTool.getInstance().describeUnifiedFullViewingKey(UnifiedFullViewingKey(ufvk), network)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                false
+                null
             }
         }
 }

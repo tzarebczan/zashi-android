@@ -7,6 +7,7 @@ import cash.z.ecc.android.sdk.block.processor.CompactBlockProcessor
 import cash.z.ecc.android.sdk.model.Account
 import cash.z.ecc.android.sdk.model.AccountBalance
 import cash.z.ecc.android.sdk.model.AccountImportSetup
+import cash.z.ecc.android.sdk.model.AccountKeyOverlap
 import cash.z.ecc.android.sdk.model.AccountUuid
 import cash.z.ecc.android.sdk.model.BlockHeight
 import cash.z.ecc.android.sdk.model.FastestServersResult
@@ -22,6 +23,7 @@ import cash.z.ecc.android.sdk.model.TransactionOverview
 import cash.z.ecc.android.sdk.model.TransactionRecipient
 import cash.z.ecc.android.sdk.model.TransactionSubmitResult
 import cash.z.ecc.android.sdk.model.UnifiedAddressRequest
+import cash.z.ecc.android.sdk.model.UnifiedFullViewingKey
 import cash.z.ecc.android.sdk.model.UnifiedSpendingKey
 import cash.z.ecc.android.sdk.model.Zatoshi
 import cash.z.ecc.android.sdk.model.ZcashNetwork
@@ -67,6 +69,10 @@ internal class MockSynchronizer(
         get() = error("Intentionally not implemented in ${MockSynchronizer::class.simpleName} implementation.")
 
     override suspend fun importAccountByUfvk(setup: AccountImportSetup): Account {
+        error("Intentionally not implemented in ${MockSynchronizer::class.simpleName} implementation.")
+    }
+
+    override suspend fun findAccountSharingKeyComponents(ufvk: UnifiedFullViewingKey): AccountKeyOverlap? {
         error("Intentionally not implemented in ${MockSynchronizer::class.simpleName} implementation.")
     }
 

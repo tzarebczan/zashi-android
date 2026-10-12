@@ -1,5 +1,6 @@
 package co.electriccoin.zcash.ui.common.usecase
 
+import cash.z.ecc.android.sdk.model.UnifiedFullViewingKeyComponents
 import cash.z.ecc.android.sdk.model.ZcashNetwork
 import co.electriccoin.zcash.ui.common.model.ufvk.UfvkFixtures
 import kotlinx.coroutines.test.runTest
@@ -10,24 +11,24 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /**
- * Only a full viewing key for the wallet's network with both an Orchard and a transparent component,
- * and one the SDK accepts, is importable. Everything else is rejected without reaching the SDK, and
- * no outcome prints the key.
+ * Only a full viewing key for the wallet's network that the SDK reads as carrying both an Orchard
+ * and a transparent P2PKH component is importable. Text that is mixed case or does not start with
+ * the network's key prefix is rejected without reaching the SDK, and no outcome prints the key.
  */
 class ValidateUfvkUseCaseTest {
-    private val derivedKeys = mutableListOf<String>()
+    private val describedKeys = mutableListOf<Pair<String, ZcashNetwork>>()
 
-    private var sdkAccepts = true
+    private var sdkComponents: UnifiedFullViewingKeyComponents? = FULL_COMPONENTS
 
     private val useCase =
         ValidateUfvkUseCase(
-            object : UfvkAddressDerivation {
-                override suspend fun canDeriveAddress(
+            object : UfvkDescriber {
+                override suspend fun describe(
                     ufvk: String,
                     network: ZcashNetwork,
-                ): Boolean {
-                    derivedKeys += ufvk
-                    return sdkAccepts
+                ): UnifiedFullViewingKeyComponents? {
+                    describedKeys += ufvk to network
+                    return sdkComponents
                 }
             }
         )
@@ -38,7 +39,17 @@ class ValidateUfvkUseCaseTest {
             val result = useCase(UfvkFixtures.MAINNET_FULL, ZcashNetwork.Mainnet)
 
             assertEquals(UfvkFixtures.MAINNET_FULL, assertIs<UfvkValidation.Valid>(result).ufvk)
-            assertEquals(listOf(UfvkFixtures.MAINNET_FULL), derivedKeys)
+            assertEquals(listOf(UfvkFixtures.MAINNET_FULL to ZcashNetwork.Mainnet), describedKeys)
+        }
+
+    @Test
+    fun aKeyWithTransparentAndOrchardButNoSaplingIsValid() =
+        runTest {
+            sdkComponents = FULL_COMPONENTS.copy(hasSapling = false)
+
+            val result = useCase(UfvkFixtures.MAINNET_TRANSPARENT_AND_ORCHARD, ZcashNetwork.Mainnet)
+
+            assertEquals(UfvkFixtures.MAINNET_TRANSPARENT_AND_ORCHARD, assertIs<UfvkValidation.Valid>(result).ufvk)
         }
 
     @Test
@@ -47,6 +58,7 @@ class ValidateUfvkUseCaseTest {
             val result = useCase("  \n" + UfvkFixtures.MAINNET_FULL.uppercase() + "\t ", ZcashNetwork.Mainnet)
 
             assertEquals(UfvkFixtures.MAINNET_FULL, assertIs<UfvkValidation.Valid>(result).ufvk)
+            assertEquals(listOf(UfvkFixtures.MAINNET_FULL to ZcashNetwork.Mainnet), describedKeys)
         }
 
     @Test
@@ -56,23 +68,23 @@ class ValidateUfvkUseCaseTest {
 
             assertInvalid(useCase(mixed, ZcashNetwork.Mainnet))
             assertInvalid(useCase("U" + UfvkFixtures.MAINNET_FULL.drop(1), ZcashNetwork.Mainnet))
-            assertTrue(derivedKeys.isEmpty())
+            assertTrue(describedKeys.isEmpty())
         }
 
     @Test
     fun whitespaceAndZeroWidthCharactersInsideTheKeyAreDropped() =
         runTest {
+            val separators = listOf("\n", " ", "\r\n", "\u200B", "\u200C", "\u200D", "\uFEFF", "\t", "\u2060")
             val broken =
                 UfvkFixtures.MAINNET_FULL
                     .chunked(40)
-                    .mapIndexed { index, chunk ->
-                        chunk + listOf("\n", " ", "\r\n", "​", "﻿", "\t", " ", "⁠")[index % 8]
-                    }.joinToString("")
+                    .mapIndexed { index, chunk -> chunk + separators[index % separators.size] }
+                    .joinToString("")
 
-            val result = useCase("﻿" + broken, ZcashNetwork.Mainnet)
+            val result = useCase("\uFEFF" + broken, ZcashNetwork.Mainnet)
 
             assertEquals(UfvkFixtures.MAINNET_FULL, assertIs<UfvkValidation.Valid>(result).ufvk)
-            assertEquals(listOf(UfvkFixtures.MAINNET_FULL), derivedKeys)
+            assertEquals(listOf(UfvkFixtures.MAINNET_FULL to ZcashNetwork.Mainnet), describedKeys)
         }
 
     @Test
@@ -90,85 +102,88 @@ class ValidateUfvkUseCaseTest {
         }
 
     @Test
-    fun aKeyForTheOtherNetworkIsRejected() =
+    fun aKeyForTheOtherNetworkIsRejectedWithoutReachingTheSdk() =
         runTest {
-            val testnet = UfvkFixtures.encode("uviewtest", UfvkFixtures.itemsOf(UfvkFixtures.MAINNET_FULL))
-
-            assertInvalid(useCase(testnet, ZcashNetwork.Mainnet))
+            assertInvalid(useCase(TESTNET_KEY, ZcashNetwork.Mainnet))
             assertInvalid(useCase(UfvkFixtures.MAINNET_FULL, ZcashNetwork.Testnet))
-            assertTrue(derivedKeys.isEmpty())
+            assertTrue(describedKeys.isEmpty())
         }
 
     @Test
-    fun aTestnetKeyIsValidOnTestnet() =
+    fun aTestnetKeyIsDescribedForTestnet() =
         runTest {
-            val testnet = UfvkFixtures.encode("uviewtest", UfvkFixtures.itemsOf(UfvkFixtures.MAINNET_FULL))
+            val result = useCase(TESTNET_KEY, ZcashNetwork.Testnet)
 
-            assertIs<UfvkValidation.Valid>(useCase(testnet, ZcashNetwork.Testnet))
+            assertEquals(TESTNET_KEY, assertIs<UfvkValidation.Valid>(result).ufvk)
+            assertEquals(listOf(TESTNET_KEY to ZcashNetwork.Testnet), describedKeys)
         }
 
     @Test
-    fun aKeyWithoutATransparentComponentIsRejected() =
+    fun aKeyWithoutATransparentP2pkhComponentIsRejected() =
         runTest {
+            sdkComponents = FULL_COMPONENTS.copy(hasP2pkh = false)
+
             assertInvalid(useCase(UfvkFixtures.MAINNET_WITHOUT_TRANSPARENT, ZcashNetwork.Mainnet))
-            assertTrue(derivedKeys.isEmpty())
+        }
+
+    @Test
+    fun aKeyWhoseOnlyTransparentComponentIsP2shIsRejected() =
+        runTest {
+            sdkComponents = FULL_COMPONENTS.copy(hasP2pkh = false, hasP2sh = true)
+
+            assertInvalid(useCase(UfvkFixtures.MAINNET_FULL, ZcashNetwork.Mainnet))
         }
 
     @Test
     fun aKeyWithoutAnOrchardComponentIsRejected() =
         runTest {
-            val withoutOrchard =
-                UfvkFixtures.encode(
-                    "uview",
-                    UfvkFixtures.itemsOf(UfvkFixtures.MAINNET_FULL).filterNot { it.typecode == ORCHARD }
-                )
+            sdkComponents = FULL_COMPONENTS.copy(hasOrchard = false)
 
-            assertInvalid(useCase(withoutOrchard, ZcashNetwork.Mainnet))
-            assertTrue(derivedKeys.isEmpty())
+            assertInvalid(useCase(UfvkFixtures.MAINNET_FULL, ZcashNetwork.Mainnet))
         }
 
     @Test
     fun aSaplingOnlyKeyIsRejected() =
         runTest {
-            val saplingOnly =
-                UfvkFixtures.encode(
-                    "uview",
-                    UfvkFixtures.itemsOf(UfvkFixtures.MAINNET_FULL).filter { it.typecode == SAPLING }
-                )
+            sdkComponents = FULL_COMPONENTS.copy(hasP2pkh = false, hasOrchard = false)
 
-            assertInvalid(useCase(saplingOnly, ZcashNetwork.Mainnet))
+            assertInvalid(useCase(UfvkFixtures.MAINNET_FULL, ZcashNetwork.Mainnet))
         }
 
     @Test
-    fun anIncomingViewingKeyIsRejected() =
+    fun anIncomingViewingKeyIsRejectedWithoutReachingTheSdk() =
         runTest {
             assertInvalid(useCase(UfvkFixtures.MAINNET_UIVK, ZcashNetwork.Mainnet))
-            assertTrue(derivedKeys.isEmpty())
+            assertTrue(describedKeys.isEmpty())
         }
 
     @Test
-    fun garbageIsRejected() =
+    fun garbageWithoutTheKeyPrefixIsRejectedWithoutReachingTheSdk() =
         runTest {
             listOf(
                 "",
                 "   ",
-                "uview1",
                 "hello",
                 "u1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq",
-                UfvkFixtures.MAINNET_FULL.dropLast(1),
-                UfvkFixtures.MAINNET_FULL + "q",
             ).forEach { input ->
                 assertInvalid(useCase(input, ZcashNetwork.Mainnet))
             }
-            assertTrue(derivedKeys.isEmpty())
+            assertTrue(describedKeys.isEmpty())
         }
 
     @Test
-    fun aKeyTheSdkRejectsIsRejected() =
+    fun aKeyTheSdkCannotReadIsRejected() =
         runTest {
-            sdkAccepts = false
+            sdkComponents = null
 
-            assertInvalid(useCase(UfvkFixtures.MAINNET_FULL, ZcashNetwork.Mainnet))
+            listOf(
+                "uview1",
+                UfvkFixtures.MAINNET_FULL.dropLast(1),
+                UfvkFixtures.MAINNET_FULL + "q",
+                UfvkFixtures.MAINNET_FULL,
+            ).forEach { input ->
+                assertInvalid(useCase(input, ZcashNetwork.Mainnet))
+            }
         }
 
     @Test
@@ -188,7 +203,19 @@ class ValidateUfvkUseCaseTest {
     private fun assertInvalid(result: UfvkValidation) = assertEquals(UfvkValidation.Invalid, result)
 
     private companion object {
-        const val SAPLING = 0x02
-        const val ORCHARD = 0x03
+        val FULL_COMPONENTS =
+            UnifiedFullViewingKeyComponents(
+                hasP2pkh = true,
+                hasP2sh = false,
+                hasSapling = true,
+                hasOrchard = true,
+                hasUnknownItems = false,
+            )
+
+        /**
+         * Text with the testnet key prefix. The SDK is faked here, so it only has to look like a
+         * testnet key to the use case; the SDK's own decoding is covered on a device.
+         */
+        val TESTNET_KEY = "uviewtest1" + UfvkFixtures.MAINNET_FULL.removePrefix("uview1")
     }
 }
