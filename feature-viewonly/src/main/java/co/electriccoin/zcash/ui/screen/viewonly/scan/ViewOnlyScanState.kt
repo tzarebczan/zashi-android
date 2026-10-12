@@ -9,17 +9,20 @@ import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.design.util.stringRes
 import co.electriccoin.zcash.ui.screen.scan.ScanValidationState
 import co.electriccoin.zcash.viewonly.R
+import co.electriccoin.zcash.ui.R as UiR
 
 /**
  * The viewing key scanner, drawn with the shared scan layout.
  *
  * @param infoText shown above the scanner's buttons.
+ * @param openSettingsFailed shown when the system settings for the camera permission cannot open.
  */
 @Immutable
 data class ViewOnlyScanState(
     val validation: ScanValidationState,
     val invalidQrText: StringResource,
     val infoText: StringResource,
+    val openSettingsFailed: StringResource,
     val onBack: () -> Unit,
 ) {
     companion object {
@@ -32,6 +35,7 @@ data class ViewOnlyScanState(
             validation = validation,
             invalidQrText = stringRes(R.string.view_only_invalid_qr_title),
             infoText = stringRes(R.string.view_only_scan_info),
+            openSettingsFailed = stringRes(UiR.string.scan_settings_open_failed),
             onBack = onBack,
         )
     }

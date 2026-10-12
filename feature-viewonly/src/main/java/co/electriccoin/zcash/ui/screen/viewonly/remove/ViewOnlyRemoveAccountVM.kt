@@ -28,7 +28,9 @@ import kotlin.time.Duration.Companion.milliseconds
  * sheet stays up and ignores back until the removal ends. Success hides the sheet and only then
  * returns to the account list, past the edit screen of an account that no longer exists. A
  * dismissed or failed authentication leaves the sheet as it was; any other failure shows the error
- * screen over it. An id that names no view-only account goes straight back.
+ * screen over it. An id that names no view-only account goes straight back. The flow is only
+ * reached from the account list, which the landing's `backTo(AccountListArgs::class)` requires on
+ * the back stack; without it that call does nothing.
  */
 class ViewOnlyRemoveAccountVM(
     args: ViewOnlyRemoveAccountArgs,

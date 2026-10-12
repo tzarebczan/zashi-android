@@ -9,13 +9,16 @@ import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepositor
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Takes the viewing key the user pasted or scanned: an importable key the wallet does not hold yet
  * becomes the pending import, to be named on the next screen. The key goes to memory only.
  *
- * A key counts as held already when it shares any Orchard, Sapling or transparent component with
- * an account in the wallet, not only when it is the same text: the SDK would otherwise silently
+ * A key counts as held already when it shares any Orchard, Sapling (at the incoming-viewing-key
+ * level) or transparent component with an account in the wallet, not only when it is the same
+ * text: the SDK would otherwise silently
  * widen an existing account with a key that contains it, or refuse a key that overlaps one. The
  * existing keys are read from the synchronizer's own account list, which does not wait for any
  * account's addresses or balances.
@@ -50,32 +53,43 @@ class SubmitViewOnlyKeyUseCase(
     ): Boolean {
         val existingKeys = existingKeys()
         return withContext(Dispatchers.Default) {
-            existingKeys.any { UfvkComponentOverlap.sharesComponent(ufvk, it, ValidateUfvkUseCase.hrpOf(network)) }
+            UfvkComponentOverlap.sharesComponentWithAny(ufvk, existingKeys, ValidateUfvkUseCase.hrpOf(network))
         }
     }
 
     /**
-     * When the accounts cannot be read, the import goes on without this check: the import itself
-     * still reports a key the SDK finds in the wallet as already imported. The SDK's exception is
-     * dropped without its message.
+     * When the accounts cannot be read, or no synchronizer is ready within
+     * [SYNCHRONIZER_TIMEOUT], the import goes on without this check: the import itself still
+     * reports a key the SDK finds in the wallet as already imported. The SDK's exception is dropped
+     * without its message.
      */
     @Suppress("TooGenericExceptionCaught", "SwallowedException")
     private suspend fun existingKeys(): List<String> =
         try {
-            synchronizerProvider.getSynchronizer().getAccounts().mapNotNull { it.ufvk }
+            withTimeoutOrNull(SYNCHRONIZER_TIMEOUT) { synchronizerProvider.getSynchronizer() }
+                ?.getAccounts()
+                ?.mapNotNull { it.ufvk }
+                .orEmpty()
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             emptyList()
         }
+
+    private companion object {
+        val SYNCHRONIZER_TIMEOUT = 5.seconds
+    }
 }
 
 /**
- * Whether two unified full viewing keys share a component, read with the hand-written
- * [UnifiedFullViewingKeyEncoding] until the SDK offers this comparison itself. Kept behind this one
- * function so that swap touches nothing else.
+ * Whether a unified full viewing key shares a component with any key the wallet holds, read with
+ * the hand-written [UnifiedFullViewingKeyEncoding] until the SDK offers this comparison itself.
+ * Kept behind this one function so that swap touches nothing else.
  */
 internal object UfvkComponentOverlap {
+    private const val SAPLING_AK_NK_END = 64
+    private const val SAPLING_DK_START = 96
+
     private val COMPARED_TYPECODES =
         setOf(
             UnifiedFullViewingKeyEncoding.TYPECODE_P2PKH,
@@ -84,28 +98,47 @@ internal object UfvkComponentOverlap {
         )
 
     /**
-     * True when [candidate] and [existing] carry an identical Orchard, Sapling or transparent
-     * (P2PKH) item, or are the same text whatever the case. A key that does not decode for [hrp]
-     * is compared by its text only.
+     * True when [candidate] and one of [existingKeys] carry the same Orchard, Sapling or transparent
+     * (P2PKH) component, or are the same text whatever the case. A key that does not decode for
+     * [hrp] is compared by its text only. [candidate] is decoded once for the whole list.
      */
-    fun sharesComponent(
+    fun sharesComponentWithAny(
         candidate: String,
-        existing: String,
+        existingKeys: List<String>,
         hrp: String,
-    ): Boolean =
-        candidate.equals(existing, ignoreCase = true) ||
-            sharesItem(
-                candidateItems = UnifiedFullViewingKeyEncoding.decode(candidate.lowercase(), hrp).orEmpty(),
-                existingItems = UnifiedFullViewingKeyEncoding.decode(existing.lowercase(), hrp).orEmpty(),
-            )
+    ): Boolean {
+        val candidateComponents = components(candidate, hrp)
+        return existingKeys.any { existing ->
+            candidate.equals(existing, ignoreCase = true) ||
+                components(existing, hrp).any { component -> candidateComponents.any { it.sameAs(component) } }
+        }
+    }
 
-    private fun sharesItem(
-        candidateItems: List<UnifiedFullViewingKeyEncoding.Item>,
-        existingItems: List<UnifiedFullViewingKeyEncoding.Item>,
-    ): Boolean =
-        candidateItems.any { item ->
-            item.typecode in COMPARED_TYPECODES &&
-                existingItems.any { it.typecode == item.typecode && it.data.contentEquals(item.data) }
+    private fun UnifiedFullViewingKeyEncoding.Item.sameAs(other: UnifiedFullViewingKeyEncoding.Item) =
+        typecode == other.typecode && data.contentEquals(other.data)
+
+    private fun components(
+        key: String,
+        hrp: String,
+    ): List<UnifiedFullViewingKeyEncoding.Item> =
+        UnifiedFullViewingKeyEncoding
+            .decode(key.lowercase(), hrp)
+            .orEmpty()
+            .filter { it.typecode in COMPARED_TYPECODES }
+            .map { UnifiedFullViewingKeyEncoding.Item(it.typecode, comparedBytes(it)) }
+
+    /**
+     * Orchard and transparent items are compared whole. A Sapling item (ak, nk, ovk, dk, 32 bytes
+     * each, as sapling-crypto's DiversifiableFullViewingKey::to_bytes writes it) is compared at the
+     * incoming-viewing-key level, ak, nk and dk, without ovk: the SDK finds an existing account by
+     * those, so a key that differs from one in its ovk alone would still replace that account.
+     */
+    private fun comparedBytes(item: UnifiedFullViewingKeyEncoding.Item): ByteArray =
+        if (item.typecode == UnifiedFullViewingKeyEncoding.TYPECODE_SAPLING) {
+            item.data.copyOfRange(0, SAPLING_AK_NK_END) +
+                item.data.copyOfRange(SAPLING_DK_START, item.data.size)
+        } else {
+            item.data
         }
 }
 

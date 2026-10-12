@@ -28,7 +28,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -61,7 +60,8 @@ import co.electriccoin.zcash.ui.design.util.stringRes
  * 40 dp of Figma's ghost icon button in the layout, so the row stays 60 dp tall.
  *
  * For accessibility services the row reports whether it is the selected wallet, since the fill and
- * the check badge only show it visually. A trailing action without a content description is
+ * the check badge only show it visually; the state sits on the clickable node itself, the one an
+ * accessibility service focuses. A trailing action without a content description is
  * decorative and left out of the accessibility tree, as a chevron that repeats the row's own action
  * is; one with a description stays a focusable button of its own.
  */
@@ -88,9 +88,10 @@ fun ZashiWalletListItem(
             },
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
         leading = null,
+        clickSemantics = { selected = state.isSelected },
         content = {
             Row(
-                modifier = it.semantics { selected = state.isSelected },
+                modifier = it,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 WalletAvatar(

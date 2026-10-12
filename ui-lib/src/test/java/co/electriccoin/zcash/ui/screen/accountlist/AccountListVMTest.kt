@@ -42,6 +42,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -250,6 +251,47 @@ class AccountListVMTest {
         }
 
     @Test
+    fun anUnchangedAccountKeepsAnEqualRowAcrossEmissions() =
+        runTest {
+            val zashi = zashi(id = 1, isSelected = true)
+            val keystone = keystone(id = 2, isSelected = false)
+            val viewOnly = viewOnly(id = 3, isSelected = false)
+            val accounts = MutableStateFlow<List<WalletAccount>?>(listOf(zashi, keystone, viewOnly))
+            val vm = vm(accounts)
+            collect(vm)
+            val before = assertNotNull(vm.state.value.sections).flatMap { it.items }
+
+            accounts.value = listOf(zashi.copy(), keystone.copy(transparentBalance = Zatoshi(2)), viewOnly.copy())
+            runCurrent()
+
+            val after = assertNotNull(vm.state.value.sections).flatMap { it.items }
+            assertEquals(before[0], after[0])
+            assertNotEquals(before[1], after[1])
+            assertEquals(before[1].onClick, after[1].onClick)
+            assertEquals(before[1].trailingAction?.onClick, after[1].trailingAction?.onClick)
+            assertEquals(before[2], after[2])
+        }
+
+    @Test
+    fun tappingARowSelectsTheAccountAsItIsWhenTapped() =
+        runTest {
+            val selectWalletAccount = mockk<SelectWalletAccountUseCase>(relaxed = true)
+            val ledger = ledger(id = 2, isSelected = false)
+            val accounts = MutableStateFlow<List<WalletAccount>?>(listOf(zashi(id = 1, isSelected = true), ledger))
+            val vm = vm(accounts, selectWalletAccount = selectWalletAccount)
+            collect(vm)
+            val onClick = assertNotNull(vm.state.value.sections)[1].items.single().onClick
+            val updated = ledger.copy(transparentBalance = Zatoshi(7))
+
+            accounts.value = listOf(zashi(id = 1, isSelected = true), updated)
+            runCurrent()
+            onClick()
+            runCurrent()
+
+            coVerify(exactly = 1) { selectWalletAccount.invoke(updated, true) }
+        }
+
+    @Test
     fun theChevronIsDecorativeAndTheOptionsButtonNamesItsWallet() =
         runTest {
             val vm = vm(listOf(zashi(id = 1, isSelected = true), viewOnly(id = 2, isSelected = false)))
@@ -444,10 +486,17 @@ class AccountListVMTest {
         selectWalletAccount: SelectWalletAccountUseCase = mockk(relaxed = true),
         navigationRouter: NavigationRouter = mockk(relaxed = true),
         viewOnlyNavigator: ViewOnlyNavigator = mockk(relaxed = true),
+    ) = vm(MutableStateFlow(accounts), selectWalletAccount, navigationRouter, viewOnlyNavigator)
+
+    private fun vm(
+        accounts: MutableStateFlow<List<WalletAccount>?>,
+        selectWalletAccount: SelectWalletAccountUseCase = mockk(relaxed = true),
+        navigationRouter: NavigationRouter = mockk(relaxed = true),
+        viewOnlyNavigator: ViewOnlyNavigator = mockk(relaxed = true),
     ) = AccountListVM(
         getWalletAccounts =
             mockk<GetWalletAccountsUseCase> {
-                every { observe() } returns MutableStateFlow(accounts)
+                every { observe() } returns accounts
             },
         selectWalletAccount = selectWalletAccount,
         navigationRouter = navigationRouter,

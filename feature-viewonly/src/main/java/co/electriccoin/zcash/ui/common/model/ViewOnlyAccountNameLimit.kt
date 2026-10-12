@@ -10,11 +10,18 @@ object ViewOnlyAccountNameLimit {
     /** How many code points [name] has, which is what the name counter shows. */
     fun lengthOf(name: String): Int = name.codePointCount(0, name.length)
 
-    /** [name] cut to its first [MAX_LENGTH] code points. */
+    /**
+     * [name] cut to its first [MAX_LENGTH] code points. A cut that lands inside a zero-width-joiner
+     * sequence, such as a family emoji, drops the joiners left dangling at the end, so the name never
+     * ends in an invisible character. A name within the limit is returned as it is, so typing a
+     * joiner sequence one code point at a time still works.
+     */
     fun cap(name: String): String =
         if (lengthOf(name) <= MAX_LENGTH) {
             name
         } else {
-            name.substring(0, name.offsetByCodePoints(0, MAX_LENGTH))
+            name.substring(0, name.offsetByCodePoints(0, MAX_LENGTH)).trimEnd(ZERO_WIDTH_JOINER)
         }
+
+    private const val ZERO_WIDTH_JOINER = '\u200D'
 }

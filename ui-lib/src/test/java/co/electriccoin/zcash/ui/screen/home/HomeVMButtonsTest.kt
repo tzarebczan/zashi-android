@@ -10,6 +10,7 @@ import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.provider.SelectedAccountSpendableStorageProvider
 import co.electriccoin.zcash.ui.common.provider.ShieldFundsInfoProvider
 import co.electriccoin.zcash.ui.common.usecase.GetHomeMessageUseCase
 import co.electriccoin.zcash.ui.common.usecase.GetSelectedWalletAccountUseCase
@@ -127,6 +128,35 @@ class HomeVMButtonsTest {
             assertEquals(4, assertNotNull(vm.state.value).buttons().size)
         }
 
+    @Test
+    fun aStoredViewOnlySelectionShowsTwoButtonsUntilTheSelectedAccountLoads() =
+        runTest {
+            val vm = vm(MutableStateFlow(null), storedIsSpendable = false)
+            collect(vm)
+
+            assertEquals(
+                listOf(R.string.tabs_receive, R.string.swapAndPay_swap),
+                assertNotNull(vm.state.value).buttons().map { it.text.resourceId() }
+            )
+        }
+
+    @Test
+    fun theLoadedAccountOverridesTheStoredHint() =
+        runTest {
+            val selected = MutableStateFlow<WalletAccount?>(null)
+            val vm = vm(selected, storedIsSpendable = false)
+            collect(vm)
+            assertEquals(2, assertNotNull(vm.state.value).buttons().size)
+
+            selected.value = zashi()
+            runCurrent()
+            assertEquals(4, assertNotNull(vm.state.value).buttons().size)
+
+            val viewOnlyVm = vm(MutableStateFlow(viewOnly()), storedIsSpendable = true)
+            collect(viewOnlyVm)
+            assertEquals(2, assertNotNull(viewOnlyVm.state.value).buttons().size)
+        }
+
     private fun HomeState.buttons(): List<BigIconButtonState> =
         listOfNotNull(firstButton, secondButton, thirdButton, fourthButton)
 
@@ -135,6 +165,7 @@ class HomeVMButtonsTest {
     private fun vm(
         selectedAccount: MutableStateFlow<WalletAccount?>,
         navigateToSwap: NavigateToSwapUseCase = mockk(relaxed = true),
+        storedIsSpendable: Boolean = true,
     ) = HomeVM(
         getHomeMessage =
             mockk<GetHomeMessageUseCase> {
@@ -163,6 +194,10 @@ class HomeVMButtonsTest {
         getSelectedWalletAccount =
             mockk<GetSelectedWalletAccountUseCase> {
                 every { observe() } returns selectedAccount
+            },
+        selectedAccountSpendableStorageProvider =
+            mockk<SelectedAccountSpendableStorageProvider> {
+                every { observe() } returns flowOf(storedIsSpendable)
             },
     )
 

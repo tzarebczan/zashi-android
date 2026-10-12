@@ -8,7 +8,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.compose.SecureScreen
 import co.electriccoin.zcash.ui.design.component.ZashiConfirmationBottomSheet
 import co.electriccoin.zcash.ui.design.util.getValue
@@ -26,6 +25,7 @@ fun ViewOnlyScanScreen() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val openSettingsFailed = state.openSettingsFailed.getValue()
     BackHandler { state.onBack() }
     ScanView(
         snackbarHostState = snackbarHostState,
@@ -37,9 +37,7 @@ fun ViewOnlyScanScreen() {
                 context.startActivity(SettingsUtil.newSettingsIntent(context.packageName))
             }.onFailure {
                 scope.launch {
-                    snackbarHostState.showSnackbar(
-                        message = context.getString(R.string.scan_settings_open_failed)
-                    )
+                    snackbarHostState.showSnackbar(message = openSettingsFailed)
                 }
             }
         },

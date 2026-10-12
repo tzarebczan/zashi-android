@@ -8,6 +8,7 @@ import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.datasource.WalletSnapshotDataSource
 import co.electriccoin.zcash.ui.common.migration.MigrationHomeMessageSource
+import co.electriccoin.zcash.ui.common.provider.SelectedAccountSpendableStorageProvider
 import co.electriccoin.zcash.ui.common.provider.ShieldFundsInfoProvider
 import co.electriccoin.zcash.ui.common.repository.HomeMessageData
 import co.electriccoin.zcash.ui.common.repository.MigrationHomeMessage
@@ -79,6 +80,7 @@ class HomeVM(
     private val homeMessageMapper: HomeMessageMapper,
     walletSnapshotDataSource: WalletSnapshotDataSource,
     getSelectedWalletAccount: GetSelectedWalletAccountUseCase,
+    selectedAccountSpendableStorageProvider: SelectedAccountSpendableStorageProvider,
 ) : ViewModel() {
     private var hasSyncErrorBeenShown = false
     private var hasRestoreSuccessBeenShown = false
@@ -130,11 +132,22 @@ class HomeVM(
             .observe()
             .map { it?.status == Synchronizer.Status.SYNCED }
 
+    /**
+     * The selected account's own answer once it has loaded; until then the answer stored when the
+     * app last ran, so a cold start on a view-only account does not flash Send and Pay.
+     */
+    private val isSpendable: Flow<Boolean> =
+        combine(
+            getSelectedWalletAccount.observe().map { it?.isSpendable },
+            selectedAccountSpendableStorageProvider.observe(),
+        ) { live, hint -> live ?: hint }
+            .distinctUntilChanged()
+
     val state: StateFlow<HomeState?> =
         combine(
             messageState,
             isSyncComplete,
-            getSelectedWalletAccount.observe().map { it?.isSpendable ?: true }.distinctUntilChanged(),
+            isSpendable,
         ) { messageState, isSyncComplete, isSpendable ->
             createState(messageState, isSyncComplete, isSpendable)
         }.stateIn(

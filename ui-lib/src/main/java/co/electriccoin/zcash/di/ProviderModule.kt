@@ -57,6 +57,8 @@ import co.electriccoin.zcash.ui.common.provider.RestoreTimestampStorageProvider
 import co.electriccoin.zcash.ui.common.provider.RestoreTimestampStorageProviderImpl
 import co.electriccoin.zcash.ui.common.provider.SdkEncryptedPreferenceRecoveryProvider
 import co.electriccoin.zcash.ui.common.provider.SdkEncryptedPreferenceRecoveryProviderImpl
+import co.electriccoin.zcash.ui.common.provider.SelectedAccountSpendableStorageProvider
+import co.electriccoin.zcash.ui.common.provider.SelectedAccountSpendableStorageProviderImpl
 import co.electriccoin.zcash.ui.common.provider.SelectedAccountUUIDProvider
 import co.electriccoin.zcash.ui.common.provider.SelectedAccountUUIDProviderImpl
 import co.electriccoin.zcash.ui.common.provider.ShieldFundsInfoProvider
@@ -126,6 +128,7 @@ val providerModule =
         singleOf(::IsTorEnabledStorageProviderImpl) bind IsTorEnabledStorageProvider::class
         singleOf(::AppearanceModeStorageProviderImpl) bind AppearanceModeStorageProvider::class
         singleOf(::IsOledEnabledStorageProviderImpl) bind IsOledEnabledStorageProvider::class
+        singleOf(::SelectedAccountSpendableStorageProviderImpl) bind SelectedAccountSpendableStorageProvider::class
         singleOf(::BlockchainProviderImpl) bind BlockchainProvider::class
         singleOf(::TokenIconProviderImpl) bind TokenIconProvider::class
         singleOf(::TokenNameProviderImpl) bind TokenNameProvider::class

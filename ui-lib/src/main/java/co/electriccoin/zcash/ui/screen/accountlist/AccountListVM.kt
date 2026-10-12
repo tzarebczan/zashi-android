@@ -2,6 +2,7 @@ package co.electriccoin.zcash.ui.screen.accountlist
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import cash.z.ecc.android.sdk.model.AccountUuid
 import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
@@ -21,12 +22,21 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class AccountListVM(
-    getWalletAccounts: GetWalletAccountsUseCase,
+    private val getWalletAccounts: GetWalletAccountsUseCase,
     private val selectWalletAccount: SelectWalletAccountUseCase,
     private val navigationRouter: NavigationRouter,
     private val viewOnlyNavigator: ViewOnlyNavigator,
     private val viewOnlyContent: ViewOnlyContent,
 ) : ViewModel() {
+    /**
+     * One row callback per account, kept across emissions so an unchanged row's state stays equal
+     * and the row skips recomposition on every balance update. A callback carries only the account's
+     * UUID and resolves the account itself when it runs. Read and written only while the state is
+     * built, which happens on one coroutine at a time.
+     */
+    private val onAccountClicks = HashMap<AccountUuid, () -> Unit>()
+    private val onOptionsClicks = HashMap<AccountUuid, () -> Unit>()
+
     val state: StateFlow<AccountListState> =
         getWalletAccounts
             .observe()
@@ -59,7 +69,10 @@ class AccountListVM(
             name = account.name,
             balance = account.totalBalance,
             isSelected = account.isSelected,
-            onClick = { onAccountClick(account) },
+            onClick =
+                onAccountClicks.getOrPut(account.sdkAccount.accountUuid) {
+                    onAccountClick(account.sdkAccount.accountUuid)
+                },
             onOptionsClick =
                 when (account) {
                     is ZashiAccount -> {
@@ -67,26 +80,39 @@ class AccountListVM(
                     }
 
                     is KeystoneAccount, is LedgerAccount -> {
-                        { onHardwareWalletOptionsClick(account) }
+                        onOptionsClicks.getOrPut(account.sdkAccount.accountUuid) {
+                            onHardwareWalletOptionsClick(account.sdkAccount.accountUuid)
+                        }
                     }
 
                     is ViewOnlyAccount -> {
-                        { onViewOnlyOptionsClick(account) }
+                        onOptionsClicks.getOrPut(account.sdkAccount.accountUuid) {
+                            onViewOnlyOptionsClick(account.sdkAccount.accountUuid)
+                        }
                     }
                 },
         )
 
-    /** Selects the account and closes the screen. */
-    private fun onAccountClick(account: WalletAccount) =
-        viewModelScope.launch {
-            selectWalletAccount(account)
+    /**
+     * Selects the account and closes the screen. The account is looked up when the row is tapped,
+     * so the selection always uses its current state.
+     */
+    private fun onAccountClick(accountUuid: AccountUuid): () -> Unit =
+        {
+            viewModelScope.launch {
+                getWalletAccounts
+                    .observe()
+                    .value
+                    ?.firstOrNull { it.sdkAccount.accountUuid == accountUuid }
+                    ?.let { selectWalletAccount(it) }
+            }
         }
 
-    private fun onHardwareWalletOptionsClick(account: WalletAccount) =
-        navigationRouter.forward(WalletOptionsArgs(accountKeyId = account.sdkAccount.accountUuid.toStorageKeyId()))
+    private fun onHardwareWalletOptionsClick(accountUuid: AccountUuid): () -> Unit =
+        { navigationRouter.forward(WalletOptionsArgs(accountKeyId = accountUuid.toStorageKeyId())) }
 
-    private fun onViewOnlyOptionsClick(account: ViewOnlyAccount) =
-        viewOnlyNavigator.forwardToEditAccount(account.sdkAccount.accountUuid)
+    private fun onViewOnlyOptionsClick(accountUuid: AccountUuid): () -> Unit =
+        { viewOnlyNavigator.forwardToEditAccount(accountUuid) }
 
     /**
      * Opens the Keystone shop in the in-app browser on top of this screen, so closing the browser

@@ -105,6 +105,7 @@ class AccountDataSourceImplTest {
                 mockk<AccountNameProvider>(relaxed = true) {
                     every { observe(any()) } returns MutableStateFlow(null)
                 },
+            selectedAccountSpendableStorageProvider = mockk(relaxed = true),
             viewOnlyContent = viewOnlyContent,
             context = mockk(relaxed = true),
         )
@@ -524,6 +525,7 @@ class AccountDataSourceImplTest {
                 mockk<AccountNameProvider>(relaxed = true) {
                     every { observe(any()) } returns MutableStateFlow(null)
                 },
+            selectedAccountSpendableStorageProvider = mockk(relaxed = true),
             viewOnlyContent = viewOnlyContent,
             context = mockk(relaxed = true),
         )

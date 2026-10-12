@@ -33,6 +33,16 @@ class RenameViewOnlyAccountUseCaseTest {
         }
 
     @Test
+    fun aJoinerSequenceCutAtTheLimitLeavesNoDanglingJoiner() =
+        runTest {
+            useCase(ViewOnlyAccountFixtures.viewOnly(), "Our homes " + FAMILY)
+
+            coVerify(exactly = 1) {
+                accountNameProvider.save(ViewOnlyAccountFixtures.viewOnlyUuid, "Our homes " + MAN)
+            }
+        }
+
+    @Test
     fun aBlankNameIsIgnored() =
         runTest {
             useCase(ViewOnlyAccountFixtures.viewOnly(), "   ")
@@ -42,3 +52,13 @@ class RenameViewOnlyAccountUseCaseTest {
 }
 
 private const val LOCK = "\uD83D\uDD10"
+
+private const val MAN = "\uD83D\uDC68"
+
+private const val WOMAN = "\uD83D\uDC69"
+
+private const val GIRL = "\uD83D\uDC67"
+
+private const val ZWJ = "\u200D"
+
+private const val FAMILY = MAN + ZWJ + WOMAN + ZWJ + GIRL

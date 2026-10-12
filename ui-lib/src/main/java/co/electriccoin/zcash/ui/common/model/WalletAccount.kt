@@ -34,7 +34,7 @@ sealed interface WalletAccount : Comparable<WalletAccount> {
 
     /**
      * Null for hardware-wallet accounts (Keystone, Ledger), and while the balance snapshot has not
-     * loaded yet.
+     * loaded yet. A view-only account carries the Sapling balance its key scans.
      */
     val saplingBalance: WalletBalance?
 

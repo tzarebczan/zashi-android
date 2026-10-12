@@ -24,6 +24,7 @@ import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.provider.AccountNameProvider
 import co.electriccoin.zcash.ui.common.provider.LedgerAccountBindingProvider
 import co.electriccoin.zcash.ui.common.provider.PersistableWalletProvider
+import co.electriccoin.zcash.ui.common.provider.SelectedAccountSpendableStorageProvider
 import co.electriccoin.zcash.ui.common.provider.SelectedAccountUUIDProvider
 import co.electriccoin.zcash.ui.common.provider.SynchronizerProvider
 import co.electriccoin.zcash.ui.common.provider.retainWhileWalletExists
@@ -125,6 +126,7 @@ class AccountDataSourceImpl(
     private val persistableWalletProvider: PersistableWalletProvider,
     private val ledgerAccountBindingProvider: LedgerAccountBindingProvider,
     private val accountNameProvider: AccountNameProvider,
+    private val selectedAccountSpendableStorageProvider: SelectedAccountSpendableStorageProvider,
     private val viewOnlyContent: ViewOnlyContent,
     private val context: Context,
 ) : AccountDataSource {
@@ -193,6 +195,10 @@ class AccountDataSourceImpl(
             .map { account ->
                 account?.firstOrNull { it.isSelected }
             }.distinctUntilChanged()
+
+    init {
+        rememberWhetherTheSelectedAccountCanSpend()
+    }
 
     override val zashiAccount: Flow<ZashiAccount?> =
         allAccounts
@@ -341,11 +347,13 @@ class AccountDataSourceImpl(
 
     /**
      * The selection is cleared only once the SDK has deleted the account, so a failed deletion
-     * leaves the account selected as it was. Clearing a Ledger account's stored binding, or a
-     * view-only account's stored name, also happens after the deletion has succeeded, and only
-     * best-effort: the account is gone by then, so reporting a failure would tell the user to retry
-     * something that cannot be retried. An orphaned binding or name is keyed by an account UUID that
-     * no longer resolves.
+     * leaves the account selected as it was, and only when the stored selection still names the
+     * deleted account: [account] is a snapshot whose [WalletAccount.isSelected] can be stale, for
+     * example when another account was selected while a confirmation was showing. Clearing the
+     * selection, a Ledger account's stored binding, or a view-only account's stored name all happen
+     * after the deletion has succeeded, and only best-effort: the account is gone by then, so
+     * reporting a failure would tell the user to retry something that cannot be retried. An orphaned
+     * binding or name is keyed by an account UUID that no longer resolves.
      */
     @Suppress("TooGenericExceptionCaught")
     override suspend fun deleteAccount(account: WalletAccount) =
@@ -362,18 +370,58 @@ class AccountDataSourceImpl(
             } catch (e: Exception) {
                 throw AccountDeletionException("Failed to delete account: ${e.message}", e)
             }
-            if (account.isSelected || selectedAccountUUIDProvider.getUUID() == accountUuid) {
-                selectedAccountUUIDProvider.clearUUID()
+            bestEffort("failed to clear the selection of a deleted account") {
+                if (selectedAccountUUIDProvider.getUUID() == accountUuid) {
+                    selectedAccountUUIDProvider.clearUUID()
+                }
             }
             if (account is LedgerAccount) {
-                runCatching { ledgerAccountBindingProvider.clear(account.sdkAccount.accountUuid) }
-                    .onFailure { log("failed to clear the Ledger binding of a deleted account", it) }
+                bestEffort("failed to clear the Ledger binding of a deleted account") {
+                    ledgerAccountBindingProvider.clear(accountUuid)
+                }
             }
             if (account is ViewOnlyAccount) {
-                runCatching { accountNameProvider.clear(account.sdkAccount.accountUuid) }
-                    .onFailure { log("failed to clear the stored name of a deleted account", it) }
+                bestEffort("failed to clear the stored name of a deleted account") {
+                    accountNameProvider.clear(accountUuid)
+                }
             }
         }
+
+    /**
+     * Stores whether the selected account can spend each time that changes, so the next cold start
+     * draws Home's buttons for it before the accounts load. Best-effort: the stored value is only a
+     * hint the live account replaces.
+     */
+    private fun rememberWhetherTheSelectedAccountCanSpend() {
+        scope.launch {
+            selectedAccount
+                .map { it?.isSpendable }
+                .filterNotNull()
+                .distinctUntilChanged()
+                .collect { isSpendable ->
+                    bestEffort("failed to store whether the selected account can spend") {
+                        selectedAccountSpendableStorageProvider.store(isSpendable)
+                    }
+                }
+        }
+    }
+
+    /**
+     * Runs [block], logging instead of propagating its failure; cancellation still propagates.
+     */
+    @Suppress("TooGenericExceptionCaught")
+    private suspend fun bestEffort(
+        failureMessage: String,
+        block: suspend () -> Unit
+    ) {
+        try {
+            block()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            log(failureMessage, e)
+        }
+    }
 
     private fun isKeystoneAccount(sdkAccount: Account) = sdkAccount.keySource?.lowercase() == KEYSTONE_KEYSOURCE
 

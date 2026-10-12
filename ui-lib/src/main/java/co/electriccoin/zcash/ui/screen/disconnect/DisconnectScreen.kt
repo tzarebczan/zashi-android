@@ -22,7 +22,9 @@ fun DisconnectScreen(args: DisconnectArgs) {
 /**
  * @param accountKeyId The `AccountUuid.toStorageKeyId()` of the hardware wallet account to
  *        disconnect, as the Wallets & Hardware screen passes it; null disconnects the selected
- *        account, as Advanced Settings does.
+ *        account, as Advanced Settings does. A non-null key requires the Wallets & Hardware screen
+ *        to be on the back stack: a finished disconnect returns with `backTo(AccountListArgs::class)`,
+ *        which does nothing when that screen is not there.
  */
 @Serializable
 data class DisconnectArgs(
