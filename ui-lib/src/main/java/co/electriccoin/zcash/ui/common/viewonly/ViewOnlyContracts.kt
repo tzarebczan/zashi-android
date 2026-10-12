@@ -22,8 +22,8 @@ interface ViewOnlyNavigator {
     fun forwardToAddAccount()
 
     /**
-     * Opens the options of the view-only account [accountUuid], the destination of its "..." button
-     * on the Wallets & Hardware screen. Implementations put only the account's storage-key id
+     * Opens the screen that renames or removes the view-only account [accountUuid], the destination
+     * of its "..." button on the Wallets & Hardware screen. Implementations put only the account's storage-key id
      * (`AccountUuid.toStorageKeyId()`) in a route, never the viewing key or any other secret.
      */
     fun forwardToEditAccount(accountUuid: AccountUuid)

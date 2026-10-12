@@ -21,6 +21,7 @@ import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountAlreadyExistsExcepti
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountImportException
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.provider.AccountNameProvider
 import co.electriccoin.zcash.ui.common.provider.LedgerAccountBindingProvider
 import co.electriccoin.zcash.ui.common.provider.PersistableWalletProvider
 import co.electriccoin.zcash.ui.common.provider.SelectedAccountUUIDProvider
@@ -121,6 +122,7 @@ class AccountDataSourceImpl(
     private val selectedAccountUUIDProvider: SelectedAccountUUIDProvider,
     private val persistableWalletProvider: PersistableWalletProvider,
     private val ledgerAccountBindingProvider: LedgerAccountBindingProvider,
+    private val accountNameProvider: AccountNameProvider,
     private val viewOnlyContent: ViewOnlyContent,
     private val context: Context,
 ) : AccountDataSource {
@@ -169,8 +171,9 @@ class AccountDataSourceImpl(
                                         )
                                     },
                                     observeLedgerBinding(sdkAccount),
-                                ) { snapshot, ledgerBinding ->
-                                    createWalletAccount(sdkAccount, snapshot, ledgerBinding)
+                                    observeStoredName(sdkAccount),
+                                ) { snapshot, ledgerBinding, storedName ->
+                                    createWalletAccount(sdkAccount, snapshot, ledgerBinding, storedName)
                                 }
                             }.combineToFlow()
                     }
@@ -331,10 +334,10 @@ class AccountDataSourceImpl(
     }
 
     /**
-     * Clearing a Ledger account's stored binding happens after the deletion has already succeeded,
-     * and only best-effort: the account is gone by then, so reporting a failure would tell the user
-     * to retry something that cannot be retried. An orphaned binding is keyed by an account UUID
-     * that no longer resolves.
+     * Clearing a Ledger account's stored binding, or a view-only account's stored name, happens
+     * after the deletion has already succeeded, and only best-effort: the account is gone by then,
+     * so reporting a failure would tell the user to retry something that cannot be retried. An
+     * orphaned binding or name is keyed by an account UUID that no longer resolves.
      */
     @Suppress("TooGenericExceptionCaught")
     override suspend fun deleteAccount(account: WalletAccount) =
@@ -356,6 +359,10 @@ class AccountDataSourceImpl(
             if (account is LedgerAccount) {
                 runCatching { ledgerAccountBindingProvider.clear(account.sdkAccount.accountUuid) }
                     .onFailure { log("failed to clear the Ledger binding of a deleted account", it) }
+            }
+            if (account is ViewOnlyAccount) {
+                runCatching { accountNameProvider.clear(account.sdkAccount.accountUuid) }
+                    .onFailure { log("failed to clear the stored name of a deleted account", it) }
             }
         }
 
@@ -379,12 +386,14 @@ class AccountDataSourceImpl(
      * A Ledger account with no stored binding still displays and receives; it just cannot derive
      * anything, which is why its index stays null rather than being guessed as zero. A view-only
      * account is matched before the Zashi fallback, which requires an HD index and a Sapling
-     * address that such an account does not have.
+     * address that such an account does not have. Its name is the one the user last saved
+     * ([storedName]), else the name it was imported with, else the default view-only name.
      */
     private fun createWalletAccount(
         sdkAccount: Account,
         snapshot: AccountSnapshot,
-        ledgerBinding: LedgerAccountBindingData?
+        ledgerBinding: LedgerAccountBindingData?,
+        storedName: String?,
     ): WalletAccount =
         when {
             isLedgerAccount(sdkAccount) -> {
@@ -423,7 +432,7 @@ class AccountDataSourceImpl(
                     transparentBalance = snapshot.balance?.unshielded,
                     isSelected = snapshot.isSelected,
                     name =
-                        sdkAccount.accountName
+                        (storedName ?: sdkAccount.accountName)
                             ?.takeIf { it.isNotBlank() }
                             ?.let { stringRes(it) }
                             ?: viewOnlyContent.defaultAccountName,
@@ -449,6 +458,16 @@ class AccountDataSourceImpl(
     private fun observeLedgerBinding(sdkAccount: Account): Flow<LedgerAccountBindingData?> =
         if (isLedgerAccount(sdkAccount)) {
             ledgerAccountBindingProvider.observe(sdkAccount.accountUuid)
+        } else {
+            flowOf(null)
+        }
+
+    /**
+     * Only a view-only account can be renamed, so no other account subscribes to the name store.
+     */
+    private fun observeStoredName(sdkAccount: Account): Flow<String?> =
+        if (isViewOnlyAccount(sdkAccount)) {
+            accountNameProvider.observe(sdkAccount.accountUuid)
         } else {
             flowOf(null)
         }
@@ -555,8 +574,8 @@ private data class AddressRequest(
 )
 
 /**
- * Everything one account's per-field flows contribute, bundled so the Ledger binding can be
- * combined in as a sixth source (kotlinx's typed [combine] tops out at five).
+ * Everything one account's per-field flows contribute, bundled so the Ledger binding and the stored
+ * name can be combined in as further sources (kotlinx's typed [combine] tops out at five).
  */
 private data class AccountSnapshot(
     val balance: AccountBalance?,

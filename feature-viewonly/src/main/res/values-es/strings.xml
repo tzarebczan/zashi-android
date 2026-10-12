@@ -64,4 +64,14 @@
     <string name="view_only_keep_open_subtitle">Tu cuenta se está sincronizando.</string>
     <string name="view_only_keep_open_warning">El saldo y la actividad de esta cuenta estarán completos cuando termine la sincronización.</string>
     <string name="view_only_keep_open_checkbox">Mantener la pantalla encendida durante la sincronización</string>
+
+    <string name="view_only_edit_title">Editar cuenta</string>
+    <string name="view_only_edit_remove_info">Al tocar Eliminar cuenta se te pedirá que lo confirmes</string>
+    <string name="view_only_edit_save">Guardar cambios</string>
+    <string name="view_only_remove_account">Eliminar cuenta</string>
+
+    <string name="view_only_remove_title">¿Eliminar esta cuenta?</string>
+    <string name="view_only_remove_message">Al eliminar esta cuenta se borran sus datos de Zodl en este dispositivo, pero se conservan tus contactos de la libreta de direcciones y los demás metadatos de la cuenta. Eliminar la cuenta no elimina su historial en la cadena. Puedes recuperarla cuando quieras volviendo a añadir la cuenta o restaurando tu billetera.</string>
+    <string name="view_only_remove_cancel">Cancelar</string>
+    <string name="view_only_remove_biometric_message">Confirma para eliminar esta cuenta</string>
 </resources>

@@ -2,9 +2,11 @@ package co.electriccoin.zcash.viewonly
 
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import androidx.navigation.toRoute
 import cash.z.ecc.android.sdk.model.AccountUuid
 import cash.z.ecc.android.sdk.model.BlockHeight
 import co.electriccoin.zcash.ui.NavigationRouter
+import co.electriccoin.zcash.ui.common.model.toStorageKeyId
 import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepository
 import co.electriccoin.zcash.ui.common.usecase.ImportViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyAccountImporter
@@ -16,15 +18,19 @@ import co.electriccoin.zcash.ui.dialogComposable
 import co.electriccoin.zcash.ui.screen.connecthw.HWWalletBranding
 import co.electriccoin.zcash.ui.screen.viewonly.ViewOnlyAddAccountArgs
 import co.electriccoin.zcash.ui.screen.viewonly.ViewOnlyAlreadyImportedArgs
+import co.electriccoin.zcash.ui.screen.viewonly.ViewOnlyEditAccountArgs
 import co.electriccoin.zcash.ui.screen.viewonly.ViewOnlyImportArgs
 import co.electriccoin.zcash.ui.screen.viewonly.ViewOnlyImportedArgs
 import co.electriccoin.zcash.ui.screen.viewonly.ViewOnlyNameArgs
+import co.electriccoin.zcash.ui.screen.viewonly.ViewOnlyRemoveAccountArgs
 import co.electriccoin.zcash.ui.screen.viewonly.ViewOnlyScanArgs
 import co.electriccoin.zcash.ui.screen.viewonly.addaccount.ViewOnlyAddAccountScreen
 import co.electriccoin.zcash.ui.screen.viewonly.alreadyimported.ViewOnlyAlreadyImportedScreen
+import co.electriccoin.zcash.ui.screen.viewonly.edit.ViewOnlyEditAccountScreen
 import co.electriccoin.zcash.ui.screen.viewonly.imported.ViewOnlyImportedScreen
 import co.electriccoin.zcash.ui.screen.viewonly.name.ViewOnlyNameScreen
 import co.electriccoin.zcash.ui.screen.viewonly.paste.ViewOnlyPasteScreen
+import co.electriccoin.zcash.ui.screen.viewonly.remove.ViewOnlyRemoveAccountScreen
 import co.electriccoin.zcash.ui.screen.viewonly.scan.ViewOnlyScanScreen
 
 /**
@@ -108,12 +114,8 @@ class ViewOnlyNavigatorImpl(
 
     override fun forwardToImported() = navigationRouter.forward(ViewOnlyImportedArgs)
 
-    /**
-     * Part A placeholder: the edit and remove flow for a view-only account (Part B) does not exist
-     * yet, so this navigates nowhere. Part B replaces it with a forward to its options route, keyed
-     * by `accountUuid.toStorageKeyId()`.
-     */
-    override fun forwardToEditAccount(accountUuid: AccountUuid) = Unit
+    override fun forwardToEditAccount(accountUuid: AccountUuid) =
+        navigationRouter.forward(ViewOnlyEditAccountArgs(accountKeyId = accountUuid.toStorageKeyId()))
 }
 
 class ViewOnlyNavContributorImpl : ViewOnlyNavContributor {
@@ -125,6 +127,8 @@ class ViewOnlyNavContributorImpl : ViewOnlyNavContributor {
             composable<ViewOnlyNameArgs> { ViewOnlyNameScreen() }
             composable<ViewOnlyImportedArgs> { ViewOnlyImportedScreen() }
             dialogComposable<ViewOnlyAlreadyImportedArgs> { ViewOnlyAlreadyImportedScreen() }
+            composable<ViewOnlyEditAccountArgs> { ViewOnlyEditAccountScreen(it.toRoute()) }
+            dialogComposable<ViewOnlyRemoveAccountArgs> { ViewOnlyRemoveAccountScreen(it.toRoute()) }
         }
     }
 }

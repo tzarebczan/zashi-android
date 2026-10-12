@@ -17,6 +17,7 @@ import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountAlreadyExistsExcepti
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountImportException
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.provider.AccountNameProvider
 import co.electriccoin.zcash.ui.common.provider.LedgerAccountBindingProvider
 import co.electriccoin.zcash.ui.common.provider.SynchronizerProvider
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
@@ -27,6 +28,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -106,6 +108,92 @@ class AccountDataSourceImplViewOnlyTest {
                 }
 
             assertEquals(DEFAULT_NAME, accounts.single().name)
+        }
+
+    @Test
+    fun aStoredNameReplacesTheImportedNameAndFollowsEveryRename() =
+        runBlocking<Unit> {
+            val storedName = MutableStateFlow<String?>(null)
+            val synchronizer =
+                mockk<Synchronizer> {
+                    every { accountsFlow } returns
+                        MutableStateFlow(listOf(viewOnlySdkAccount(name = "Savings", uuid = accountUuid)))
+                    every { walletBalances } returns MutableStateFlow(null)
+                    coEvery { getCustomUnifiedAddress(any(), any()) } returns "unified-address"
+                    coEvery { getTransparentAddress(any()) } returns "transparent-address"
+                }
+            val dataSource = dataSource(synchronizer, relaxedBindingProvider(), nameProvider(storedName))
+
+            withTimeout(5_000) {
+                assertEquals(
+                    stringRes("Savings"),
+                    dataSource.allAccounts
+                        .filterNotNull()
+                        .first()
+                        .single()
+                        .name
+                )
+                storedName.value = "Vault"
+                dataSource.allAccounts.first { it?.singleOrNull()?.name == stringRes("Vault") }
+            }
+        }
+
+    @Test
+    fun onlyAViewOnlyAccountReadsTheNameStore() =
+        runBlocking {
+            val nameProvider = nameProvider(MutableStateFlow("Renamed"))
+            val synchronizer =
+                mockk<Synchronizer> {
+                    every { accountsFlow } returns MutableStateFlow(listOf(account))
+                    every { walletBalances } returns MutableStateFlow(null)
+                    coEvery { getCustomUnifiedAddress(any(), any()) } returns "unified-address"
+                    coEvery { getTransparentAddress(any()) } returns "transparent-address"
+                    coEvery { getSaplingAddress(any()) } returns "sapling-address"
+                }
+
+            val accounts =
+                withTimeout(5_000) {
+                    dataSource(synchronizer, relaxedBindingProvider(), nameProvider)
+                        .allAccounts
+                        .filterNotNull()
+                        .first()
+                }
+
+            assertTrue(accounts.single() is ZashiAccount)
+            verify(exactly = 0) { nameProvider.observe(any()) }
+        }
+
+    @Test
+    fun deletingAViewOnlyAccountForgetsItsStoredName() =
+        runBlocking {
+            val nameProvider = nameProvider()
+            val synchronizer =
+                mockk<Synchronizer>(relaxed = true) {
+                    every { accountsFlow } returns MutableStateFlow(listOf(account))
+                    every { walletBalances } returns MutableStateFlow(null)
+                    coEvery { deleteAccount(accountUuid) } returns true
+                }
+
+            dataSource(synchronizer, relaxedBindingProvider(), nameProvider).deleteAccount(viewOnlyAccount())
+
+            coVerify(exactly = 1) { synchronizer.deleteAccount(accountUuid) }
+            coVerify(exactly = 1) { nameProvider.clear(accountUuid) }
+        }
+
+    @Test
+    fun deletingAnotherAccountLeavesTheNameStoreAlone() =
+        runBlocking {
+            val nameProvider = nameProvider()
+            val synchronizer =
+                mockk<Synchronizer>(relaxed = true) {
+                    every { accountsFlow } returns MutableStateFlow(listOf(account))
+                    every { walletBalances } returns MutableStateFlow(null)
+                    coEvery { deleteAccount(accountUuid) } returns true
+                }
+
+            dataSource(synchronizer, relaxedBindingProvider(), nameProvider).deleteAccount(ledgerAccount())
+
+            coVerify(exactly = 0) { nameProvider.clear(any()) }
         }
 
     @Test
@@ -344,9 +432,15 @@ class AccountDataSourceImplViewOnlyTest {
                 )
         )
 
+    private fun nameProvider(storedName: MutableStateFlow<String?> = MutableStateFlow(null)) =
+        mockk<AccountNameProvider>(relaxed = true) {
+            every { observe(any()) } returns storedName
+        }
+
     private fun dataSource(
         synchronizer: Synchronizer,
         ledgerAccountBindingProvider: LedgerAccountBindingProvider,
+        accountNameProvider: AccountNameProvider = nameProvider(),
     ): AccountDataSourceImpl {
         val synchronizerProvider =
             mockk<SynchronizerProvider> {
@@ -364,6 +458,7 @@ class AccountDataSourceImplViewOnlyTest {
                     every { persistableWallet } returns MutableStateFlow(mockk(relaxed = true))
                 },
             ledgerAccountBindingProvider = ledgerAccountBindingProvider,
+            accountNameProvider = accountNameProvider,
             viewOnlyContent = viewOnlyContent,
             context = mockk(relaxed = true),
         )

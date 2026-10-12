@@ -32,6 +32,12 @@ and this application adheres to [Semantic Versioning](https://semver.org/spec/v2
   swapping from ZEC, voting and migration are refused. A key that is malformed, for another
   network, or missing its Orchard or transparent part is rejected, and a key that is already in
   the wallet is not added twice.
+- A view-only account can now be edited and removed from the "..." of its row in the Wallets &
+  Hardware screen. Edit Account renames it, up to 12 characters; Save changes is enabled once the
+  name is new, and the new name shows everywhere the account appears. The name is kept on this
+  device only. Remove Account asks for confirmation and then for your device authentication, and
+  removes the account from Zodl on this device while keeping your address book contacts and the
+  account's other metadata; if it was the selected account, the Zodl account is selected again.
 
 ### Changed:
 
