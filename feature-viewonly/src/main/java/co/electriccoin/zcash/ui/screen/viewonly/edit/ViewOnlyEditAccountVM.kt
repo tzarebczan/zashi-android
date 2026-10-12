@@ -8,10 +8,12 @@ import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountNameLimit
 import co.electriccoin.zcash.ui.common.model.stateIn
 import co.electriccoin.zcash.ui.common.usecase.GetViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.RenameViewOnlyAccountUseCase
-import co.electriccoin.zcash.ui.design.util.StringResource
+import co.electriccoin.zcash.ui.screen.error.ErrorArgs
+import co.electriccoin.zcash.ui.screen.error.NavigateToErrorUseCase
 import co.electriccoin.zcash.ui.screen.viewonly.ViewOnlyEditAccountArgs
 import co.electriccoin.zcash.ui.screen.viewonly.ViewOnlyRemoveAccountArgs
 import co.electriccoin.zcash.ui.screen.viewonly.name.ViewOnlyNameState
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -26,13 +28,15 @@ import kotlinx.coroutines.launch
  * Renames the view-only account [ViewOnlyEditAccountArgs.accountKeyId] names, or opens the sheet that
  * removes it. The field starts with the account's current name and is capped at
  * [ViewOnlyNameState.MAX_NAME_LENGTH] code points as it is typed; Save stores a new, non-blank name
- * and returns to the account list, which already shows it. An id that names no view-only account,
- * the Zodl account or a hardware wallet included, goes straight back.
+ * and returns to the account list, which already shows it; a failure to store it shows the error
+ * screen and leaves the field as typed. An id that names no view-only account, the Zodl account or a
+ * hardware wallet included, goes straight back.
  */
-class ViewOnlyEditAccountVM(
+internal class ViewOnlyEditAccountVM(
     args: ViewOnlyEditAccountArgs,
     private val getViewOnlyAccount: GetViewOnlyAccountUseCase,
     private val renameViewOnlyAccount: RenameViewOnlyAccountUseCase,
+    private val navigateToError: NavigateToErrorUseCase,
     private val navigationRouter: NavigationRouter,
 ) : ViewModel() {
     private val accountKeyId = args.accountKeyId
@@ -85,6 +89,7 @@ class ViewOnlyEditAccountVM(
 
     private fun onValueChange(value: String) = name.update { ViewOnlyAccountNameLimit.cap(value) }
 
+    @Suppress("TooGenericExceptionCaught")
     private fun onSaveClick() {
         if (saveJob?.isActive == true) return
         val typed = name.value ?: return
@@ -101,6 +106,10 @@ class ViewOnlyEditAccountVM(
                     renameViewOnlyAccount(account, typed)
                     currentCoroutineContext().ensureActive()
                     navigationRouter.back()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    navigateToError(ErrorArgs.General(e))
                 } finally {
                     isSaving.update { false }
                 }
@@ -126,5 +135,5 @@ class ViewOnlyEditAccountVM(
      * The name the account shows now, as the field edits it: the stored or imported name. An account
      * that shows the default view-only name has no name of its own, so the field starts empty.
      */
-    private fun ViewOnlyAccount.currentName(): String = (name as? StringResource.ByString)?.value.orEmpty()
+    private fun ViewOnlyAccount.currentName(): String = customName.orEmpty()
 }

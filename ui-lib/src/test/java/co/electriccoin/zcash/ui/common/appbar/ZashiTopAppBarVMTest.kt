@@ -201,6 +201,7 @@ class ZashiTopAppBarVMTest {
             transparentBalance = null,
             isSelected = isSelected,
             name = stringRes("Savings"),
+            customName = "Savings",
             icon = VIEW_ONLY_ICON,
         )
 }

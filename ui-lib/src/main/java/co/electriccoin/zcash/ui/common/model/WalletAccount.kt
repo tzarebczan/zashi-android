@@ -378,7 +378,10 @@ data class LedgerAccount(
  * [saplingBalance] counts toward every total just as it does for [ZashiAccount]. Its SDK-side
  * [Account.hdAccountIndex] is null, so [hdAccountIndex] is null too.
  *
- * @param name The name the user gave the account at import.
+ * @param name The name the account shows: [customName], or the default view-only name when the
+ *        account has no name of its own.
+ * @param customName The account's own name, the one the user last saved or else the one it was
+ *        imported with; null when it has none and [name] is the default view-only name.
  * @param icon The account's avatar, supplied by the view-only feature module.
  */
 data class ViewOnlyAccount(
@@ -391,6 +394,7 @@ data class ViewOnlyAccount(
     override val transparentBalance: Zatoshi?,
     override val isSelected: Boolean,
     override val name: StringResource,
+    val customName: String?,
     @param:DrawableRes override val icon: Int,
 ) : WalletAccount {
     override val isSpendable: Boolean = false
@@ -467,3 +471,21 @@ private operator fun WalletBalance.plus(other: WalletBalance) =
  * answers null — not yet known, never coerced to a definitive answer.
  */
 fun WalletAccount?.canSpend(amount: Zatoshi): Boolean? = if (this == null) false else canSpend(amount)
+
+/**
+ * Whether a Keystone wallet can still be connected: the wallet holds at most one account per
+ * hardware vendor.
+ */
+fun List<WalletAccount>?.canConnectKeystone(): Boolean = orEmpty().none { it is KeystoneAccount }
+
+/**
+ * Whether a Ledger wallet can still be connected: the wallet holds at most one account per hardware
+ * vendor.
+ */
+fun List<WalletAccount>?.canConnectLedger(): Boolean = orEmpty().none { it is LedgerAccount }
+
+/**
+ * Whether any hardware vendor is still left to connect. A view-only account is not a hardware wallet
+ * and does not count.
+ */
+fun List<WalletAccount>?.canConnectHardwareWallet(): Boolean = canConnectKeystone() || canConnectLedger()

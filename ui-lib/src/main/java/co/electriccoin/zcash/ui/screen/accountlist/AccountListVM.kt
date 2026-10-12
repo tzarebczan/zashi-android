@@ -20,6 +20,7 @@ import co.electriccoin.zcash.ui.screen.accountlist.options.WalletOptionsArgs
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import java.util.concurrent.ConcurrentHashMap
 
 class AccountListVM(
     private val getWalletAccounts: GetWalletAccountsUseCase,
@@ -31,11 +32,12 @@ class AccountListVM(
     /**
      * One row callback per account, kept across emissions so an unchanged row's state stays equal
      * and the row skips recomposition on every balance update. A callback carries only the account's
-     * UUID and resolves the account itself when it runs. Read and written only while the state is
-     * built, which happens on one coroutine at a time.
+     * UUID and resolves the account itself when it runs. Each emission drops the callbacks of
+     * accounts that are gone. Concurrent maps, since the initial state is built on the thread that
+     * creates this view model and every later one on the collecting coroutine.
      */
-    private val onAccountClicks = HashMap<AccountUuid, () -> Unit>()
-    private val onOptionsClicks = HashMap<AccountUuid, () -> Unit>()
+    private val onAccountClicks = ConcurrentHashMap<AccountUuid, () -> Unit>()
+    private val onOptionsClicks = ConcurrentHashMap<AccountUuid, () -> Unit>()
 
     val state: StateFlow<AccountListState> =
         getWalletAccounts
@@ -43,8 +45,9 @@ class AccountListVM(
             .map(::createState)
             .stateIn(viewModel = this, initialValue = createState(null))
 
-    private fun createState(accounts: List<WalletAccount>?) =
-        AccountListState.create(
+    private fun createState(accounts: List<WalletAccount>?): AccountListState {
+        accounts?.let(::forgetRemovedAccounts)
+        return AccountListState.create(
             entries = accounts?.map(::toEntry),
             viewOnlySection = viewOnlyContent.accountListSection,
             viewOnlySectionPlural = viewOnlyContent.accountListSectionPlural,
@@ -55,6 +58,13 @@ class AccountListVM(
             onAddAccountClick = ::onAddAccountClick,
             onBack = ::onBack,
         )
+    }
+
+    private fun forgetRemovedAccounts(accounts: List<WalletAccount>) {
+        val current = accounts.mapTo(HashSet()) { it.sdkAccount.accountUuid }
+        onAccountClicks.keys.retainAll(current)
+        onOptionsClicks.keys.retainAll(current)
+    }
 
     private fun toEntry(account: WalletAccount) =
         AccountListEntry(

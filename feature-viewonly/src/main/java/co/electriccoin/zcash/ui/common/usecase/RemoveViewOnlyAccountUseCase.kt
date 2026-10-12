@@ -19,7 +19,7 @@ import kotlinx.coroutines.withContext
  * Only a view-only account is ever removed here: the id is resolved again right before deleting,
  * and an id that names nothing, or names the Zodl account or a hardware wallet, removes nothing.
  */
-class RemoveViewOnlyAccountUseCase(
+internal class RemoveViewOnlyAccountUseCase(
     private val getViewOnlyAccount: GetViewOnlyAccountUseCase,
     private val accountDataSource: AccountDataSource,
     private val biometricRepository: BiometricRepository,

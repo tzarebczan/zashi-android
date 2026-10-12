@@ -7,6 +7,7 @@ import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.model.AccountOperationUnsupportedException
 import co.electriccoin.zcash.ui.common.model.KeystoneFirmwareVersion
 import co.electriccoin.zcash.ui.common.model.SubmitResult
+import co.electriccoin.zcash.ui.common.model.errorCopy
 import co.electriccoin.zcash.ui.common.usecase.SendEmailUseCase
 import co.electriccoin.zcash.ui.common.viewmodel.STACKTRACE_LIMIT
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
@@ -157,39 +158,17 @@ class ErrorVM(
      * [AccountOperationUnsupportedException] is a product limitation, not a failure — it gets the
      * copy of its kind instead of the generic title plus a stack trace.
      */
-    private fun createGeneralErrorState(args: ErrorArgs.General) =
-        ErrorState(
-            title =
-                when ((args.exception as? AccountOperationUnsupportedException)?.kind) {
-                    AccountOperationUnsupportedException.Kind.LEDGER -> {
-                        stringRes(R.string.ledger_unsupported_title)
-                    }
-
-                    AccountOperationUnsupportedException.Kind.VIEW_ONLY -> {
-                        viewOnlyContent.unsupportedOperationTitle
-                    }
-
-                    null -> {
-                        stringRes(R.string.error_general_title)
-                    }
-                },
+    private fun createGeneralErrorState(args: ErrorArgs.General): ErrorState {
+        val unsupported =
+            (args.exception as? AccountOperationUnsupportedException)?.kind?.errorCopy(viewOnlyContent)
+        return ErrorState(
+            title = unsupported?.title ?: stringRes(R.string.error_general_title),
             message =
-                when ((args.exception as? AccountOperationUnsupportedException)?.kind) {
-                    AccountOperationUnsupportedException.Kind.LEDGER -> {
-                        stringRes(R.string.ledger_unsupported_message)
-                    }
-
-                    AccountOperationUnsupportedException.Kind.VIEW_ONLY -> {
-                        viewOnlyContent.unsupportedOperationMessage
-                    }
-
-                    null -> {
-                        stringRes(
-                            R.string.error_general_message,
-                            stringRes(args.exception.stackTraceToString().take(STACKTRACE_LIMIT))
-                        )
-                    }
-                },
+                unsupported?.message
+                    ?: stringRes(
+                        R.string.error_general_message,
+                        stringRes(args.exception.stackTraceToString().take(STACKTRACE_LIMIT))
+                    ),
             positive =
                 ButtonState(
                     text = stringRes(co.electriccoin.zcash.ui.design.R.string.general_ok),
@@ -202,6 +181,7 @@ class ErrorVM(
                 ),
             onBack = ::onBack,
         )
+    }
 
     private fun createGeneralShieldingErrorState(args: ErrorArgs.ShieldingGeneralError) =
         ErrorState(

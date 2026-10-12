@@ -4,6 +4,7 @@ import cash.z.ecc.android.sdk.Synchronizer
 import cash.z.ecc.android.sdk.model.Account
 import cash.z.ecc.android.sdk.model.ZcashNetwork
 import co.electriccoin.zcash.ui.common.model.ufvk.UfvkFixtures
+import co.electriccoin.zcash.ui.common.model.ufvk.UnifiedFullViewingKeyEncoding
 import co.electriccoin.zcash.ui.common.model.ufvk.UnifiedFullViewingKeyEncoding.Item
 import co.electriccoin.zcash.ui.common.provider.SynchronizerProvider
 import co.electriccoin.zcash.ui.common.repository.PendingViewOnlyImport
@@ -138,7 +139,7 @@ class SubmitViewOnlyKeyUseCaseTest {
                 SubmitViewOnlyKeyUseCase(
                     validateUfvk =
                         mockk {
-                            coEvery { this@mockk.invoke(any(), any()) } returns UfvkValidation.Valid(full)
+                            coEvery { this@mockk.invoke(any(), any()) } returns valid(full)
                         },
                     synchronizerProvider =
                         mockk<SynchronizerProvider> { coEvery { getSynchronizer() } coAnswers { awaitCancellation() } },
@@ -168,13 +169,28 @@ class SubmitViewOnlyKeyUseCaseTest {
         validateUfvk =
             mockk {
                 coEvery { this@mockk.invoke(any(), any()) } returns
-                    (candidate?.let { UfvkValidation.Valid(it) } ?: UfvkValidation.Invalid)
+                    (candidate?.let(::valid) ?: UfvkValidation.Invalid)
             },
         synchronizerProvider = mockk<SynchronizerProvider> { coEvery { getSynchronizer() } returns synchronizer },
         pendingImportRepository = repository,
     )
 
     private suspend fun SubmitViewOnlyKeyUseCase.submit(input: String) = invoke(input, ZcashNetwork.Mainnet)
+
+    /**
+     * A validation of the mainnet or testnet key [ufvk] that carries its decoded items, as the real
+     * validation returns it.
+     */
+    private fun valid(ufvk: String) =
+        UfvkValidation.Valid(
+            ufvk = ufvk,
+            items =
+                checkNotNull(
+                    listOf(MAINNET_HRP, TESTNET_HRP).firstNotNullOfOrNull { hrp ->
+                        UnifiedFullViewingKeyEncoding.decode(ufvk, hrp)
+                    }
+                ),
+        )
 
     private fun account(ufvk: String?): Account = mockk { every { this@mockk.ufvk } returns ufvk }
 
@@ -213,6 +229,7 @@ class SubmitViewOnlyKeyUseCaseTest {
         const val SAPLING = 0x02
         const val ORCHARD = 0x03
 
+        const val MAINNET_HRP = "uview"
         const val TESTNET_HRP = "uviewtest"
 
         val AK = 0 until 32

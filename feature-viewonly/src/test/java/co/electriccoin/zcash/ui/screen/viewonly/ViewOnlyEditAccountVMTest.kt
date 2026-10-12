@@ -7,7 +7,8 @@ import co.electriccoin.zcash.ui.common.usecase.GetViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.RenameViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.ViewOnlyAccountFixtures
 import co.electriccoin.zcash.ui.design.util.StringResource
-import co.electriccoin.zcash.ui.design.util.stringRes
+import co.electriccoin.zcash.ui.screen.error.ErrorArgs
+import co.electriccoin.zcash.ui.screen.error.NavigateToErrorUseCase
 import co.electriccoin.zcash.ui.screen.viewonly.edit.ViewOnlyEditAccountVM
 import co.electriccoin.zcash.ui.screen.viewonly.name.ViewOnlyNameState
 import io.mockk.coEvery
@@ -48,6 +49,8 @@ class ViewOnlyEditAccountVMTest {
 
     private val accountNameProvider = mockk<AccountNameProvider>(relaxed = true)
 
+    private val navigateToError = mockk<NavigateToErrorUseCase>(relaxed = true)
+
     private val accounts =
         MutableStateFlow<List<WalletAccount>?>(
             listOf(ViewOnlyAccountFixtures.zashi(isSelected = true), ViewOnlyAccountFixtures.viewOnly())
@@ -79,7 +82,7 @@ class ViewOnlyEditAccountVMTest {
     @Test
     fun anAccountShowingTheDefaultNameStartsWithAnEmptyField() =
         runTest {
-            accounts.value = listOf(ViewOnlyAccountFixtures.viewOnly(name = stringRes(DEFAULT_NAME_RES)))
+            accounts.value = listOf(ViewOnlyAccountFixtures.viewOnly(customName = null))
             val vm = vm()
             collect(vm)
 
@@ -149,10 +152,29 @@ class ViewOnlyEditAccountVMTest {
             collect(vm)
             type(vm, "Savings")
 
-            accounts.value = listOf(ViewOnlyAccountFixtures.viewOnly(name = stringRes("Savings")))
+            accounts.value = listOf(ViewOnlyAccountFixtures.viewOnly(customName = "Savings"))
             runCurrent()
 
             assertFalse(assertNotNull(vm.state.value).saveButton.isEnabled)
+        }
+
+    @Test
+    fun aFailedSaveShowsTheErrorAndStaysOnTheScreen() =
+        runTest {
+            val failure = IllegalStateException("prefs")
+            coEvery { accountNameProvider.save(any(), any()) } throws failure
+            val vm = vm()
+            collect(vm)
+            type(vm, "Savings")
+
+            assertNotNull(vm.state.value).saveButton.onClick()
+            runCurrent()
+
+            verify(exactly = 1) { navigateToError(ErrorArgs.General(failure), any()) }
+            verify(exactly = 0) { navigationRouter.back() }
+            val state = assertNotNull(vm.state.value)
+            assertEquals("Savings", state.field.value.text())
+            assertTrue(state.saveButton.isEnabled)
         }
 
     @Test
@@ -241,6 +263,7 @@ class ViewOnlyEditAccountVMTest {
             args = ViewOnlyEditAccountArgs(accountKeyId),
             getViewOnlyAccount = GetViewOnlyAccountUseCase(ViewOnlyAccountFixtures.getWalletAccounts(accounts)),
             renameViewOnlyAccount = RenameViewOnlyAccountUseCase(accountNameProvider),
+            navigateToError = navigateToError,
             navigationRouter = navigationRouter,
         )
 
@@ -252,10 +275,6 @@ class ViewOnlyEditAccountVMTest {
     private fun StringResource.text() = (this as StringResource.ByString).value
 
     private fun StringResource.args() = (this as StringResource.ByResource).args.toList()
-
-    private companion object {
-        const val DEFAULT_NAME_RES = 1
-    }
 }
 
 private const val LOCK = "\uD83D\uDD10"

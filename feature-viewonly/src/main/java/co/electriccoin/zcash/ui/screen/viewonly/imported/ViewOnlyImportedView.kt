@@ -19,6 +19,7 @@ import co.electriccoin.zcash.ui.design.component.zashiVerticalGradient
 import co.electriccoin.zcash.ui.design.newcomponent.PreviewScreens
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.design.theme.colors.ZashiColors
+import co.electriccoin.zcash.ui.design.theme.typography.ZashiTypography
 import co.electriccoin.zcash.ui.design.util.scaffoldPadding
 import co.electriccoin.zcash.ui.screen.viewonly.ViewOnlyHeader
 
@@ -42,7 +43,7 @@ fun ViewOnlyImportedView(state: ViewOnlyImportedState) {
                     avatar = state.avatar,
                     heading = state.heading,
                     message = state.message,
-                    headingStyleIsLarge = true,
+                    headingStyle = ZashiTypography.header6,
                     modifier = Modifier.padding(horizontal = 8.dp),
                 )
                 Spacer(Modifier.weight(1f))

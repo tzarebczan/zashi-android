@@ -51,7 +51,7 @@ val featureViewOnlyModule =
         factoryOf(::SdkUfvkAddressDerivation) bind UfvkAddressDerivation::class
         factoryOf(::ValidateUfvkUseCase)
         factoryOf(::SubmitViewOnlyKeyUseCase)
-        factoryOf(::ImportViewOnlyAccountUseCase)
+        singleOf(::ImportViewOnlyAccountUseCase)
         factoryOf(::GetViewOnlyAccountUseCase)
         factoryOf(::RenameViewOnlyAccountUseCase)
         factoryOf(::RemoveViewOnlyAccountUseCase)

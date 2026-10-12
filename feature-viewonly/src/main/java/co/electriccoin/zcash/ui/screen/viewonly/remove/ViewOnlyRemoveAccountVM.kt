@@ -32,7 +32,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * reached from the account list, which the landing's `backTo(AccountListArgs::class)` requires on
  * the back stack; without it that call does nothing.
  */
-class ViewOnlyRemoveAccountVM(
+internal class ViewOnlyRemoveAccountVM(
     args: ViewOnlyRemoveAccountArgs,
     private val getViewOnlyAccount: GetViewOnlyAccountUseCase,
     private val removeViewOnlyAccount: RemoveViewOnlyAccountUseCase,

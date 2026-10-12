@@ -215,6 +215,7 @@ class AccountDataSourceImplViewOnlyDeletionTest {
             transparentBalance = null,
             isSelected = false,
             name = stringRes("Savings"),
+            customName = "Savings",
             icon = VIEW_ONLY_ICON,
         )
 

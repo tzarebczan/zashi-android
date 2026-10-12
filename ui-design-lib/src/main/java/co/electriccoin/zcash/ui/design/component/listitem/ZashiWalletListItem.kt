@@ -169,8 +169,10 @@ private fun WalletAvatar(
 
 /**
  * Reports [TRAILING_ACTION_SIZE] to the row and centres the 48 dp [ZashiIconButton] on it; the
- * overflow falls inside the row's padding, so the whole button stays tappable. Without a content
- * description it is hidden from accessibility services but still reacts to touch.
+ * overflow falls inside the row's padding, which nothing clips, and Compose hit-tests a child
+ * outside its parent's bounds, so the whole button stays tappable (ZashiWalletListItemTouchTargetTest
+ * taps its outer ring). Without a content description it is hidden from accessibility services but
+ * still reacts to touch.
  */
 @Composable
 private fun TrailingAction(

@@ -9,7 +9,7 @@ import co.electriccoin.zcash.ui.common.provider.AccountNameProvider
  * the app's own encrypted store, which the account list, the top bar and every other place that
  * shows the account read through the account data source.
  */
-class RenameViewOnlyAccountUseCase(
+internal class RenameViewOnlyAccountUseCase(
     private val accountNameProvider: AccountNameProvider,
 ) {
     /**

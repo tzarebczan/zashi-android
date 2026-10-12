@@ -3,8 +3,7 @@ package co.electriccoin.zcash.ui.screen.viewonly.addaccount
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.electriccoin.zcash.ui.NavigationRouter
-import co.electriccoin.zcash.ui.common.model.HWWalletAccount
-import co.electriccoin.zcash.ui.common.model.WalletAccount
+import co.electriccoin.zcash.ui.common.model.canConnectHardwareWallet
 import co.electriccoin.zcash.ui.common.model.stateIn
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
 import co.electriccoin.zcash.ui.screen.choosehwwallet.ChooseHWWalletArgs
@@ -19,9 +18,11 @@ import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
- * Offers the ways to add an account. Picking one first hides the sheet and only then replaces it
- * with the chosen flow, so the sheet animates away instead of vanishing under the next screen and
- * leaves no hidden destination behind on the back stack.
+ * Offers the ways to add an account. Connecting a hardware wallet is offered while the wallet holds
+ * no account of some vendor, the same rule the vendor picker lists the vendors by. Picking an option
+ * first hides the sheet and only then replaces it with the chosen flow, so the sheet animates away
+ * instead of vanishing under the next screen and leaves no hidden destination behind on the back
+ * stack.
  */
 class ViewOnlyAddAccountVM(
     getWalletAccounts: GetWalletAccountsUseCase,
@@ -37,20 +38,13 @@ class ViewOnlyAddAccountVM(
                 null
             } else {
                 ViewOnlyAddAccountState.create(
-                    canConnectHardwareWallet = canConnectHardwareWallet(accounts),
+                    canConnectHardwareWallet = accounts.canConnectHardwareWallet(),
                     onConnectHardwareWalletClick = { hideThenReplaceWith(ChooseHWWalletArgs) },
                     onImportClick = { hideThenReplaceWith(ViewOnlyImportArgs) },
                     onBack = ::onBack,
                 )
             }
         }.stateIn(this)
-
-    /**
-     * The option disappears once every supported vendor is connected. A view-only account is not a
-     * hardware wallet and does not count.
-     */
-    private fun canConnectHardwareWallet(accounts: List<WalletAccount>) =
-        accounts.count { it is HWWalletAccount } < SUPPORTED_HW_VENDORS
 
     private fun hideThenReplaceWith(route: Any) {
         if (navigateJob?.isActive == true) return
@@ -68,7 +62,6 @@ class ViewOnlyAddAccountVM(
     }
 
     private companion object {
-        const val SUPPORTED_HW_VENDORS = 2
         val SHEET_HIDE_DELAY = 350.milliseconds
     }
 }

@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import co.electriccoin.zcash.ui.design.theme.colors.ZashiColors
@@ -26,6 +27,10 @@ import co.electriccoin.zcash.ui.design.util.getValue
  * together in the content slot because [BaseListItem]'s leading slot is spaced for a 48 dp item.
  * The "Add Account" and "Wallet Options" sheets build their rows with it; the Wallets & Hardware
  * screen's wallet rows are [ZashiWalletListItem].
+ *
+ * The logo and the chevron are decorative and left out of the accessibility tree, so an
+ * accessibility service reads the row as one button named by its title and subtitle, not the title
+ * three times.
  */
 @Composable
 fun ZashiSheetListItem(
@@ -46,7 +51,7 @@ fun ZashiSheetListItem(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 ZashiListItemDefaults.LeadingItem(
-                    modifier = Modifier.size(40.dp),
+                    modifier = Modifier.size(40.dp).clearAndSetSemantics { },
                     icon = icon,
                     badge = badge,
                     contentDescription = title.getValue()
@@ -69,7 +74,7 @@ fun ZashiSheetListItem(
         },
         trailing = {
             ZashiListItemDefaults.TrailingItem(
-                modifier = it,
+                modifier = it.clearAndSetSemantics { },
                 contentDescription = title.getValue()
             )
         },

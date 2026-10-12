@@ -30,7 +30,7 @@ import kotlin.time.Duration.Companion.milliseconds
  *
  * Checking a key suspends, so the scanned-once guard runs under a mutex.
  */
-class ViewOnlyScanVM(
+internal class ViewOnlyScanVM(
     private val submitViewOnlyKey: SubmitViewOnlyKeyUseCase,
     private val navigationRouter: NavigationRouter,
 ) : ViewModel() {

@@ -354,6 +354,12 @@ class AccountDataSourceImpl(
      * after the deletion has succeeded, and only best-effort: the account is gone by then, so
      * reporting a failure would tell the user to retry something that cannot be retried. An orphaned
      * binding or name is keyed by an account UUID that no longer resolves.
+     *
+     * Between the cleared selection and the caller's next one there is a short window in which no
+     * account UUID is stored and the selection falls back to the default account. DisconnectUseCase
+     * and RemoveViewOnlyAccountUseCase close it by selecting the Zodl account right after this
+     * returns, when the deleted account was the selected one. The order is deliberate: clearing the
+     * selection before the deletion would leave a failed deletion with its account deselected.
      */
     @Suppress("TooGenericExceptionCaught")
     override suspend fun deleteAccount(account: WalletAccount) =
@@ -480,6 +486,7 @@ class AccountDataSourceImpl(
             }
 
             isViewOnlyAccount(sdkAccount) -> {
+                val customName = (storedName ?: sdkAccount.accountName)?.takeIf { it.isNotBlank() }
                 ViewOnlyAccount(
                     sdkAccount = sdkAccount,
                     unifiedAddress = snapshot.unifiedAddress,
@@ -489,11 +496,8 @@ class AccountDataSourceImpl(
                     ironwoodBalance = snapshot.balance?.ironwood,
                     transparentBalance = snapshot.balance?.unshielded,
                     isSelected = snapshot.isSelected,
-                    name =
-                        (storedName ?: sdkAccount.accountName)
-                            ?.takeIf { it.isNotBlank() }
-                            ?.let { stringRes(it) }
-                            ?: viewOnlyContent.defaultAccountName,
+                    name = customName?.let { stringRes(it) } ?: viewOnlyContent.defaultAccountName,
+                    customName = customName,
                     icon = viewOnlyContent.accountIcon,
                 )
             }
@@ -630,6 +634,13 @@ class AccountDataSourceImpl(
  * Whether the SDK refused an import because the key overlaps an account the wallet already holds:
  * librustzcash's `AccountCollision`, which reaches Kotlin only as text inside the SDK's import
  * exception. The messages of the cause chain are only matched against, never logged or copied.
+ *
+ * Matching the SDK's text is a stopgap and breaks silently if librustzcash rewords the error. It is
+ * to be replaced by a typed collision error from the SDK, a listed follow-up of the SDK's account
+ * describe API (zodl-android-wallet-sdk-private PR 53,
+ * https://github.com/zodl-inc/zodl-android-wallet-sdk-private/pull/53); until then a reworded
+ * message makes a colliding import fail as [ViewOnlyAccountImportException] instead of
+ * [ViewOnlyAccountAlreadyExistsException].
  */
 private fun Throwable.isAccountCollision(): Boolean =
     generateSequence(this) { it.cause }

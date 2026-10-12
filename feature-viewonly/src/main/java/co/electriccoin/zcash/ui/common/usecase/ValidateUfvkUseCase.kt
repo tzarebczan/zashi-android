@@ -27,7 +27,7 @@ import kotlinx.coroutines.withContext
  * The input is never logged or echoed, and an SDK failure is reduced to a rejection without its
  * message, which can contain the key.
  */
-class ValidateUfvkUseCase(
+internal class ValidateUfvkUseCase(
     private val ufvkAddressDerivation: UfvkAddressDerivation,
 ) {
     suspend operator fun invoke(
@@ -48,7 +48,7 @@ class ValidateUfvkUseCase(
             UnifiedFullViewingKeyEncoding.TYPECODE_ORCHARD in typecodes &&
                 UnifiedFullViewingKeyEncoding.TYPECODE_P2PKH in typecodes &&
                 ufvkAddressDerivation.canDeriveAddress(candidate, network)
-        return if (isValid) UfvkValidation.Valid(candidate) else UfvkValidation.Invalid
+        return if (isValid && items != null) UfvkValidation.Valid(candidate, items) else UfvkValidation.Invalid
     }
 
     companion object {
@@ -75,10 +75,12 @@ class ValidateUfvkUseCase(
  */
 sealed interface UfvkValidation {
     /**
-     * [ufvk] is importable. [toString] leaves the key out.
+     * [ufvk] is importable; [items] are its decoded components, so later checks need not decode it
+     * again. [toString] leaves the key and its components out.
      */
-    class Valid(
-        val ufvk: String
+    class Valid internal constructor(
+        val ufvk: String,
+        internal val items: List<UnifiedFullViewingKeyEncoding.Item>,
     ) : UfvkValidation {
         override fun toString() = "Valid(ufvk=***)"
     }
@@ -91,14 +93,14 @@ sealed interface UfvkValidation {
  * it, which also checks that the keys inside are valid curve points. A seam so that the use case can
  * be tested without the native library.
  */
-interface UfvkAddressDerivation {
+internal interface UfvkAddressDerivation {
     suspend fun canDeriveAddress(
         ufvk: String,
         network: ZcashNetwork,
     ): Boolean
 }
 
-class SdkUfvkAddressDerivation : UfvkAddressDerivation {
+internal class SdkUfvkAddressDerivation : UfvkAddressDerivation {
     /**
      * The SDK's exception is swallowed on purpose: its message can echo the key.
      */

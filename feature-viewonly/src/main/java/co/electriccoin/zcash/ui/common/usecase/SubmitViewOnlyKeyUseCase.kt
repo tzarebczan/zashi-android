@@ -23,7 +23,7 @@ import kotlin.time.Duration.Companion.seconds
  * existing keys are read from the synchronizer's own account list, which does not wait for any
  * account's addresses or balances.
  */
-class SubmitViewOnlyKeyUseCase(
+internal class SubmitViewOnlyKeyUseCase(
     private val validateUfvk: ValidateUfvkUseCase,
     private val synchronizerProvider: SynchronizerProvider,
     private val pendingImportRepository: ViewOnlyPendingImportRepository,
@@ -38,7 +38,7 @@ class SubmitViewOnlyKeyUseCase(
             }
 
             is UfvkValidation.Valid -> {
-                if (isAlreadyImported(validation.ufvk, network)) {
+                if (isAlreadyImported(validation, network)) {
                     SubmitViewOnlyKeyResult.AlreadyImported
                 } else {
                     pendingImportRepository.set(PendingViewOnlyImport(ufvk = validation.ufvk, name = ""))
@@ -48,12 +48,17 @@ class SubmitViewOnlyKeyUseCase(
         }
 
     private suspend fun isAlreadyImported(
-        ufvk: String,
+        validation: UfvkValidation.Valid,
         network: ZcashNetwork,
     ): Boolean {
         val existingKeys = existingKeys()
         return withContext(Dispatchers.Default) {
-            UfvkComponentOverlap.sharesComponentWithAny(ufvk, existingKeys, ValidateUfvkUseCase.hrpOf(network))
+            UfvkComponentOverlap.sharesComponentWithAny(
+                candidate = validation.ufvk,
+                candidateItems = validation.items,
+                existingKeys = existingKeys,
+                hrp = ValidateUfvkUseCase.hrpOf(network),
+            )
         }
     }
 
@@ -99,15 +104,17 @@ internal object UfvkComponentOverlap {
 
     /**
      * True when [candidate] and one of [existingKeys] carry the same Orchard, Sapling or transparent
-     * (P2PKH) component, or are the same text whatever the case. A key that does not decode for
-     * [hrp] is compared by its text only. [candidate] is decoded once for the whole list.
+     * (P2PKH) component, or are the same text whatever the case. [candidateItems] are [candidate]'s
+     * items as the validation already decoded them. An existing key that does not decode for [hrp]
+     * is compared by its text only.
      */
     fun sharesComponentWithAny(
         candidate: String,
+        candidateItems: List<UnifiedFullViewingKeyEncoding.Item>,
         existingKeys: List<String>,
         hrp: String,
     ): Boolean {
-        val candidateComponents = components(candidate, hrp)
+        val candidateComponents = components(candidateItems)
         return existingKeys.any { existing ->
             candidate.equals(existing, ignoreCase = true) ||
                 components(existing, hrp).any { component -> candidateComponents.any { it.sameAs(component) } }
@@ -121,9 +128,10 @@ internal object UfvkComponentOverlap {
         key: String,
         hrp: String,
     ): List<UnifiedFullViewingKeyEncoding.Item> =
-        UnifiedFullViewingKeyEncoding
-            .decode(key.lowercase(), hrp)
-            .orEmpty()
+        components(UnifiedFullViewingKeyEncoding.decode(key.lowercase(), hrp).orEmpty())
+
+    private fun components(items: List<UnifiedFullViewingKeyEncoding.Item>): List<UnifiedFullViewingKeyEncoding.Item> =
+        items
             .filter { it.typecode in COMPARED_TYPECODES }
             .map { UnifiedFullViewingKeyEncoding.Item(it.typecode, comparedBytes(it)) }
 

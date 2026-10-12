@@ -1,5 +1,10 @@
 package co.electriccoin.zcash.ui.common.model
 
+import co.electriccoin.zcash.ui.R
+import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
+import co.electriccoin.zcash.ui.design.util.StringResource
+import co.electriccoin.zcash.ui.design.util.stringRes
+
 /**
  * The selected account cannot perform the requested operation, and the path fails fast with this
  * instead of reaching signing code that cannot run for it.
@@ -8,7 +13,8 @@ package co.electriccoin.zcash.ui.common.model
  * for a [LedgerAccount] yet. [Kind.VIEW_ONLY]: the account is a [ViewOnlyAccount], which holds no
  * spend authority at all, so every spend, shield, swap, vote and migration is refused.
  *
- * The error mapping renders it with the copy of its [kind]; it is never shown as a stack trace.
+ * The error mapping renders it with the copy of its [kind], [errorCopy]; it is never shown as a
+ * stack trace.
  */
 class AccountOperationUnsupportedException(
     val kind: Kind
@@ -29,6 +35,35 @@ class AccountOperationUnsupportedException(
         fun viewOnly() = AccountOperationUnsupportedException(Kind.VIEW_ONLY)
     }
 }
+
+/**
+ * The title and message every error surface shows for an [AccountOperationUnsupportedException].
+ */
+data class UnsupportedOperationCopy(
+    val title: StringResource,
+    val message: StringResource,
+)
+
+/**
+ * The copy for this kind: the Ledger one from ui-lib, the view-only one from the view-only feature
+ * through [viewOnlyContent], so every error surface words the limitation the same way.
+ */
+fun AccountOperationUnsupportedException.Kind.errorCopy(viewOnlyContent: ViewOnlyContent) =
+    when (this) {
+        AccountOperationUnsupportedException.Kind.LEDGER -> {
+            UnsupportedOperationCopy(
+                title = stringRes(R.string.ledger_unsupported_title),
+                message = stringRes(R.string.ledger_unsupported_message),
+            )
+        }
+
+        AccountOperationUnsupportedException.Kind.VIEW_ONLY -> {
+            UnsupportedOperationCopy(
+                title = viewOnlyContent.unsupportedOperationTitle,
+                message = viewOnlyContent.unsupportedOperationMessage,
+            )
+        }
+    }
 
 /**
  * Throws [AccountOperationUnsupportedException] of [AccountOperationUnsupportedException.Kind.VIEW_ONLY]

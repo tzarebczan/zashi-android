@@ -46,6 +46,7 @@ class ViewOnlyVotingGuardTest {
             transparentBalance = null,
             isSelected = true,
             name = stringRes("Savings"),
+            customName = "Savings",
             icon = 0,
         )
 

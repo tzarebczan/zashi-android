@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -55,6 +56,7 @@ internal fun ViewOnlyTopAppBar(
 
 /**
  * The account avatar over a heading and a message, which opens every screen of the import flow.
+ * The heading is Text XL unless [headingStyle] says otherwise.
  */
 @Composable
 internal fun ViewOnlyHeader(
@@ -62,7 +64,7 @@ internal fun ViewOnlyHeader(
     heading: StringResource,
     message: StringResource,
     modifier: Modifier = Modifier,
-    headingStyleIsLarge: Boolean = false,
+    headingStyle: TextStyle = ZashiTypography.textXl,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -72,7 +74,7 @@ internal fun ViewOnlyHeader(
         Spacer(Modifier.height(20.dp))
         Text(
             text = heading.getValue(),
-            style = if (headingStyleIsLarge) ZashiTypography.header6 else ZashiTypography.textXl,
+            style = headingStyle,
             fontWeight = FontWeight.SemiBold,
             color = ZashiColors.Text.textPrimary,
             textAlign = TextAlign.Center,

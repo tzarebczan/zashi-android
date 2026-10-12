@@ -4,6 +4,7 @@ import co.electriccoin.zcash.ui.common.component.error
 import co.electriccoin.zcash.ui.common.model.AccountOperationUnsupportedException
 import co.electriccoin.zcash.ui.common.model.LceContent
 import co.electriccoin.zcash.ui.common.model.LceError
+import co.electriccoin.zcash.ui.common.model.errorCopy
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
 import co.electriccoin.zcash.ui.design.component.ButtonStyle
 import co.electriccoin.zcash.ui.design.component.ZashiConfirmationState
@@ -27,38 +28,17 @@ class ErrorMapperUseCase(
         message: StringResource? = null,
         primaryStyle: ButtonStyle? = null,
     ): LceError.BottomSheet {
-        val unsupported = (error.cause as? AccountOperationUnsupportedException)?.kind
+        val unsupported = (error.cause as? AccountOperationUnsupportedException)?.kind?.errorCopy(viewOnlyContent)
         return mapToBottomSheet(
             error = error,
             title =
-                when (unsupported) {
-                    AccountOperationUnsupportedException.Kind.LEDGER -> {
-                        stringRes(co.electriccoin.zcash.ui.R.string.ledger_unsupported_title)
-                    }
-
-                    AccountOperationUnsupportedException.Kind.VIEW_ONLY -> {
-                        viewOnlyContent.unsupportedOperationTitle
-                    }
-
-                    null -> {
-                        title ?: stringRes(co.electriccoin.zcash.ui.design.R.string.coinVote_error_title)
-                    }
-                },
+                unsupported?.title
+                    ?: title
+                    ?: stringRes(co.electriccoin.zcash.ui.design.R.string.coinVote_error_title),
             message =
-                when (unsupported) {
-                    AccountOperationUnsupportedException.Kind.LEDGER -> {
-                        stringRes(co.electriccoin.zcash.ui.R.string.ledger_unsupported_message)
-                    }
-
-                    AccountOperationUnsupportedException.Kind.VIEW_ONLY -> {
-                        viewOnlyContent.unsupportedOperationMessage
-                    }
-
-                    null -> {
-                        message
-                            ?: stringRes(co.electriccoin.zcash.ui.design.R.string.swapAndPay_failure_laterDesc)
-                    }
-                },
+                unsupported?.message
+                    ?: message
+                    ?: stringRes(co.electriccoin.zcash.ui.design.R.string.swapAndPay_failure_laterDesc),
             primaryStyle = primaryStyle,
         )
     }

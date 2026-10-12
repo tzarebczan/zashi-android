@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.map
  * that id counts as missing, so the edit and remove screens can never act on the Zodl account or a
  * hardware wallet.
  */
-class GetViewOnlyAccountUseCase(
+internal class GetViewOnlyAccountUseCase(
     private val getWalletAccounts: GetWalletAccountsUseCase,
 ) {
     /** The account once the accounts are loaded, or null when it is missing or not view-only. */

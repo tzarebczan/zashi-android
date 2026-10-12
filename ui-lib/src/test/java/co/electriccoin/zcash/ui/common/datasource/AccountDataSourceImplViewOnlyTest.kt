@@ -81,6 +81,7 @@ class AccountDataSourceImplViewOnlyTest {
 
             val viewOnly = accounts.single() as ViewOnlyAccount
             assertEquals(stringRes("Savings"), viewOnly.name)
+            assertEquals("Savings", viewOnly.customName)
             assertEquals(VIEW_ONLY_ICON, viewOnly.icon)
             assertFalse(viewOnly.isSpendable)
             assertNull(viewOnly.hdAccountIndex)
@@ -183,6 +184,7 @@ class AccountDataSourceImplViewOnlyTest {
                 }
 
             assertEquals(DEFAULT_NAME, accounts.single().name)
+            assertNull((accounts.single() as ViewOnlyAccount).customName)
         }
 
     @Test
@@ -209,7 +211,10 @@ class AccountDataSourceImplViewOnlyTest {
                         .name
                 )
                 storedName.value = "Vault"
-                dataSource.allAccounts.first { it?.singleOrNull()?.name == stringRes("Vault") }
+                dataSource.allAccounts.first {
+                    val renamed = it?.singleOrNull() as? ViewOnlyAccount
+                    renamed?.name == stringRes("Vault") && renamed.customName == "Vault"
+                }
             }
         }
 
@@ -533,6 +538,7 @@ class AccountDataSourceImplViewOnlyTest {
             transparentBalance = null,
             isSelected = false,
             name = stringRes("Savings"),
+            customName = "Savings",
             icon = VIEW_ONLY_ICON,
         )
 

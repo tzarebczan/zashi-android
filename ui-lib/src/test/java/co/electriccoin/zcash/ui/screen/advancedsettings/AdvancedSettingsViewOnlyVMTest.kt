@@ -143,6 +143,7 @@ class AdvancedSettingsViewOnlyVMTest {
             transparentBalance = null,
             isSelected = isSelected,
             name = stringRes("Savings"),
+            customName = "Savings",
             icon = 0,
         )
 

@@ -75,6 +75,18 @@ class ViewOnlyAddAccountVMTest {
         }
 
     @Test
+    fun twoAccountsOfOneVendorStillLeaveTheOtherVendorToConnect() =
+        runTest {
+            val vm = vm(listOf(mockk<ZashiAccount>(), mockk<KeystoneAccount>(), mockk<KeystoneAccount>()))
+            collect(vm)
+
+            assertEquals(
+                listOf(ViewOnlyAddAccountTag.CONNECT_HARDWARE_WALLET, ViewOnlyAddAccountTag.IMPORT_VIEWING_KEY),
+                assertNotNull(vm.state.value).options.map { it.testTag }
+            )
+        }
+
+    @Test
     fun theSheetWaitsForTheAccounts() =
         runTest {
             val vm = vm(accounts = null)

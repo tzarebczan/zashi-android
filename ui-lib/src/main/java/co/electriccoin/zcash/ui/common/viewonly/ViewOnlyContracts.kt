@@ -28,9 +28,6 @@ interface ViewOnlyNavigator {
      */
     fun forwardToEditAccount(accountUuid: AccountUuid)
 
-    /** Starts importing a full viewing key. */
-    fun forwardToImport()
-
     /** Shows the import success screen for the account that was just imported. */
     fun forwardToImported()
 }

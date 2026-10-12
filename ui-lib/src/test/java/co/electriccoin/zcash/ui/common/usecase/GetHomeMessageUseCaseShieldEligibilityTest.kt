@@ -57,6 +57,7 @@ class GetHomeMessageUseCaseShieldEligibilityTest {
             transparentBalance = transparent,
             isSelected = true,
             name = stringRes("Savings"),
+            customName = "Savings",
             icon = 0,
         )
 }

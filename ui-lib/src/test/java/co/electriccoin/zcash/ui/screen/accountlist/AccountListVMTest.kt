@@ -44,6 +44,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNotSame
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import co.electriccoin.zcash.ui.R as UiR
@@ -270,6 +271,26 @@ class AccountListVMTest {
             assertEquals(before[1].onClick, after[1].onClick)
             assertEquals(before[1].trailingAction?.onClick, after[1].trailingAction?.onClick)
             assertEquals(before[2], after[2])
+        }
+
+    @Test
+    fun theCallbacksOfARemovedAccountAreDropped() =
+        runTest {
+            val zashi = zashi(id = 1, isSelected = true)
+            val keystone = keystone(id = 2, isSelected = false)
+            val accounts = MutableStateFlow<List<WalletAccount>?>(listOf(zashi, keystone))
+            val vm = vm(accounts)
+            collect(vm)
+            val before = assertNotNull(vm.state.value.sections).flatMap { it.items }[1]
+
+            accounts.value = listOf(zashi)
+            runCurrent()
+            accounts.value = listOf(zashi, keystone)
+            runCurrent()
+
+            val after = assertNotNull(vm.state.value.sections).flatMap { it.items }[1]
+            assertNotSame(before.onClick, after.onClick)
+            assertNotSame(before.trailingAction?.onClick, after.trailingAction?.onClick)
         }
 
     @Test
@@ -579,6 +600,7 @@ class AccountListVMTest {
         transparentBalance = balance,
         isSelected = isSelected,
         name = stringRes("Savings"),
+        customName = "Savings",
         icon = VIEW_ONLY_ICON,
     )
 

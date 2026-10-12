@@ -36,7 +36,7 @@ import co.electriccoin.zcash.ui.screen.viewonly.scan.ViewOnlyScanScreen
 /**
  * The module's own copy and images for everything ui-lib shows about a view-only account.
  */
-class ViewOnlyContentImpl : ViewOnlyContent {
+internal class ViewOnlyContentImpl : ViewOnlyContent {
     override val accountIcon: Int = R.drawable.view_only_ic_account
 
     override val defaultAccountName = stringRes(R.string.view_only_account_default_name)
@@ -88,7 +88,7 @@ class ViewOnlyContentImpl : ViewOnlyContent {
     override val keepOpenCheckboxLabel = stringRes(R.string.view_only_keep_open_checkbox)
 }
 
-object ViewOnlyEnrollmentTag {
+internal object ViewOnlyEnrollmentTag {
     const val NEW_ACCOUNT = "VIEW_ONLY_NEW_OR_ACTIVE_NEW_ACCOUNT"
     const val USED_ACCOUNT = "VIEW_ONLY_NEW_OR_ACTIVE_USED_ACCOUNT"
     const val ENTER_MANUALLY_BTN = "VIEW_ONLY_DATE_ENTER_MANUALLY"
@@ -96,7 +96,7 @@ object ViewOnlyEnrollmentTag {
     const val BLOCK_HEIGHT_FIELD = "VIEW_ONLY_HEIGHT_BLOCK_HEIGHT_FIELD"
 }
 
-class ViewOnlyAccountImporterImpl(
+internal class ViewOnlyAccountImporterImpl(
     private val pendingImportRepository: ViewOnlyPendingImportRepository,
     private val importViewOnlyAccount: ImportViewOnlyAccountUseCase,
 ) : ViewOnlyAccountImporter {
@@ -105,12 +105,10 @@ class ViewOnlyAccountImporterImpl(
     override suspend fun importAccount(birthday: BlockHeight?) = importViewOnlyAccount(birthday)
 }
 
-class ViewOnlyNavigatorImpl(
+internal class ViewOnlyNavigatorImpl(
     private val navigationRouter: NavigationRouter,
 ) : ViewOnlyNavigator {
     override fun forwardToAddAccount() = navigationRouter.forward(ViewOnlyAddAccountArgs)
-
-    override fun forwardToImport() = navigationRouter.forward(ViewOnlyImportArgs)
 
     override fun forwardToImported() = navigationRouter.forward(ViewOnlyImportedArgs)
 
@@ -118,7 +116,7 @@ class ViewOnlyNavigatorImpl(
         navigationRouter.forward(ViewOnlyEditAccountArgs(accountKeyId = accountUuid.toStorageKeyId()))
 }
 
-class ViewOnlyNavContributorImpl : ViewOnlyNavContributor {
+internal class ViewOnlyNavContributorImpl : ViewOnlyNavContributor {
     override fun contribute(navGraphBuilder: NavGraphBuilder) {
         with(navGraphBuilder) {
             dialogComposable<ViewOnlyAddAccountArgs> { ViewOnlyAddAccountScreen() }

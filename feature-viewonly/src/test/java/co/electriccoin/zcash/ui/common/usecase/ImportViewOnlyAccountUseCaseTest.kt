@@ -19,6 +19,10 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -105,6 +109,43 @@ class ImportViewOnlyAccountUseCaseTest {
             assertFalse(error.stackTraceToString().contains("uview"))
             assertEquals(UFVK, repository.get()?.ufvk)
             verify(exactly = 0) { navigationRouter.forward(any()) }
+        }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun aSecondCallWhileTheFirstImportsReturnsWithoutImportingAgain() =
+        runTest {
+            repository.set(PendingViewOnlyImport(ufvk = UFVK, name = "Savings"))
+            val imported = CompletableDeferred<Account>()
+            coEvery { accountDataSource.importViewOnlyAccount(any(), any(), any()) } coAnswers { imported.await() }
+
+            val first = async { useCase(birthday = null) }
+            val second = async { useCase(birthday = null) }
+            runCurrent()
+            imported.complete(created)
+            first.await()
+            second.await()
+
+            coVerify(exactly = 1) { accountDataSource.importViewOnlyAccount(any(), any(), any()) }
+            coVerify(exactly = 1) { accountDataSource.selectAccount(created) }
+            verify(exactly = 1) { synchronizerProvider.resetSynchronizer() }
+            verify(exactly = 1) { navigationRouter.forward(ViewOnlyImportedArgs) }
+            verify(exactly = 0) { navigationRouter.forward(ViewOnlyAlreadyImportedArgs) }
+        }
+
+    @Test
+    fun aSecondCallAfterAFailedImportRetriesIt() =
+        runTest {
+            repository.set(PendingViewOnlyImport(ufvk = UFVK, name = "Savings"))
+            coEvery { accountDataSource.importViewOnlyAccount(any(), any(), any()) } throws
+                ViewOnlyAccountImportException() andThen created
+
+            assertFailsWith<ViewOnlyAccountImportException> { useCase(birthday = null) }
+            useCase(birthday = null)
+
+            coVerify(exactly = 2) { accountDataSource.importViewOnlyAccount(UFVK, "Savings", null) }
+            verify(exactly = 1) { navigationRouter.forward(ViewOnlyImportedArgs) }
+            assertNull(repository.get())
         }
 
     @Test

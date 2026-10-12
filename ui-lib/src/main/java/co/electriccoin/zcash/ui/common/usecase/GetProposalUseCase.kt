@@ -20,13 +20,8 @@ class GetProposalUseCase(
     suspend operator fun invoke(): TransactionProposal =
         when (accountDataSource.getSelectedAccount()) {
             is KeystoneAccount -> keystoneProposalRepository.getTransactionProposal()
-
             is LedgerAccount -> ledgerProposalPipeline.getTransactionProposal()
-
-            is ViewOnlyAccount -> throw AccountOperationUnsupportedException(
-                AccountOperationUnsupportedException.Kind.VIEW_ONLY
-            )
-
+            is ViewOnlyAccount -> throw AccountOperationUnsupportedException.viewOnly()
             is ZashiAccount -> zashiProposalRepository.getTransactionProposal()
         }
 }

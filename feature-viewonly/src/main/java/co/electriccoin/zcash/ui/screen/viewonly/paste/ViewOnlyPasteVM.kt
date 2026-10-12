@@ -36,7 +36,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * key does not stay there. The clipboard is never read: on recent Android versions every read
  * shows a system notice.
  */
-class ViewOnlyPasteVM(
+internal class ViewOnlyPasteVM(
     private val submitViewOnlyKey: SubmitViewOnlyKeyUseCase,
     private val clearClipboard: ClearClipboardUseCase,
     private val pendingImportRepository: ViewOnlyPendingImportRepository,

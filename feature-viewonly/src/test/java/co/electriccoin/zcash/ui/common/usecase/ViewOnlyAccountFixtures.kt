@@ -26,9 +26,17 @@ internal object ViewOnlyAccountFixtures {
 
     val zashiKeyId: String = zashiUuid.toStorageKeyId()
 
+    /** Stands in for the module's default view-only name resource. */
+    const val DEFAULT_NAME_RES = 1
+
+    /**
+     * A view-only account named [customName]; a null [customName] shows [defaultName], as an
+     * account without a name of its own does.
+     */
     fun viewOnly(
-        name: StringResource = stringRes("Zodl Vault"),
+        customName: String? = "Zodl Vault",
         isSelected: Boolean = false,
+        defaultName: StringResource = stringRes(DEFAULT_NAME_RES),
     ) = ViewOnlyAccount(
         sdkAccount = sdkAccount(viewOnlyUuid),
         unifiedAddress = "u",
@@ -38,7 +46,8 @@ internal object ViewOnlyAccountFixtures {
         ironwoodBalance = null,
         transparentBalance = null,
         isSelected = isSelected,
-        name = name,
+        name = customName?.let { stringRes(it) } ?: defaultName,
+        customName = customName,
         icon = 0,
     )
 
