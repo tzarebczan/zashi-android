@@ -10,6 +10,7 @@ import co.electriccoin.zcash.ui.common.ledger.LedgerProposalPipeline
 import co.electriccoin.zcash.ui.common.migration.MigrationNavigator
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.repository.KeystoneProposalRepository
 import co.electriccoin.zcash.ui.common.repository.SwapRepository
@@ -34,6 +35,7 @@ class CancelProposalFlowUseCase(
                 is ZashiAccount -> zashiProposalRepository.getTransactionProposal()
                 is KeystoneAccount -> keystoneProposalRepository.getTransactionProposal()
                 is LedgerAccount -> ledgerProposalPipeline.getTransactionProposal()
+                is ViewOnlyAccount -> null
             }
 
         zashiProposalRepository.clear()

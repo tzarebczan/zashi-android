@@ -1,0 +1,67 @@
+package co.electriccoin.zcash.ui.screen.viewonly.imported
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
+import co.electriccoin.zcash.ui.design.component.BlankBgScaffold
+import co.electriccoin.zcash.ui.design.component.ZashiButton
+import co.electriccoin.zcash.ui.design.component.zashiVerticalGradient
+import co.electriccoin.zcash.ui.design.newcomponent.PreviewScreens
+import co.electriccoin.zcash.ui.design.theme.ZcashTheme
+import co.electriccoin.zcash.ui.design.theme.colors.ZashiColors
+import co.electriccoin.zcash.ui.design.util.scaffoldPadding
+import co.electriccoin.zcash.ui.screen.viewonly.ViewOnlyHeader
+
+@Composable
+fun ViewOnlyImportedView(state: ViewOnlyImportedState) {
+    BlankBgScaffold { paddingValues ->
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(zashiVerticalGradient(ZashiColors.Utility.SuccessGreen.utilitySuccess100))
+        ) {
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .scaffoldPadding(paddingValues)
+            ) {
+                Spacer(Modifier.height(HEADER_TOP_SPACING))
+                ViewOnlyHeader(
+                    avatar = state.avatar,
+                    heading = state.heading,
+                    message = state.message,
+                    headingStyleIsLarge = true,
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                )
+                Spacer(Modifier.weight(1f))
+                ZashiButton(
+                    state = state.doneButton,
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .testTag(ViewOnlyImportedTag.DONE_BUTTON)
+                )
+            }
+        }
+    }
+}
+
+private val HEADER_TOP_SPACING = 132.dp
+
+@PreviewScreens
+@Composable
+private fun ImportedPreview() =
+    ZcashTheme {
+        ViewOnlyImportedView(ViewOnlyImportedState.preview)
+    }

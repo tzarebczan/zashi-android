@@ -443,11 +443,11 @@ class RequestSwapQuoteUseCaseTest {
         verify(exactly = 0) { navigationRouter.forward(SwapQuoteArgs) }
     }
 
-    private fun zashi(): WalletAccount = mockk<ZashiAccount>()
+    private fun zashi(): WalletAccount = mockk<ZashiAccount> { every { isSpendable } returns true }
 
-    private fun keystone(): WalletAccount = mockk<KeystoneAccount>()
+    private fun keystone(): WalletAccount = mockk<KeystoneAccount> { every { isSpendable } returns true }
 
-    private fun ledger(): WalletAccount = mockk<LedgerAccount>()
+    private fun ledger(): WalletAccount = mockk<LedgerAccount> { every { isSpendable } returns true }
 
     private suspend fun RequestSwapQuoteUseCase.exactInput(selectedAsset: SwapAsset = btc) =
         requestExactInput(

@@ -78,7 +78,7 @@ class MigrationCompleteVMTest {
             val vm =
                 vm(
                     seen = seen,
-                    account = mockk<KeystoneAccount>(relaxed = true),
+                    account = mockk<KeystoneAccount>(relaxed = true) { every { isSpendable } returns true },
                     orchardBalanceZatoshi = MIGRATION_RESIDUAL_MIN_ZATOSHI + 500_000L,
                     router = router,
                 )
@@ -101,7 +101,7 @@ class MigrationCompleteVMTest {
             val vm =
                 vm(
                     seen = seen,
-                    account = mockk<KeystoneAccount>(relaxed = true),
+                    account = mockk<KeystoneAccount>(relaxed = true) { every { isSpendable } returns true },
                     orchardBalanceZatoshi = MIGRATION_RESIDUAL_MIN_ZATOSHI,
                     router = router,
                 )
@@ -122,7 +122,7 @@ class MigrationCompleteVMTest {
             val vm =
                 vm(
                     seen = seen,
-                    account = mockk<KeystoneAccount>(relaxed = true),
+                    account = mockk<KeystoneAccount>(relaxed = true) { every { isSpendable } returns true },
                     orchardBalanceZatoshi = 0L,
                     router = router,
                 )
@@ -145,7 +145,7 @@ class MigrationCompleteVMTest {
             val vm =
                 vm(
                     seen = seen,
-                    account = mockk<ZashiAccount>(relaxed = true),
+                    account = mockk<ZashiAccount>(relaxed = true) { every { isSpendable } returns true },
                     orchardBalanceZatoshi = 500_000L,
                     router = router,
                 )
@@ -169,7 +169,7 @@ class MigrationCompleteVMTest {
             val vm =
                 vm(
                     seen = seen,
-                    account = mockk<KeystoneAccount>(relaxed = true),
+                    account = mockk<KeystoneAccount>(relaxed = true) { every { isSpendable } returns true },
                     orchardBalanceZatoshi = MIGRATION_DUST_THRESHOLD_ZATOSHI - 1L,
                     router = router,
                 )
@@ -191,7 +191,7 @@ class MigrationCompleteVMTest {
             val vm =
                 vm(
                     seen = seen,
-                    account = mockk<KeystoneAccount>(relaxed = true),
+                    account = mockk<KeystoneAccount>(relaxed = true) { every { isSpendable } returns true },
                     orchardBalanceZatoshi = MIGRATION_DUST_THRESHOLD_ZATOSHI,
                     router = router,
                 )
@@ -227,7 +227,7 @@ class MigrationCompleteVMTest {
             val vm =
                 vm(
                     seen = seen,
-                    account = mockk<KeystoneAccount>(relaxed = true),
+                    account = mockk<KeystoneAccount>(relaxed = true) { every { isSpendable } returns true },
                     orchardBalanceZatoshi = residualInGapZatoshi,
                     router = router,
                 )
@@ -264,7 +264,7 @@ class MigrationCompleteVMTest {
 
             val vm =
                 vm(
-                    account = mockk<ZashiAccount>(relaxed = true),
+                    account = mockk<ZashiAccount>(relaxed = true) { every { isSpendable } returns true },
                     orchardBalanceZatoshi = 500_000L,
                     router = router,
                     getOrchardMigrationSdk = mockk { coEvery { this@mockk() } returns sdk },
@@ -295,7 +295,7 @@ class MigrationCompleteVMTest {
 
             val vm =
                 vm(
-                    account = mockk<KeystoneAccount>(relaxed = true),
+                    account = mockk<KeystoneAccount>(relaxed = true) { every { isSpendable } returns true },
                     orchardBalanceZatoshi = 500_000L,
                     router = router,
                     getOrchardMigrationSdk = mockk { coEvery { this@mockk() } returns sdk },
@@ -333,7 +333,7 @@ class MigrationCompleteVMTest {
                 }
             val vm =
                 vm(
-                    account = mockk<KeystoneAccount>(relaxed = true),
+                    account = mockk<KeystoneAccount>(relaxed = true) { every { isSpendable } returns true },
                     orchardBalanceZatoshi = 500_000L,
                     router = FakeNavigationRouter(),
                     getOrchardMigrationSdk = mockk { coEvery { this@mockk() } returns sdk },
@@ -366,7 +366,7 @@ class MigrationCompleteVMTest {
                 }
             val vm =
                 vm(
-                    account = mockk<KeystoneAccount>(relaxed = true),
+                    account = mockk<KeystoneAccount>(relaxed = true) { every { isSpendable } returns true },
                     orchardBalanceZatoshi = 500_000L,
                     router = FakeNavigationRouter(),
                     args = MigrationCompleteArgs(isResidueOnly = true),
@@ -409,7 +409,7 @@ class MigrationCompleteVMTest {
                 }
             val vm =
                 vm(
-                    account = mockk<KeystoneAccount>(relaxed = true),
+                    account = mockk<KeystoneAccount>(relaxed = true) { every { isSpendable } returns true },
                     orchardBalanceZatoshi = 500_000L,
                     router = FakeNavigationRouter(),
                     getOrchardMigrationSdk = mockk { coEvery { this@mockk() } returns sdk },
@@ -434,7 +434,7 @@ class MigrationCompleteVMTest {
             // unchanged — this is what MigrationCompleteScreen branches its copy/summary card on.
             val vm =
                 vm(
-                    account = mockk<KeystoneAccount>(relaxed = true),
+                    account = mockk<KeystoneAccount>(relaxed = true) { every { isSpendable } returns true },
                     orchardBalanceZatoshi = 500_000L,
                     router = FakeNavigationRouter(),
                     args = MigrationCompleteArgs(isResidueOnly = true),
@@ -456,7 +456,7 @@ class MigrationCompleteVMTest {
         runTest {
             val vm =
                 vm(
-                    account = mockk<KeystoneAccount>(relaxed = true),
+                    account = mockk<KeystoneAccount>(relaxed = true) { every { isSpendable } returns true },
                     orchardBalanceZatoshi = 500_000L,
                     router = FakeNavigationRouter(),
                     args = MigrationCompleteArgs(isResidueOnly = false),

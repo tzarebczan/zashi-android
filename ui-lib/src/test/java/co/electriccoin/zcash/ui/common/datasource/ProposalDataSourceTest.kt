@@ -27,6 +27,7 @@ class ProposalDataSourceTest {
     private val account =
         mockk<ZashiAccount> {
             every { sdkAccount } returns mockk(relaxed = true)
+            every { isSpendable } returns true
         }
 
     @Test

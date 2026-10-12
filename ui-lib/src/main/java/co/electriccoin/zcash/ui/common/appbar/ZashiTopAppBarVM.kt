@@ -12,12 +12,16 @@ import co.electriccoin.zcash.ui.common.model.DistributionDimension
 import co.electriccoin.zcash.ui.common.model.HWWalletAccount
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
+import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.provider.GetVersionInfoProvider
 import co.electriccoin.zcash.ui.common.repository.ConfigurationRepository
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
+import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
 import co.electriccoin.zcash.ui.design.R
 import co.electriccoin.zcash.ui.design.component.IconButtonState
+import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.design.util.stringRes
 import co.electriccoin.zcash.ui.preference.StandardPreferenceKeys
 import co.electriccoin.zcash.ui.screen.accountlist.AccountListArgs
@@ -40,6 +44,7 @@ class ZashiTopAppBarVM(
     private val navigationRouter: NavigationRouter,
     private val getVersionInfo: GetVersionInfoProvider,
     private val configurationRepository: ConfigurationRepository,
+    private val viewOnlyContent: ViewOnlyContent,
 ) : ViewModel() {
     private val isHideBalances: StateFlow<Boolean?> = booleanStateFlow(StandardPreferenceKeys.IS_HIDE_BALANCES)
 
@@ -63,15 +68,12 @@ class ZashiTopAppBarVM(
         val current = accounts?.firstOrNull { it.isSelected }
         return ZashiMainTopAppBarState(
             accountSwitchState =
-                accounts?.let {
+                current?.let { account ->
                     AccountSwitchState(
+                        icon = account.icon,
+                        name = account.name,
+                        subtitle = subtitleOf(account),
                         onAccountTypeClick = ::onAccountTypeClicked,
-                        accountType =
-                            when (current) {
-                                is KeystoneAccount -> ZashiMainTopAppBarState.AccountType.KEYSTONE
-                                is LedgerAccount -> ZashiMainTopAppBarState.AccountType.LEDGER
-                                else -> ZashiMainTopAppBarState.AccountType.ZASHI
-                            },
                     )
                 },
             balanceVisibilityButton =
@@ -100,6 +102,15 @@ class ZashiTopAppBarVM(
                 )
         )
     }
+
+    private fun subtitleOf(account: WalletAccount): StringResource? =
+        when (account) {
+            is KeystoneAccount,
+            is LedgerAccount,
+            is ZashiAccount -> null
+
+            is ViewOnlyAccount -> viewOnlyContent.topBarSubtitle
+        }
 
     private fun onAccountTypeClicked() = navigationRouter.forward(AccountListArgs)
 

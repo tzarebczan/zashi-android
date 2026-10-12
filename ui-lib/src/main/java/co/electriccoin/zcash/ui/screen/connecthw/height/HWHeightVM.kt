@@ -13,6 +13,7 @@ import co.electriccoin.zcash.ui.common.model.stateIn
 import co.electriccoin.zcash.ui.common.model.withLce
 import co.electriccoin.zcash.ui.common.usecase.CreateHWWalletAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.ErrorMapperUseCase
+import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
 import co.electriccoin.zcash.ui.design.component.ButtonState
 import co.electriccoin.zcash.ui.design.component.IconButtonState
 import co.electriccoin.zcash.ui.design.component.NumberTextFieldInnerState
@@ -33,8 +34,9 @@ class HWHeightVM(
     private val createHWWalletAccount: CreateHWWalletAccountUseCase,
     private val navigationRouter: NavigationRouter,
     private val errorStateMapper: ErrorMapperUseCase,
+    viewOnlyContent: ViewOnlyContent,
 ) : ViewModel() {
-    private val branding = brandingOf(args.enrollment)
+    private val branding = brandingOf(args.enrollment, viewOnlyContent)
     private val blockHeightText = MutableStateFlow(NumberTextFieldInnerState())
     private val createAccountLce = mutableLce<Unit>()
 

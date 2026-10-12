@@ -52,6 +52,12 @@ sealed interface WalletAccount : Comparable<WalletAccount> {
     val icon: Int
 
     /**
+     * Whether the wallet holds spend authority for this account, in software or on a paired hardware
+     * wallet. False only for a [ViewOnlyAccount]. Not a balance check; that is [canSpend].
+     */
+    val isSpendable: Boolean
+
+    /**
      * The account's ZIP 32 index, or null when it is not known, as for a Ledger account without a
      * stored binding.
      */
@@ -174,6 +180,8 @@ data class ZashiAccount(
     override val icon: Int
         get() = R.drawable.ic_item_zashi
 
+    override val isSpendable: Boolean = true
+
     override val totalBalance: Zatoshi?
         get() {
             val unifiedTotal = unifiedBalance?.total ?: return null
@@ -212,6 +220,7 @@ data class ZashiAccount(
         when (other) {
             is KeystoneAccount -> 1
             is LedgerAccount -> 1
+            is ViewOnlyAccount -> 1
             is ZashiAccount -> 0
         }
 }
@@ -232,6 +241,8 @@ data class KeystoneAccount(
 ) : HWWalletAccount {
     override val icon: Int
         get() = R.drawable.ic_item_keystone
+
+    override val isSpendable: Boolean = true
 
     override val name: StringResource
         get() = stringRes(co.electriccoin.zcash.ui.R.string.accounts_keystone)
@@ -266,6 +277,7 @@ data class KeystoneAccount(
         when (other) {
             is KeystoneAccount -> 0
             is LedgerAccount -> 1
+            is ViewOnlyAccount -> 1
             is ZashiAccount -> -1
         }
 }
@@ -305,6 +317,8 @@ data class LedgerAccount(
     override val icon: Int
         get() = R.drawable.ic_item_ledger
 
+    override val isSpendable: Boolean = true
+
     override val name: StringResource
         get() = stringRes(co.electriccoin.zcash.ui.R.string.accounts_ledger)
 
@@ -341,6 +355,7 @@ data class LedgerAccount(
         when (other) {
             is KeystoneAccount -> -1
             is LedgerAccount -> 0
+            is ViewOnlyAccount -> 1
             is ZashiAccount -> -1
         }
 
@@ -351,6 +366,72 @@ data class LedgerAccount(
     override fun toString() =
         "LedgerAccount(sdkAccount=$sdkAccount, deviceIdentity=***, " +
             "zip32AccountIndex=$zip32AccountIndex, isSelected=$isSelected)"
+}
+
+/**
+ * An account imported from a unified full viewing key: the wallet sees its balance, addresses and
+ * activity but holds no spend authority, so [isSpendable] is false and every spend path refuses it.
+ *
+ * It is deliberately not a [HWWalletAccount], so it never counts as a connected hardware vendor.
+ * Like the hardware accounts it has no Sapling address or balance, and its SDK-side
+ * [Account.hdAccountIndex] is null, so [hdAccountIndex] is null too.
+ *
+ * @param name The name the user gave the account at import.
+ * @param icon The account's avatar, supplied by the view-only feature module.
+ */
+data class ViewOnlyAccount(
+    override val sdkAccount: Account,
+    override val unifiedAddress: String,
+    override val transparentAddress: String,
+    override val orchardBalance: WalletBalance?,
+    override val ironwoodBalance: WalletBalance?,
+    override val transparentBalance: Zatoshi?,
+    override val isSelected: Boolean,
+    override val name: StringResource,
+    @param:DrawableRes override val icon: Int,
+) : WalletAccount {
+    override val isSpendable: Boolean = false
+
+    override val saplingAddress: String? = null
+
+    override val saplingBalance: WalletBalance? = null
+
+    override val totalBalance: Zatoshi?
+        get() {
+            val unifiedTotal = unifiedBalance?.total ?: return null
+            val transparent = transparentBalance ?: return null
+            return unifiedTotal + transparent
+        }
+
+    override val totalShieldedBalance: Zatoshi?
+        get() = unifiedBalance?.total
+
+    override val totalTransparentBalance: Zatoshi?
+        get() = transparentBalance
+
+    override val spendableShieldedBalance: Zatoshi?
+        get() = unifiedBalance?.available
+
+    override val pendingShieldedBalance: Zatoshi?
+        get() {
+            val unified = unifiedBalance ?: return null
+            return unified.changePending + unified.valuePending
+        }
+
+    override fun compareTo(other: WalletAccount) =
+        when (other) {
+            is KeystoneAccount -> -1
+            is LedgerAccount -> -1
+            is ViewOnlyAccount -> 0
+            is ZashiAccount -> -1
+        }
+
+    /**
+     * Overridden so a printed account never carries its addresses or the SDK account, whose UFVK
+     * is the imported viewing key.
+     */
+    override fun toString() =
+        "ViewOnlyAccount(accountUuid=${sdkAccount.accountUuid}, isSelected=$isSelected)"
 }
 
 /**

@@ -17,6 +17,7 @@ import co.electriccoin.zcash.ui.common.provider.LedgerAccountBindingProvider
 import co.electriccoin.zcash.ui.common.provider.PersistableWalletProvider
 import co.electriccoin.zcash.ui.common.provider.SelectedAccountUUIDProvider
 import co.electriccoin.zcash.ui.common.provider.SynchronizerProvider
+import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -46,6 +47,8 @@ import kotlin.test.assertTrue
 class AccountDataSourceImplTest {
     private val accountUuid = AccountUuid.new(ByteArray(16) { it.toByte() })
     private val account = Account.new(accountUuid)
+
+    private val viewOnlyContent = mockk<ViewOnlyContent>(relaxed = true)
 
     private fun zeroBalance() = WalletBalance(Zatoshi(0), Zatoshi(0), Zatoshi(0))
 
@@ -97,6 +100,7 @@ class AccountDataSourceImplTest {
             selectedAccountUUIDProvider = selectedAccountUUIDProvider,
             persistableWalletProvider = persistableWalletProvider,
             ledgerAccountBindingProvider = ledgerAccountBindingProvider,
+            viewOnlyContent = viewOnlyContent,
             context = mockk(relaxed = true),
         )
     }
@@ -510,6 +514,7 @@ class AccountDataSourceImplTest {
                     every { persistableWallet } returns MutableStateFlow(mockk(relaxed = true))
                 },
             ledgerAccountBindingProvider = ledgerAccountBindingProvider,
+            viewOnlyContent = viewOnlyContent,
             context = mockk(relaxed = true),
         )
     }

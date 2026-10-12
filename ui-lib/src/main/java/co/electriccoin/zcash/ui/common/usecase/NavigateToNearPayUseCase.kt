@@ -1,18 +1,27 @@
 package co.electriccoin.zcash.ui.common.usecase
 
 import co.electriccoin.zcash.ui.NavigationRouter
+import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
 import co.electriccoin.zcash.ui.common.repository.SwapRepository
+import co.electriccoin.zcash.ui.screen.error.NavigateToErrorUseCase
 import co.electriccoin.zcash.ui.screen.pay.PayArgs
 
 class NavigateToNearPayUseCase(
     private val swapRepository: SwapRepository,
     private val navigationRouter: NavigationRouter,
+    private val accountDataSource: AccountDataSource,
+    private val navigateToError: NavigateToErrorUseCase,
     // private val ephemeralAddressRepository: EphemeralAddressRepository,
     // private val isEphemeralAddressLocked: IsEphemeralAddressLockedUseCase,
     // private val createIncreaseEphemeralGapLimitProposal: CreateIncreaseEphemeralGapLimitProposalUseCase,
     // private val navigateToError: NavigateToErrorUseCase
 ) {
+    /**
+     * A selected account that cannot spend gets the unsupported-operation error instead of the
+     * flow, whose only outcome is spending from it.
+     */
     operator fun invoke() {
+        if (navigateToError.rejectIfSelectedAccountCannotSpend(accountDataSource)) return
         swapRepository.requestRefreshAssets()
         navigationRouter.forward(PayArgs)
         // try {

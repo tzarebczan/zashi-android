@@ -10,6 +10,7 @@ import co.electriccoin.zcash.ui.common.model.SimpleSwapAsset
 import co.electriccoin.zcash.ui.common.model.SwapAsset
 import co.electriccoin.zcash.ui.common.model.SwapMode
 import co.electriccoin.zcash.ui.common.model.SwapStatus
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.model.ZecSimpleSwapAsset
@@ -359,6 +360,7 @@ class MetadataRepositoryImpl(
                         when (selectedAccount) {
                             is KeystoneAccount -> selectedAccount.sdkAccount.ufvk
                             is LedgerAccount -> selectedAccount.sdkAccount.ufvk
+                            is ViewOnlyAccount -> selectedAccount.sdkAccount.ufvk
                             is ZashiAccount -> null
                         }
                 )

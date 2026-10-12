@@ -6,13 +6,17 @@ import cash.z.ecc.android.sdk.model.Zip32AccountIndex
 import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
 import co.electriccoin.zcash.ui.common.usecase.SelectWalletAccountUseCase
+import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
+import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyNavigator
 import co.electriccoin.zcash.ui.design.R
 import co.electriccoin.zcash.ui.design.component.ButtonStyle
-import co.electriccoin.zcash.ui.screen.choosehwwallet.ChooseHWWalletArgs
+import co.electriccoin.zcash.ui.design.util.StringResource
+import co.electriccoin.zcash.ui.design.util.stringRes
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -37,7 +41,8 @@ import kotlin.test.assertTrue
 
 /**
  * The "Wallets & Hardware" sheet: one row per wallet with its vendor icon and the selected badge,
- * and a call to action that only appears while a hardware vendor is still unconnected.
+ * and an "Add Account" call to action that appears once the wallets are loaded and opens the
+ * view-only feature's options sheet.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class AccountListVMTest {
@@ -68,27 +73,47 @@ class AccountListVMTest {
         }
 
     @Test
-    fun theCallToActionShowsWhileAVendorIsStillUnconnected() =
+    fun aViewOnlyRowShowsTheNameAndAvatarTheAccountCarries() =
+        runTest {
+            val vm = vm(listOf(zashi(isSelected = false), viewOnly(isSelected = true)))
+            collect(vm)
+
+            val row = assertNotNull(vm.state.value?.items)[1]
+            assertEquals(stringRes("Savings"), row.title)
+            assertEquals(VIEW_ONLY_ICON, row.icon)
+            assertTrue(row.isSelected)
+        }
+
+    @Test
+    fun everyRowIsTitledWithItsAccountName() =
+        runTest {
+            val accounts =
+                listOf(
+                    zashi(isSelected = true),
+                    keystone(isSelected = false),
+                    ledger(isSelected = false),
+                    viewOnly(isSelected = false),
+                )
+            val vm = vm(accounts)
+            collect(vm)
+
+            assertEquals(accounts.map { it.name }, assertNotNull(vm.state.value?.items).map { it.title })
+        }
+
+    @Test
+    fun theCallToActionShowsOnceTheAccountsAreLoadedWhateverIsConnected() =
         runTest {
             listOf(
                 listOf(zashi(isSelected = true)),
                 listOf(zashi(isSelected = true), keystone(isSelected = false)),
-                listOf(zashi(isSelected = true), ledger(isSelected = false)),
+                listOf(zashi(isSelected = true), keystone(isSelected = false), ledger(isSelected = false)),
+                listOf(zashi(isSelected = false), viewOnly(isSelected = true)),
             ).forEach { accounts ->
                 val vm = vm(accounts)
                 collect(vm)
 
                 assertNotNull(vm.state.value?.addWalletButton)
             }
-        }
-
-    @Test
-    fun theCallToActionDisappearsOnceBothVendorsAreConnected() =
-        runTest {
-            val vm = vm(listOf(zashi(isSelected = true), keystone(isSelected = false), ledger(isSelected = false)))
-            collect(vm)
-
-            assertNull(vm.state.value?.addWalletButton)
         }
 
     @Test
@@ -104,17 +129,26 @@ class AccountListVMTest {
         }
 
     @Test
-    fun theSecondaryCallToActionOpensTheVendorPicker() =
+    fun theCallToActionCarriesTheViewOnlyCopyAndOpensTheAddAccountOptions() =
         runTest {
             val navigationRouter = mockk<NavigationRouter>(relaxed = true)
-            val vm = vm(listOf(zashi(isSelected = true)), navigationRouter = navigationRouter)
+            val viewOnlyNavigator = mockk<ViewOnlyNavigator>(relaxed = true)
+            val vm =
+                vm(
+                    listOf(zashi(isSelected = true)),
+                    navigationRouter = navigationRouter,
+                    viewOnlyNavigator = viewOnlyNavigator,
+                )
             collect(vm)
 
             val button = assertNotNull(vm.state.value?.addWalletButton)
-            assertEquals(ButtonStyle.SECONDARY, button.style)
+            assertEquals(ButtonStyle.PRIMARY, button.style)
+            assertEquals(ADD_ACCOUNT, button.text)
+            assertEquals(ADD_ACCOUNT_ICON, button.icon)
             button.onClick()
 
-            verify(exactly = 1) { navigationRouter.forward(ChooseHWWalletArgs) }
+            verify(exactly = 1) { viewOnlyNavigator.forwardToAddAccount() }
+            verify(exactly = 0) { navigationRouter.forward(any()) }
         }
 
     @Test
@@ -135,6 +169,7 @@ class AccountListVMTest {
         accounts: List<WalletAccount>?,
         selectWalletAccount: SelectWalletAccountUseCase = mockk(relaxed = true),
         navigationRouter: NavigationRouter = mockk(relaxed = true),
+        viewOnlyNavigator: ViewOnlyNavigator = mockk(relaxed = true),
     ) = AccountListVM(
         getWalletAccounts =
             mockk<GetWalletAccountsUseCase> {
@@ -142,6 +177,12 @@ class AccountListVMTest {
             },
         selectWalletAccount = selectWalletAccount,
         navigationRouter = navigationRouter,
+        viewOnlyNavigator = viewOnlyNavigator,
+        viewOnlyContent =
+            mockk<ViewOnlyContent> {
+                every { addAccountButton } returns ADD_ACCOUNT
+                every { addAccountButtonIcon } returns ADD_ACCOUNT_ICON
+            },
     )
 
     private fun zashi(isSelected: Boolean) =
@@ -181,7 +222,30 @@ class AccountListVMTest {
             zip32AccountIndex = Zip32AccountIndex.new(0L),
         )
 
+    private fun viewOnly(isSelected: Boolean) =
+        ViewOnlyAccount(
+            sdkAccount = sdkAccount,
+            unifiedAddress = "u-view-only",
+            transparentAddress = "t-view-only",
+            orchardBalance = null,
+            ironwoodBalance = null,
+            transparentBalance = null,
+            isSelected = isSelected,
+            name = stringRes("Savings"),
+            icon = VIEW_ONLY_ICON,
+        )
+
     private fun TestScope.collect(vm: AccountListVM) {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.state.collect { } }
     }
 }
+
+/**
+ * A resource-backed text: mockk cannot return the inline `StringResource.ByString` from a mocked
+ * interface property.
+ */
+private val ADD_ACCOUNT = StringResource.ByResource(resource = 1, args = emptyList())
+
+private const val ADD_ACCOUNT_ICON = 42
+
+private const val VIEW_ONLY_ICON = 43

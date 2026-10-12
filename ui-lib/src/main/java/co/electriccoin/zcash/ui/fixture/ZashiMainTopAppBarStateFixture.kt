@@ -10,7 +10,9 @@ object ZashiMainTopAppBarStateFixture {
     fun new(
         accountSwitchState: AccountSwitchState =
             AccountSwitchState(
-                accountType = ZashiMainTopAppBarState.AccountType.ZASHI,
+                icon = R.drawable.ic_item_zashi,
+                name = stringRes(co.electriccoin.zcash.ui.R.string.accounts_zashi),
+                subtitle = null,
                 onAccountTypeClick = {}
             ),
         balanceVisibilityButton: IconButtonState =

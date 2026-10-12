@@ -12,6 +12,7 @@ import co.electriccoin.zcash.ui.common.provider.ShieldFundsInfoProvider
 import co.electriccoin.zcash.ui.common.repository.HomeMessageData
 import co.electriccoin.zcash.ui.common.repository.MigrationHomeMessage
 import co.electriccoin.zcash.ui.common.usecase.GetHomeMessageUseCase
+import co.electriccoin.zcash.ui.common.usecase.GetSelectedWalletAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.IsRestoreSuccessDialogVisibleUseCase
 import co.electriccoin.zcash.ui.common.usecase.NavigateToNearPayUseCase
 import co.electriccoin.zcash.ui.common.usecase.NavigateToReceiveUseCase
@@ -53,6 +54,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -76,6 +78,7 @@ class HomeVM(
     private val migrationHomeMessageSource: MigrationHomeMessageSource,
     private val homeMessageMapper: HomeMessageMapper,
     walletSnapshotDataSource: WalletSnapshotDataSource,
+    getSelectedWalletAccount: GetSelectedWalletAccountUseCase,
 ) : ViewModel() {
     private var hasSyncErrorBeenShown = false
     private var hasRestoreSuccessBeenShown = false
@@ -130,9 +133,10 @@ class HomeVM(
     val state: StateFlow<HomeState?> =
         combine(
             messageState,
-            isSyncComplete
-        ) { messageState, isSyncComplete ->
-            createState(messageState, isSyncComplete)
+            isSyncComplete,
+            getSelectedWalletAccount.observe().map { it?.isSpendable ?: true }.distinctUntilChanged(),
+        ) { messageState, isSyncComplete, isSpendable ->
+            createState(messageState, isSyncComplete, isSpendable)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(ANDROID_STATE_FLOW_TIMEOUT),
@@ -176,9 +180,15 @@ class HomeVM(
 
     private var onSwapButtonClick: Job? = null
 
+    /**
+     * An account that cannot spend shows only Receive and Swap: Send and Pay are hidden, not
+     * disabled. Swap stays because it also swaps into the account; its spend direction is refused
+     * when the quote would create a proposal.
+     */
     private fun createState(
         messageState: HomeMessageState?,
-        isSyncComplete: Boolean
+        isSyncComplete: Boolean,
+        isSpendable: Boolean,
     ) = HomeState(
         firstButton =
             BigIconButtonState(
@@ -191,13 +201,13 @@ class HomeVM(
                 text = stringRes(R.string.tabs_send),
                 icon = R.drawable.ic_home_send,
                 onClick = ::onSendButtonClick,
-            ),
+            ).takeIf { isSpendable },
         thirdButton =
             BigIconButtonState(
                 text = stringRes(R.string.crosspay_pay),
                 icon = R.drawable.ic_home_pay,
                 onClick = ::onPayButtonClick,
-            ),
+            ).takeIf { isSpendable },
         fourthButton =
             BigIconButtonState(
                 text = stringRes(R.string.swapAndPay_swap),

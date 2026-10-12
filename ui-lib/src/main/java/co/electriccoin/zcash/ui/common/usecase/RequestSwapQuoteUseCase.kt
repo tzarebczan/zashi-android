@@ -10,6 +10,7 @@ import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
 import co.electriccoin.zcash.ui.common.datasource.InsufficientFundsException
 import co.electriccoin.zcash.ui.common.datasource.TexUnsupportedOnKSException
 import co.electriccoin.zcash.ui.common.ledger.LedgerProposalPipeline
+import co.electriccoin.zcash.ui.common.model.AccountOperationUnsupportedException
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.SwapAsset
@@ -17,7 +18,9 @@ import co.electriccoin.zcash.ui.common.model.SwapMode.EXACT_INPUT
 import co.electriccoin.zcash.ui.common.model.SwapMode.EXACT_OUTPUT
 import co.electriccoin.zcash.ui.common.model.SwapMode.FLEX_INPUT
 import co.electriccoin.zcash.ui.common.model.SwapQuote
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.requireSpendable
 import co.electriccoin.zcash.ui.common.provider.SynchronizerProvider
 import co.electriccoin.zcash.ui.common.repository.KeystoneProposalRepository
 import co.electriccoin.zcash.ui.common.repository.SwapQuoteData
@@ -166,8 +169,13 @@ class RequestSwapQuoteUseCase(
         }
     }
 
+    /**
+     * Spends from the selected account, so an account that cannot spend is refused before anything
+     * is derived from the quote.
+     */
     @Suppress("TooGenericExceptionCaught", "ThrowsCount")
     private suspend fun createProposal(quote: SwapQuote) {
+        val account = accountDataSource.getSelectedAccount().requireSpendable()
         val send =
             ZecSend(
                 destination = getWalletAddress(quote.depositAddress.address),
@@ -176,7 +184,7 @@ class RequestSwapQuoteUseCase(
                 proposal = null
             )
 
-        when (accountDataSource.getSelectedAccount()) {
+        when (account) {
             is KeystoneAccount -> {
                 when (quote.mode) {
                     EXACT_INPUT -> keystoneProposalRepository.createExactInputSwapProposal(send, quote)
@@ -193,6 +201,10 @@ class RequestSwapQuoteUseCase(
                     FLEX_INPUT -> throw UnsupportedOperationException("Flex input swap not supported")
                 }
                 ledgerProposalPipeline.createPCZTFromProposal()
+            }
+
+            is ViewOnlyAccount -> {
+                throw AccountOperationUnsupportedException.viewOnly()
             }
 
             is ZashiAccount -> {

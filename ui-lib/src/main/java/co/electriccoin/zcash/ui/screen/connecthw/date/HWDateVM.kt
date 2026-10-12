@@ -12,6 +12,7 @@ import co.electriccoin.zcash.ui.common.model.stateIn
 import co.electriccoin.zcash.ui.common.model.withLce
 import co.electriccoin.zcash.ui.common.usecase.CreateHWWalletAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.ErrorMapperUseCase
+import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
 import co.electriccoin.zcash.ui.design.component.ButtonState
 import co.electriccoin.zcash.ui.design.component.IconButtonState
 import co.electriccoin.zcash.ui.design.util.stringRes
@@ -39,8 +40,9 @@ class HWDateVM(
     private val navigationRouter: NavigationRouter,
     private val application: Application,
     private val errorStateMapper: ErrorMapperUseCase,
+    viewOnlyContent: ViewOnlyContent,
 ) : ViewModel() {
-    private val branding = brandingOf(args.enrollment)
+    private val branding = brandingOf(args.enrollment, viewOnlyContent)
     private val selection = MutableStateFlow(WalletFixture.SAPLING_ACTIVATION_YEAR_MONTH)
     private val estimateLce = mutableLce<Unit>()
 

@@ -2,13 +2,15 @@ package co.electriccoin.zcash.ui.screen.connecthw
 
 import androidx.annotation.DrawableRes
 import co.electriccoin.zcash.ui.R
+import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
 import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.design.util.stringRes
 
 /**
  * Everything that differs between hardware-wallet vendors across the four shared enrollment
  * screens. Keeping it in one place is what lets those screens hold no vendor branch of their own;
- * [brandingOf] is the single point where an enrollment turns into vendor-specific resources.
+ * [brandingOf] is the single point where an enrollment turns into vendor-specific resources. A
+ * view-only import reuses the screens with the branding the view-only feature supplies.
  */
 data class HWWalletBranding(
     @param:DrawableRes val logo: Int,
@@ -25,10 +27,14 @@ data class HWWalletBranding(
     val blockHeightFieldTestTag: String,
 )
 
-fun brandingOf(enrollment: HWWalletEnrollment): HWWalletBranding =
+fun brandingOf(
+    enrollment: HWWalletEnrollment,
+    viewOnlyContent: ViewOnlyContent,
+): HWWalletBranding =
     when (enrollment) {
         is HWWalletEnrollment.Keystone -> KEYSTONE_BRANDING
         is HWWalletEnrollment.Ledger -> LEDGER_BRANDING
+        is HWWalletEnrollment.ViewOnly -> viewOnlyContent.enrollmentBranding
     }
 
 private val KEYSTONE_BRANDING =

@@ -16,6 +16,7 @@ import co.electriccoin.zcash.ui.NavigationCommand
 import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.common.datasource.ZashiSpendingKeyDataSource
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
+import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.model.migration.MigrationMode
 import co.electriccoin.zcash.ui.common.provider.SynchronizerProvider
@@ -112,8 +113,9 @@ class MigrationReviewVMTest {
                     keystoneProposalRepository = keystoneProposalRepository,
                     getSelectedWalletAccount =
                         mockk {
-                            coEvery { this@mockk() } returns mockk<KeystoneAccount>(relaxed = true)
-                            every { observe() } returns flowOf(mockk<KeystoneAccount>(relaxed = true))
+                            coEvery { this@mockk() } returns spendable<KeystoneAccount>()
+                            every { observe() } returns
+                                flowOf(spendable<KeystoneAccount>())
                         },
                 )
 
@@ -323,8 +325,8 @@ class MigrationReviewVMTest {
         router: NavigationRouter,
         getSelectedWalletAccount: GetSelectedWalletAccountUseCase =
             mockk {
-                coEvery { this@mockk() } returns mockk<ZashiAccount>(relaxed = true)
-                every { observe() } returns flowOf(mockk<ZashiAccount>(relaxed = true))
+                coEvery { this@mockk() } returns spendable<ZashiAccount>()
+                every { observe() } returns flowOf(spendable<ZashiAccount>())
             },
         zashiSpendingKeyDataSource: ZashiSpendingKeyDataSource =
             mockk {
@@ -384,4 +386,7 @@ class MigrationReviewVMTest {
 
         override fun observePipeline(): Flow<BaseNavigationCommand> = emptyFlow()
     }
+
+    private inline fun <reified T : WalletAccount> spendable(): T =
+        mockk<T>(relaxed = true) { every { isSpendable } returns true }
 }

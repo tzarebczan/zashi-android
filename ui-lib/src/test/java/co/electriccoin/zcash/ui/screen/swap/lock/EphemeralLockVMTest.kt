@@ -8,7 +8,7 @@ import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.common.datasource.RegularTransactionProposal
 import co.electriccoin.zcash.ui.common.datasource.SendTransactionProposal
 import co.electriccoin.zcash.ui.common.ledger.LedgerProposalPipeline
-import co.electriccoin.zcash.ui.common.model.LedgerOperationUnsupportedException
+import co.electriccoin.zcash.ui.common.model.AccountOperationUnsupportedException
 import co.electriccoin.zcash.ui.common.repository.KeystoneProposalRepository
 import co.electriccoin.zcash.ui.common.repository.ZashiProposalRepository
 import co.electriccoin.zcash.ui.common.usecase.ObserveProposalUseCase
@@ -54,7 +54,7 @@ class EphemeralLockVMTest {
     @Test
     fun submittingOnALedgerAccountRoutesToTheGeneralErrorScreenInsteadOfCrashing() =
         runTest {
-            val exception = LedgerOperationUnsupportedException()
+            val exception = AccountOperationUnsupportedException.ledger()
             val submitIncreaseEphemeralGapLimit =
                 mockk<SubmitIncreaseEphemeralGapLimitUseCase> {
                     coEvery { this@mockk() } throws exception

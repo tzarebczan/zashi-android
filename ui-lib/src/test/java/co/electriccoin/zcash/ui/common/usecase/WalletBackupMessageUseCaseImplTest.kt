@@ -1,6 +1,7 @@
 package co.electriccoin.zcash.ui.common.usecase
 
 import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.provider.WalletBackupFlagStorageProvider
@@ -45,6 +46,21 @@ class WalletBackupMessageUseCaseImplTest {
             val emissions = collectEmissions(useCase(isBackedUp = false, transactions = listOf(receiveTransaction)))
 
             assertEquals(listOf(WalletBackupData.Available(WalletBackupLockoutDuration.TWO_DAYS)), emissions)
+        }
+
+    @Test
+    fun aSelectedViewOnlyAccountKeepsBackupUnavailable() =
+        runTest {
+            val emissions =
+                collectEmissions(
+                    useCase(
+                        isBackedUp = false,
+                        transactions = listOf(receiveTransaction),
+                        account = mockk<ViewOnlyAccount>(),
+                    )
+                )
+
+            assertEquals(listOf(WalletBackupData.Unavailable), emissions)
         }
 
     @Test

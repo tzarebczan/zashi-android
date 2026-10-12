@@ -209,6 +209,12 @@ private class FakeAccountDataSource(
         birthday: BlockHeight?
     ): cash.z.ecc.android.sdk.model.Account = error("unsupported")
 
+    override suspend fun importViewOnlyAccount(
+        ufvk: String,
+        name: String,
+        birthday: BlockHeight?
+    ): cash.z.ecc.android.sdk.model.Account = error("unsupported")
+
     override suspend fun importLedgerAccount(
         pairing: LedgerAccountPairing,
         birthday: BlockHeight?

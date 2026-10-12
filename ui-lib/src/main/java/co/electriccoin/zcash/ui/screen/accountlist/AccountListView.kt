@@ -204,14 +204,6 @@ private fun Preview() =
 @OptIn(ExperimentalMaterial3Api::class)
 @PreviewScreens
 @Composable
-private fun HWWalletAddedPreview() =
-    ZcashTheme {
-        AccountListView(state = AccountListState.previewMaxed)
-    }
-
-@OptIn(ExperimentalMaterial3Api::class)
-@PreviewScreens
-@Composable
 private fun LoadingPreview() =
     ZcashTheme {
         AccountListView(state = AccountListState.previewLoading)

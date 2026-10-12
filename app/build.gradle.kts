@@ -243,6 +243,7 @@ dependencies {
     implementation(projects.uiLib)
     implementation(projects.featureLedger)
     implementation(projects.featureMigration)
+    implementation(projects.featureViewonly)
     implementation(projects.featureVoting)
 
     androidTestImplementation(projects.testLib)

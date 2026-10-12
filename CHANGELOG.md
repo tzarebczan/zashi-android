@@ -23,9 +23,20 @@ and this application adheres to [Semantic Versioning](https://semver.org/spec/v2
   with Pair Ledger; a different Ledger there shows Wrong Ledger instead of adding a second Ledger
   account. After the wrong Ledger the signing sheet asks you to pick the device instead of
   reconnecting to the same one.
+- You can now add a view-only account by importing a Unified Full Viewing Key: tap Add Account in
+  the Wallets & Hardware sheet, choose Import full viewing key, paste the key or scan its QR code,
+  name the account and, if it has been used before, tell Zodl when it was created. A view-only
+  account shows its balance, addresses and activity, receives funds, swaps into ZEC, exports its
+  viewing key and tax file, and is marked View Only under its name at the top of Home. It holds
+  no spending key, so Home offers only Receive and Swap for it, and sending, paying, shielding,
+  swapping from ZEC, voting and migration are refused. A key that is malformed, for another
+  network, or missing its Orchard or transparent part is rejected, and a key that is already in
+  the wallet is not added twice.
 
 ### Changed:
 
+- The Wallets & Hardware sheet's Connect Hardware Wallet button is now Add Account, which offers
+  connecting a hardware wallet, while one can still be added, and importing a viewing key.
 - Disconnect Hardware Wallet in Advanced Settings now shows only while a Keystone or Ledger account
   is selected, and disconnects that account; it used to show whenever the wallet held a Keystone
   account, whichever account was selected.

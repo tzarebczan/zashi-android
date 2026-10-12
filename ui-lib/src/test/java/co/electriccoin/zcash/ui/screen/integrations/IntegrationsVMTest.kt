@@ -110,6 +110,7 @@ class IntegrationsVMTest {
                     every { observe() } returns MutableStateFlow(Status.DISABLED)
                 },
             navigationRouter = mockk<NavigationRouter>(relaxed = true),
+            viewOnlyContent = mockk(relaxed = true),
         )
 
     private fun zashi() =

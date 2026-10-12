@@ -43,7 +43,7 @@ import kotlin.test.assertIs
 /**
  * The address QR screen: it shows the selected account's address of the requested type, shares that address
  * as a QR with the ZEC share texts and the centre icon matching the address kind, copies it to the clipboard,
- * marks a Keystone account's QR as Keystone, and stays loading for an address the account does not have.
+ * titles a Keystone account's QR as Keystone, and stays loading for an address the account does not have.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class QrCodeVMTest {
@@ -124,8 +124,14 @@ class QrCodeVMTest {
             val zodl = startedVm(account = zashiAccount())
             val keystone = startedVm(account = keystoneAccount())
 
-            assertEquals(QrCodeType.ZASHI, assertIs<QrCodeState.Prepared>(zodl.state.value).qrCodeType)
-            assertEquals(QrCodeType.KEYSTONE, assertIs<QrCodeState.Prepared>(keystone.state.value).qrCodeType)
+            assertEquals(
+                stringRes(R.string.accounts_zashi_shieldedAddress),
+                assertIs<QrCodeState.Prepared>(zodl.state.value).title
+            )
+            assertEquals(
+                stringRes(R.string.qr_code_wallet_address_shielded_keystone),
+                assertIs<QrCodeState.Prepared>(keystone.state.value).title
+            )
         }
 
     @Test
@@ -189,6 +195,7 @@ class QrCodeVMTest {
                 copyToClipboard = copyToClipboard,
                 navigationRouter = router,
                 shareQR = shareQR,
+                viewOnlyContent = mockk(relaxed = true),
             )
         backgroundScope.launch { vm.state.collect { } }
         advanceUntilIdle()

@@ -16,6 +16,9 @@ import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccountBindingData
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountAlreadyExistsException
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountImportException
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.provider.LedgerAccountBindingProvider
@@ -23,7 +26,9 @@ import co.electriccoin.zcash.ui.common.provider.PersistableWalletProvider
 import co.electriccoin.zcash.ui.common.provider.SelectedAccountUUIDProvider
 import co.electriccoin.zcash.ui.common.provider.SynchronizerProvider
 import co.electriccoin.zcash.ui.common.provider.retainWhileWalletExists
+import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
 import co.electriccoin.zcash.ui.design.util.combineToFlow
+import co.electriccoin.zcash.ui.design.util.stringRes
 import co.electriccoin.zcash.ui.util.loggableNot
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -89,6 +94,22 @@ interface AccountDataSource {
         birthday: BlockHeight? = null
     ): Account
 
+    /**
+     * Imports [ufvk] as a view-only account named [name]. The key is checked against the accounts
+     * the wallet already holds first; an SDK failure is reported without the SDK's exception or
+     * message, which can echo the key.
+     *
+     * @throws ViewOnlyAccountAlreadyExistsException if the wallet already holds an account for
+     *         [ufvk]. When this is only detectable after the import (the SDK returned an existing
+     *         account), the SDK has already updated that account; this reports it, it cannot undo it.
+     * @throws ViewOnlyAccountImportException if the SDK rejected the import.
+     */
+    suspend fun importViewOnlyAccount(
+        ufvk: String,
+        name: String,
+        birthday: BlockHeight? = null
+    ): Account
+
     suspend fun requestNextShieldedAddress(): String
 
     suspend fun deleteAccount(account: WalletAccount)
@@ -100,6 +121,7 @@ class AccountDataSourceImpl(
     private val selectedAccountUUIDProvider: SelectedAccountUUIDProvider,
     private val persistableWalletProvider: PersistableWalletProvider,
     private val ledgerAccountBindingProvider: LedgerAccountBindingProvider,
+    private val viewOnlyContent: ViewOnlyContent,
     private val context: Context,
 ) : AccountDataSource {
     private val log = loggableNot("AccountDataSource")
@@ -248,6 +270,40 @@ class AccountDataSourceImpl(
             created
         }
 
+    @Suppress("TooGenericExceptionCaught", "SwallowedException")
+    override suspend fun importViewOnlyAccount(
+        ufvk: String,
+        name: String,
+        birthday: BlockHeight?
+    ): Account =
+        withContext(Dispatchers.IO) {
+            val synchronizer = synchronizerProvider.getSynchronizer()
+            val existing = synchronizer.getAccounts()
+            if (existing.any { it.ufvk == ufvk }) {
+                throw ViewOnlyAccountAlreadyExistsException()
+            }
+            val created =
+                try {
+                    synchronizer.importAccountByUfvk(
+                        AccountImportSetup(
+                            accountName = name,
+                            keySource = VIEW_ONLY_KEYSOURCE,
+                            ufvk = UnifiedFullViewingKey(ufvk),
+                            purpose = AccountPurpose.ViewOnly,
+                            birthday = birthday,
+                        )
+                    )
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    throw ViewOnlyAccountImportException()
+                }
+            if (existing.any { it.accountUuid == created.accountUuid }) {
+                throw ViewOnlyAccountAlreadyExistsException()
+            }
+            created
+        }
+
     @Suppress("TooGenericExceptionCaught")
     override suspend fun requestNextShieldedAddress(): String {
         var result: String? = null
@@ -311,9 +367,19 @@ class AccountDataSourceImpl(
     private fun isHWAccount(sdkAccount: Account) =
         isKeystoneAccount(sdkAccount) || isLedgerAccount(sdkAccount)
 
+    private fun isViewOnlyAccount(sdkAccount: Account) = sdkAccount.keySource?.lowercase() == VIEW_ONLY_KEYSOURCE
+
+    /**
+     * Accounts that have no Sapling receiver of their own and are never selected by default: the
+     * hardware-wallet accounts and the view-only ones.
+     */
+    private fun isOrchardOnlyAccount(sdkAccount: Account) = isHWAccount(sdkAccount) || isViewOnlyAccount(sdkAccount)
+
     /**
      * A Ledger account with no stored binding still displays and receives; it just cannot derive
-     * anything, which is why its index stays null rather than being guessed as zero.
+     * anything, which is why its index stays null rather than being guessed as zero. A view-only
+     * account is matched before the Zashi fallback, which requires an HD index and a Sapling
+     * address that such an account does not have.
      */
     private fun createWalletAccount(
         sdkAccount: Account,
@@ -347,6 +413,24 @@ class AccountDataSourceImpl(
                 )
             }
 
+            isViewOnlyAccount(sdkAccount) -> {
+                ViewOnlyAccount(
+                    sdkAccount = sdkAccount,
+                    unifiedAddress = snapshot.unifiedAddress,
+                    transparentAddress = snapshot.transparentAddress,
+                    orchardBalance = snapshot.balance?.orchard,
+                    ironwoodBalance = snapshot.balance?.ironwood,
+                    transparentBalance = snapshot.balance?.unshielded,
+                    isSelected = snapshot.isSelected,
+                    name =
+                        sdkAccount.accountName
+                            ?.takeIf { it.isNotBlank() }
+                            ?.let { stringRes(it) }
+                            ?: viewOnlyContent.defaultAccountName,
+                    icon = viewOnlyContent.accountIcon,
+                )
+            }
+
             else -> {
                 ZashiAccount(
                     sdkAccount = sdkAccount,
@@ -373,7 +457,7 @@ class AccountDataSourceImpl(
         selectedAccountUUIDProvider
             .uuid
             .map { uuid ->
-                if (isHWAccount(sdkAccount)) {
+                if (isOrchardOnlyAccount(sdkAccount)) {
                     sdkAccount.accountUuid == uuid || allAccounts.size == 1
                 } else {
                     uuid == null || sdkAccount.accountUuid == uuid || allAccounts.size == 1
@@ -386,7 +470,7 @@ class AccountDataSourceImpl(
             log("deriving unified address for ${sdkAccount.accountUuid}")
 
             val addressRequest =
-                if (isHWAccount(sdkAccount)) {
+                if (isOrchardOnlyAccount(sdkAccount)) {
                     UnifiedAddressRequest.Orchard
                 } else {
                     UnifiedAddressRequest.shielded
@@ -453,7 +537,7 @@ class AccountDataSourceImpl(
         }
 
     private fun observeSaplingAddress(synchronizer: Synchronizer, sdkAccount: Account): Flow<String?> =
-        if (isHWAccount(sdkAccount)) {
+        if (isOrchardOnlyAccount(sdkAccount)) {
             flowOf(null)
         } else {
             flow {
@@ -494,6 +578,11 @@ private const val RETRY_DELAY = 3L
 private val ADDRESS_REQUEST_TIMEOUT = 15.seconds
 
 private const val KEYSTONE_KEYSOURCE = "keystone"
+
+/**
+ * The key source a view-only import is stored with, which is how the account is recognised again.
+ */
+const val VIEW_ONLY_KEYSOURCE = "view_only"
 
 class AccountDeletionException(
     message: String,

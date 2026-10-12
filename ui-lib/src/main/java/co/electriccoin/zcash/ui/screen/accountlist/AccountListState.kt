@@ -11,8 +11,8 @@ import co.electriccoin.zcash.ui.design.util.stringRes
 import co.electriccoin.zcash.ui.design.util.stringResByAddress
 
 /**
- * The "Wallets & Hardware" sheet: one row per wallet plus, while a hardware vendor is still
- * unconnected, the "Connect Hardware Wallet" call to action.
+ * The "Wallets & Hardware" sheet: one row per wallet plus, once the wallets are loaded, the "Add
+ * Account" call to action.
  */
 data class AccountListState(
     val items: List<ZashiAccountListItemState>?,
@@ -48,11 +48,9 @@ data class AccountListState(
                         ),
                     ),
                 isLoading = false,
-                addWalletButton = ButtonState(stringRes("Connect Hardware Wallet"), style = ButtonStyle.SECONDARY),
+                addWalletButton = ButtonState(stringRes("Add Account"), style = ButtonStyle.PRIMARY),
                 onBack = {},
             )
-
-        val previewMaxed = preview.copy(addWalletButton = null)
 
         val previewLoading =
             AccountListState(

@@ -4,19 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cash.z.ecc.sdk.ANDROID_STATE_FLOW_TIMEOUT
 import co.electriccoin.zcash.ui.NavigationRouter
-import co.electriccoin.zcash.ui.common.model.HWWalletAccount
-import co.electriccoin.zcash.ui.common.model.KeystoneAccount
-import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
 import co.electriccoin.zcash.ui.common.usecase.SelectWalletAccountUseCase
-import co.electriccoin.zcash.ui.design.R
+import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
+import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyNavigator
 import co.electriccoin.zcash.ui.design.component.ButtonState
 import co.electriccoin.zcash.ui.design.component.ButtonStyle
-import co.electriccoin.zcash.ui.design.util.stringRes
 import co.electriccoin.zcash.ui.design.util.stringResByAddress
-import co.electriccoin.zcash.ui.screen.choosehwwallet.ChooseHWWalletArgs
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.map
@@ -27,6 +22,8 @@ class AccountListVM(
     getWalletAccounts: GetWalletAccountsUseCase,
     private val selectWalletAccount: SelectWalletAccountUseCase,
     private val navigationRouter: NavigationRouter,
+    private val viewOnlyNavigator: ViewOnlyNavigator,
+    private val viewOnlyContent: ViewOnlyContent,
 ) : ViewModel() {
     val state =
         getWalletAccounts
@@ -38,12 +35,7 @@ class AccountListVM(
                             ZashiAccountListItemState(
                                 title = account.name,
                                 subtitle = stringResByAddress(account.unifiedAddress),
-                                icon =
-                                    when (account) {
-                                        is KeystoneAccount -> R.drawable.ic_item_keystone
-                                        is LedgerAccount -> R.drawable.ic_item_ledger
-                                        is ZashiAccount -> R.drawable.ic_item_zashi
-                                    },
+                                icon = account.icon,
                                 isSelected = account.isSelected,
                                 onClick = { onAccountClicked(account) }
                             )
@@ -52,10 +44,11 @@ class AccountListVM(
                     onBack = ::onBack,
                     addWalletButton =
                         ButtonState(
-                            text = stringRes(co.electriccoin.zcash.ui.R.string.hwWallet_connect),
-                            style = ButtonStyle.SECONDARY,
+                            text = viewOnlyContent.addAccountButton,
+                            style = ButtonStyle.PRIMARY,
+                            icon = viewOnlyContent.addAccountButtonIcon,
                             onClick = ::onAddWalletButtonClicked
-                        ).takeIf { hasUnconnectedHWVendor(accounts) }
+                        ).takeIf { accounts != null }
                 )
             }.stateIn(
                 scope = viewModelScope,
@@ -63,23 +56,16 @@ class AccountListVM(
                 initialValue = null
             )
 
-    /**
-     * The call to action disappears only once every supported vendor is connected; the Figma
-     * "maxed out" variant is exactly the Zodl + Keystone + Ledger case.
-     */
-    private fun hasUnconnectedHWVendor(accounts: List<WalletAccount>?): Boolean {
-        val loaded = accounts ?: return false
-        return loaded.count { it is HWWalletAccount } < SUPPORTED_HW_VENDORS
-    }
-
     private fun onAccountClicked(account: WalletAccount) =
         viewModelScope.launch {
             selectWalletAccount(account)
         }
 
-    private fun onAddWalletButtonClicked() = navigationRouter.forward(ChooseHWWalletArgs)
+    /**
+     * Opens the "Add Account" options, which offer a hardware wallet only while a vendor is still
+     * unconnected and always offer importing a viewing key.
+     */
+    private fun onAddWalletButtonClicked() = viewOnlyNavigator.forwardToAddAccount()
 
     private fun onBack() = navigationRouter.back()
 }
-
-private const val SUPPORTED_HW_VENDORS = 2

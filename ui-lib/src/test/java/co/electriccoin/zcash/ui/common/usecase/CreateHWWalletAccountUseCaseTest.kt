@@ -5,6 +5,8 @@ import cash.z.ecc.android.sdk.model.BlockHeight
 import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.common.ledger.LedgerAccountImporter
 import co.electriccoin.zcash.ui.common.model.LedgerPairingMissingException
+import co.electriccoin.zcash.ui.common.model.ViewOnlyPendingImportMissingException
+import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyAccountImporter
 import co.electriccoin.zcash.ui.screen.connecthw.HWWalletEnrollment
 import com.keystone.module.ZcashAccount
 import com.keystone.module.ZcashAccounts
@@ -22,7 +24,9 @@ import kotlin.test.assertTrue
 /**
  * The single vendor branch of the shared enrollment flow: a Keystone enrollment parses its UR and
  * goes through the Keystone import, a Ledger enrollment goes straight to the Ledger one and returns
- * to the root when its pairing went missing, and neither is ready when what it needs is gone.
+ * to the root when its pairing went missing, a view-only enrollment goes to the view-only importer
+ * and returns to the root when its pending key went missing, and none is ready when what it needs is
+ * gone.
  */
 class CreateHWWalletAccountUseCaseTest {
     private val birthday = BlockHeight.new(2_500_000L)
@@ -90,6 +94,45 @@ class CreateHWWalletAccountUseCaseTest {
         }
 
     @Test
+    fun aViewOnlyEnrollmentImportsThroughTheViewOnlyImporter() =
+        runTest {
+            val createKeystoneAccount = mockk<CreateKeystoneAccountUseCase>(relaxed = true)
+            val ledgerAccountImporter = mockk<LedgerAccountImporter>(relaxed = true)
+            val viewOnlyAccountImporter = mockk<ViewOnlyAccountImporter>(relaxed = true)
+            val navigationRouter = mockk<NavigationRouter>(relaxed = true)
+            val useCase =
+                useCase(
+                    createKeystoneAccount = createKeystoneAccount,
+                    ledgerAccountImporter = ledgerAccountImporter,
+                    viewOnlyAccountImporter = viewOnlyAccountImporter,
+                    navigationRouter = navigationRouter,
+                )
+
+            useCase(HWWalletEnrollment.ViewOnly, birthday)
+
+            coVerify(exactly = 1) { viewOnlyAccountImporter.importAccount(birthday) }
+            coVerify(exactly = 0) { ledgerAccountImporter.importAccount(any()) }
+            coVerify(exactly = 0) { createKeystoneAccount.invoke(any(), any(), any()) }
+            verify(exactly = 0) { navigationRouter.backToRoot() }
+        }
+
+    @Test
+    fun aViewOnlyKeyLostBeforeTheImportReturnsToTheRootInsteadOfFailing() =
+        runTest {
+            val viewOnlyAccountImporter =
+                mockk<ViewOnlyAccountImporter>(relaxed = true) {
+                    coEvery { importAccount(any()) } throws ViewOnlyPendingImportMissingException()
+                }
+            val navigationRouter = mockk<NavigationRouter>(relaxed = true)
+            val useCase =
+                useCase(viewOnlyAccountImporter = viewOnlyAccountImporter, navigationRouter = navigationRouter)
+
+            useCase(HWWalletEnrollment.ViewOnly, birthday = null)
+
+            verify(exactly = 1) { navigationRouter.backToRoot() }
+        }
+
+    @Test
     fun aKeystoneUrWithNoAccountsFailsInsteadOfImportingNothing() =
         runTest {
             val accounts = mockk<ZcashAccounts> { every { this@mockk.accounts } returns emptyList() }
@@ -113,14 +156,19 @@ class CreateHWWalletAccountUseCaseTest {
 
         assertTrue(useCase(hasPendingPairing = true).isReady(HWWalletEnrollment.Ledger))
         assertFalse(useCase(hasPendingPairing = false).isReady(HWWalletEnrollment.Ledger))
+
+        assertTrue(useCase(hasPendingViewOnlyImport = true).isReady(HWWalletEnrollment.ViewOnly))
+        assertFalse(useCase(hasPendingViewOnlyImport = false).isReady(HWWalletEnrollment.ViewOnly))
     }
 
     private fun useCase(
         accountsForUr: ZcashAccounts = mockk { every { accounts } returns listOf(mockk()) },
         parseThrows: Boolean = false,
         hasPendingPairing: Boolean = true,
+        hasPendingViewOnlyImport: Boolean = true,
         createKeystoneAccount: CreateKeystoneAccountUseCase = mockk(relaxed = true),
         ledgerAccountImporter: LedgerAccountImporter = mockk(relaxed = true),
+        viewOnlyAccountImporter: ViewOnlyAccountImporter = mockk(relaxed = true),
         navigationRouter: NavigationRouter = mockk(relaxed = true),
     ) = CreateHWWalletAccountUseCase(
         parseKeystoneUrToZashiAccounts =
@@ -136,6 +184,10 @@ class CreateHWWalletAccountUseCaseTest {
         ledgerAccountImporter =
             ledgerAccountImporter.also {
                 every { it.hasPendingPairing() } returns hasPendingPairing
+            },
+        viewOnlyAccountImporter =
+            viewOnlyAccountImporter.also {
+                every { it.hasPendingImport() } returns hasPendingViewOnlyImport
             },
         navigationRouter = navigationRouter,
     )

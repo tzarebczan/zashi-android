@@ -171,7 +171,11 @@ class DisconnectVMTest {
             },
         disconnect = disconnect,
         navigationRouter = navigationRouter,
-        errorStateMapper = ErrorMapperUseCase(sendEmail = mockk(relaxed = true)),
+        errorStateMapper =
+            ErrorMapperUseCase(
+                sendEmail = mockk(relaxed = true),
+                viewOnlyContent = mockk(relaxed = true),
+            ),
     )
 
     private fun zashi(isSelected: Boolean = false) =

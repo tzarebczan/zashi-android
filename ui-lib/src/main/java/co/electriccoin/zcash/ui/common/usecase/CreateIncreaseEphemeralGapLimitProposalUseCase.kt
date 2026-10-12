@@ -5,9 +5,10 @@ import cash.z.ecc.android.sdk.model.WalletAddress
 import cash.z.ecc.android.sdk.model.Zatoshi
 import cash.z.ecc.android.sdk.model.ZecSend
 import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
+import co.electriccoin.zcash.ui.common.model.AccountOperationUnsupportedException
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
-import co.electriccoin.zcash.ui.common.model.LedgerOperationUnsupportedException
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.repository.EphemeralAddressRepository
 import co.electriccoin.zcash.ui.common.repository.KeystoneProposalRepository
@@ -39,7 +40,11 @@ class CreateIncreaseEphemeralGapLimitProposalUseCase(
                 }
 
                 is LedgerAccount -> {
-                    throw LedgerOperationUnsupportedException()
+                    throw AccountOperationUnsupportedException.ledger()
+                }
+
+                is ViewOnlyAccount -> {
+                    throw AccountOperationUnsupportedException.viewOnly()
                 }
 
                 is ZashiAccount -> {

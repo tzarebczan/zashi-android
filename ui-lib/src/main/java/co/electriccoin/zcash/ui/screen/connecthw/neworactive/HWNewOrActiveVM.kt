@@ -10,6 +10,7 @@ import co.electriccoin.zcash.ui.common.model.stateIn
 import co.electriccoin.zcash.ui.common.model.withLce
 import co.electriccoin.zcash.ui.common.usecase.CreateHWWalletAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.ErrorMapperUseCase
+import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
 import co.electriccoin.zcash.ui.design.component.ButtonState
 import co.electriccoin.zcash.ui.screen.connecthw.brandingOf
 import co.electriccoin.zcash.ui.screen.connecthw.date.HWDateArgs
@@ -25,8 +26,9 @@ class HWNewOrActiveVM(
     private val createHWWalletAccount: CreateHWWalletAccountUseCase,
     private val navigationRouter: NavigationRouter,
     private val errorStateMapper: ErrorMapperUseCase,
+    viewOnlyContent: ViewOnlyContent,
 ) : ViewModel() {
-    private val branding = brandingOf(args.enrollment)
+    private val branding = brandingOf(args.enrollment, viewOnlyContent)
     private val createAccountLce = mutableLce<Unit>()
 
     val state: StateFlow<LceState<HWNewOrActiveState>> =

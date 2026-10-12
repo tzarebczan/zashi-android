@@ -12,6 +12,7 @@ import androidx.navigation.toRoute
 import co.electriccoin.zcash.ui.common.ledger.LedgerNavContributor
 import co.electriccoin.zcash.ui.common.migration.MigrationNavContributor
 import co.electriccoin.zcash.ui.common.viewmodel.WalletViewModel
+import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyNavContributor
 import co.electriccoin.zcash.ui.common.voting.VotingNavContributor
 import co.electriccoin.zcash.ui.screen.about.AboutArgs
 import co.electriccoin.zcash.ui.screen.about.AboutScreen
@@ -394,6 +395,9 @@ fun NavGraphBuilder.walletNavGraph(
             it.contribute(this)
         }
         org.koin.mp.KoinPlatform.getKoin().getAll<LedgerNavContributor>().forEach {
+            it.contribute(this)
+        }
+        org.koin.mp.KoinPlatform.getKoin().getAll<ViewOnlyNavContributor>().forEach {
             it.contribute(this)
         }
     }

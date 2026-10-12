@@ -7,6 +7,7 @@ import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.WalletRestoringState
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
@@ -17,6 +18,7 @@ import co.electriccoin.zcash.ui.common.usecase.Status
 import co.electriccoin.zcash.ui.common.usecase.Status.DISABLED
 import co.electriccoin.zcash.ui.common.usecase.Status.ENABLED
 import co.electriccoin.zcash.ui.common.usecase.Status.UNAVAILABLE
+import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
 import co.electriccoin.zcash.ui.design.component.listitem.ListItemState
 import co.electriccoin.zcash.ui.design.util.imageRes
 import co.electriccoin.zcash.ui.design.util.stringRes
@@ -34,6 +36,7 @@ class IntegrationsVM(
     getSelectedWalletAccount: GetSelectedWalletAccountUseCase,
     getFlexaStatus: GetFlexaStatusUseCase,
     private val navigationRouter: NavigationRouter,
+    private val viewOnlyContent: ViewOnlyContent,
 ) : ViewModel() {
     private val isRestoring = getWalletRestoringState.observe().map { it == WalletRestoringState.RESTORING }
 
@@ -71,6 +74,10 @@ class IntegrationsVM(
 
                 selectedAccount is LedgerAccount -> {
                     stringRes(R.string.integrations_disabled_info_flexa_ledger)
+                }
+
+                selectedAccount is ViewOnlyAccount -> {
+                    viewOnlyContent.integrationsDisabledInfo
                 }
 
                 else -> {

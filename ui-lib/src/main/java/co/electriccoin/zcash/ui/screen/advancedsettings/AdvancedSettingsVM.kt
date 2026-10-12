@@ -77,12 +77,18 @@ class AdvancedSettingsVM(
                 )
         )
 
+    /**
+     * A selected account that cannot spend gets no Export Private Data entry. Export Viewing Key
+     * stays: such an account carries the full viewing key it was imported from, and exporting it, or
+     * the incoming viewing key derived from it, reveals nothing beyond what was imported.
+     */
     private fun createState(
         walletRestoringState: WalletRestoringState,
         accounts: List<WalletAccount>?,
         isRestartAvailable: Boolean,
     ): AdvancedSettingsState {
-        val selectedHWAccount = accounts.orEmpty().firstOrNull { it.isSelected } as? HWWalletAccount
+        val selectedAccount = accounts.orEmpty().firstOrNull { it.isSelected }
+        val selectedHWAccount = selectedAccount as? HWWalletAccount
         val restoring = walletRestoringState == WalletRestoringState.RESTORING
         return AdvancedSettingsState(
             onBack = ::onBack,
@@ -97,7 +103,7 @@ class AdvancedSettingsVM(
                         title = stringRes(R.string.settings_exportPrivateData),
                         bigIcon = imageRes(R.drawable.ic_advanced_settings_export),
                         onClick = ::onExportPrivateDataClick
-                    ),
+                    ).takeIf { selectedAccount?.isSpendable != false },
                     ListItemState(
                         title = stringRes(R.string.exportViewingKey_settingsItem),
                         bigIcon = imageRes(R.drawable.ic_advanced_settings_viewing_key),

@@ -2,16 +2,25 @@ package co.electriccoin.zcash.ui.common.usecase
 
 import cash.z.ecc.android.sdk.model.FiatCurrency
 import co.electriccoin.zcash.ui.NavigationRouter
+import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
 import co.electriccoin.zcash.ui.common.repository.ExchangeRateRepository
 import co.electriccoin.zcash.ui.common.wallet.ExchangeRateState
+import co.electriccoin.zcash.ui.screen.error.NavigateToErrorUseCase
 import co.electriccoin.zcash.ui.screen.exchangerateunavailable.ExchangeRateUnavailableArgs
 import co.electriccoin.zcash.ui.screen.send.Send
 
 class NavigateToSendUseCase(
     private val navigationRouter: NavigationRouter,
     private val exchangeRateRepository: ExchangeRateRepository,
+    private val accountDataSource: AccountDataSource,
+    private val navigateToError: NavigateToErrorUseCase,
 ) {
+    /**
+     * A selected account that cannot spend gets the unsupported-operation error instead of the
+     * send form.
+     */
     operator fun invoke() {
+        if (navigateToError.rejectIfSelectedAccountCannotSpend(accountDataSource)) return
         if (hasExchangeRateError()) {
             navigationRouter.forward(Send(), ExchangeRateUnavailableArgs)
         } else {

@@ -5,8 +5,10 @@ import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.usecase.CreateHWWalletAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.ErrorMapperUseCase
+import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
 import co.electriccoin.zcash.ui.design.component.NumberTextFieldInnerState
 import co.electriccoin.zcash.ui.design.util.StringResource
+import co.electriccoin.zcash.ui.design.util.stringRes
 import co.electriccoin.zcash.ui.screen.connecthw.date.HWDateArgs
 import co.electriccoin.zcash.ui.screen.connecthw.date.HWDateVM
 import co.electriccoin.zcash.ui.screen.connecthw.estimation.HWEstimationArgs
@@ -39,12 +41,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 /**
- * The four enrollment screens are shared by Keystone and Ledger, so every case runs against both
- * enrollments: the flow, the wiring and the validation are asserted once, and only the branding
- * each vendor resolves to is asserted per vendor.
+ * The four enrollment screens are shared by Keystone, Ledger and the view-only import, so every
+ * case runs against all three enrollments: the flow, the wiring and the validation are asserted
+ * once, and only the branding each enrollment resolves to is asserted per enrollment.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class HWEnrollmentVMTest {
@@ -52,7 +55,27 @@ class HWEnrollmentVMTest {
         listOf(
             HWWalletEnrollment.Keystone(ur = "ur:zcash-accounts/fixture"),
             HWWalletEnrollment.Ledger,
+            HWWalletEnrollment.ViewOnly,
         )
+
+    private val viewOnlyBranding =
+        HWWalletBranding(
+            logo = VIEW_ONLY_LOGO,
+            deviceQuestion = stringRes("Has this wallet been used before?"),
+            deviceDescription = stringRes("description"),
+            connectNewDevice = stringRes("No"),
+            connectActiveDevice = stringRes("Yes"),
+            enterBlockHeightManually = stringRes("Enter block height"),
+            connect = stringRes("Import"),
+            newDeviceTestTag = "VIEW_ONLY_NEW",
+            activeDeviceTestTag = "VIEW_ONLY_ACTIVE",
+            enterManuallyTestTag = "VIEW_ONLY_ENTER_MANUALLY",
+            connectTestTag = "VIEW_ONLY_CONNECT",
+            blockHeightFieldTestTag = "VIEW_ONLY_HEIGHT_FIELD",
+        )
+
+    private val viewOnlyContent =
+        mockk<ViewOnlyContent> { every { enrollmentBranding } returns viewOnlyBranding }
 
     @BeforeTest
     fun setUp() {
@@ -66,8 +89,8 @@ class HWEnrollmentVMTest {
 
     @Test
     fun theVendorNeutralEnrollmentTextsAreOneStringForBothVendors() {
-        val keystone = brandingOf(HWWalletEnrollment.Keystone(ur = "ur"))
-        val ledger = brandingOf(HWWalletEnrollment.Ledger)
+        val keystone = brandingOf(HWWalletEnrollment.Keystone(ur = "ur"), viewOnlyContent)
+        val ledger = brandingOf(HWWalletEnrollment.Ledger, viewOnlyContent)
 
         assertEquals(R.string.keystone_addHWWallet_deviceQuestion, keystone.deviceQuestion.resourceId())
         assertEquals(R.string.keystone_addHWWallet_connectNew, keystone.connectNewDevice.resourceId())
@@ -85,14 +108,19 @@ class HWEnrollmentVMTest {
 
     @Test
     fun theLogoAndTestTagsAreWhatActuallyDifferPerVendor() {
-        val keystone = brandingOf(HWWalletEnrollment.Keystone(ur = "ur"))
-        val ledger = brandingOf(HWWalletEnrollment.Ledger)
+        val keystone = brandingOf(HWWalletEnrollment.Keystone(ur = "ur"), viewOnlyContent)
+        val ledger = brandingOf(HWWalletEnrollment.Ledger, viewOnlyContent)
 
         assertEquals(HWWalletEnrollmentTag.KEYSTONE_NEW_DEVICE, keystone.newDeviceTestTag)
         assertEquals(HWWalletEnrollmentTag.KEYSTONE_CONNECT_BTN, keystone.connectTestTag)
         assertEquals(HWWalletEnrollmentTag.LEDGER_NEW_DEVICE, ledger.newDeviceTestTag)
         assertEquals(HWWalletEnrollmentTag.LEDGER_CONNECT_BTN, ledger.connectTestTag)
         assertNotEquals(keystone.logo, ledger.logo)
+    }
+
+    @Test
+    fun aViewOnlyImportTakesItsBrandingFromTheViewOnlyFeature() {
+        assertSame(viewOnlyBranding, brandingOf(HWWalletEnrollment.ViewOnly, viewOnlyContent))
     }
 
     @Test
@@ -113,7 +141,7 @@ class HWEnrollmentVMTest {
                 collect { vm.state.collect { } }
 
                 val state = assertNotNull(vm.state.value.content)
-                assertEquals(brandingOf(enrollment).logo, state.logo)
+                assertEquals(brandingOf(enrollment, viewOnlyContent).logo, state.logo)
                 state.newDevice.onClick()
                 runCurrent()
 
@@ -163,7 +191,7 @@ class HWEnrollmentVMTest {
                 collect { vm.state.collect { } }
 
                 val state = assertNotNull(vm.state.value.content)
-                assertEquals(brandingOf(enrollment).enterManuallyTestTag, state.secondaryButtonTestTag)
+                assertEquals(brandingOf(enrollment, viewOnlyContent).enterManuallyTestTag, state.secondaryButtonTestTag)
                 assertNotNull(state.secondaryButton).onClick()
                 state.dialogButton?.onClick?.invoke()
 
@@ -181,7 +209,7 @@ class HWEnrollmentVMTest {
                 collect { vm.state.collect { } }
 
                 val state = assertNotNull(vm.state.value.content)
-                assertEquals(brandingOf(enrollment).connect.resourceId(), state.primaryButton.text.resourceId())
+                assertEquals(brandingOf(enrollment, viewOnlyContent).connect, state.primaryButton.text)
                 state.primaryButton.onClick()
                 runCurrent()
 
@@ -207,8 +235,9 @@ class HWEnrollmentVMTest {
                 runCurrent()
                 val valid = assertNotNull(vm.state.value.content)
                 assertTrue(valid.primaryButton.isEnabled)
-                assertEquals(brandingOf(enrollment).connectTestTag, valid.primaryButtonTestTag)
-                assertEquals(brandingOf(enrollment).blockHeightFieldTestTag, valid.blockHeightFieldTestTag)
+                val branding = brandingOf(enrollment, viewOnlyContent)
+                assertEquals(branding.connectTestTag, valid.primaryButtonTestTag)
+                assertEquals(branding.blockHeightFieldTestTag, valid.blockHeightFieldTestTag)
 
                 valid.primaryButton.onClick()
                 runCurrent()
@@ -237,6 +266,7 @@ class HWEnrollmentVMTest {
         createHWWalletAccount = createAccount,
         navigationRouter = navigationRouter,
         errorStateMapper = errorStateMapper(),
+        viewOnlyContent = viewOnlyContent,
     )
 
     private fun dateVM(
@@ -249,6 +279,7 @@ class HWEnrollmentVMTest {
         navigationRouter = navigationRouter,
         application = mockk(relaxed = true),
         errorStateMapper = errorStateMapper(),
+        viewOnlyContent = viewOnlyContent,
     )
 
     private fun estimationVM(
@@ -260,6 +291,7 @@ class HWEnrollmentVMTest {
         createHWWalletAccount = createAccount,
         navigationRouter = navigationRouter,
         errorStateMapper = errorStateMapper(),
+        viewOnlyContent = viewOnlyContent,
     )
 
     private fun heightVM(
@@ -271,9 +303,14 @@ class HWEnrollmentVMTest {
         createHWWalletAccount = createAccount,
         navigationRouter = navigationRouter,
         errorStateMapper = errorStateMapper(),
+        viewOnlyContent = viewOnlyContent,
     )
 
-    private fun errorStateMapper() = ErrorMapperUseCase(sendEmail = mockk(relaxed = true))
+    private fun errorStateMapper() =
+        ErrorMapperUseCase(
+            sendEmail = mockk(relaxed = true),
+            viewOnlyContent = mockk(relaxed = true),
+        )
 
     private fun TestScope.collect(block: suspend CoroutineScope.() -> Unit) {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { block() }
@@ -285,3 +322,5 @@ class HWEnrollmentVMTest {
 private const val ESTIMATED_HEIGHT = 2_500_000L
 
 private const val VALID_HEIGHT = "2500000"
+
+private const val VIEW_ONLY_LOGO = 7
