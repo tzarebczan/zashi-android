@@ -137,6 +137,7 @@
     <string name="disconnectHWWallet_cta">Disconnect Hardware</string>
     <string name="disconnect_hardware_wallet_biometric_message">Confirm to disconnect your hardware wallet</string>
     <string name="disconnectHWWallet_title">DISCONNECT</string>
+    <string name="disconnectHWWallet_button">Disconnect</string>
     <string name="deleteKeystoneTitle">Disconnect Keystone</string>
     <string name="deleteKeystoneDesc">Disconnecting your hardware wallet will permanently delete some local data that can\'t be recovered from the blockchain.</string>
     <string name="disconnectHWWallet_mayInclude">This may include:</string>

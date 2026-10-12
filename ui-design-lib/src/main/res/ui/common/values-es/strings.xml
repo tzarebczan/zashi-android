@@ -141,6 +141,7 @@
     <string name="connectedHWInfo">Si desconectas ahora, tu Keystone dejará de estar vinculado con tu billetera Zodl.</string>
     <string name="connectedHWInfo_ledger">Si desconectas ahora, tu Ledger dejará de estar vinculado con tu billetera Zodl.</string>
     <string name="disconnectHWWallet_title">Desconectar</string>
+    <string name="disconnectHWWallet_button">Desconectar</string>
     <string name="disconnectHWWallet_sheetDesc">Desconectar el hardware wallet no se puede deshacer.</string>
     <string name="disconnectHWWallet_failureTitle">Error al Desconectar</string>
     <string name="disconnect_hardware_wallet_error_message">No se pudo finalizar la desconexión del hardware wallet. Por favor, inténtalo de nuevo o informa del problema.</string>
@@ -1061,7 +1062,7 @@
 
     <!-- ===== update_contact ===== -->
     <string name="update_contact_title">Contacto</string>
-    <string name="deleteWallet_sheet_title">Are you sure?</string>
+    <string name="deleteWallet_sheet_title">¿Estás seguro?</string>
     <string name="addressBook_alert_message">You are about to delete this contact. This cannot be undone.</string>
 
     <!-- ===== warning ===== -->

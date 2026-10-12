@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
@@ -37,7 +38,9 @@ import co.electriccoin.zcash.ui.design.util.pressMorph
  * square centred on it. The touch target overflows the reported size, and every point of it
  * reaches the button as long as no ancestor clips it away. The press-morph scales the visible
  * square, and it, the ripple and the click share one interaction source, as in [ZashiIconButton].
- * [IconButtonState.contentDescription] names the button for accessibility services.
+ * [IconButtonState.contentDescription] names the button for accessibility services. A disabled
+ * button ([IconButtonState.isEnabled] false) ignores taps and draws its square and icon at
+ * 38 % opacity, since the untinted icon has no disabled colour token.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -80,7 +83,8 @@ fun ZashiBorderedIconButton(
             modifier =
                 Modifier
                     .pressMorph(interactionSource)
-                    .size(BORDERED_ICON_BUTTON_SIZE),
+                    .size(BORDERED_ICON_BUTTON_SIZE)
+                    .alpha(if (state.isEnabled) 1f else BORDERED_ICON_BUTTON_DISABLED_ALPHA),
             shape = RoundedCornerShape(8.dp),
             color = ZashiColors.Surfaces.bgPrimary,
             border = BorderStroke(1.dp, ZashiColors.Surfaces.strokeSecondary),
@@ -102,6 +106,8 @@ fun ZashiBorderedIconButton(
 private val BORDERED_ICON_BUTTON_SIZE = 32.dp
 
 private val BORDERED_ICON_BUTTON_TOUCH_TARGET = 48.dp
+
+private const val BORDERED_ICON_BUTTON_DISABLED_ALPHA = 0.38f
 
 @PreviewScreens
 @Composable

@@ -7,6 +7,7 @@ import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
+import co.electriccoin.zcash.ui.common.model.LceError
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
@@ -14,6 +15,7 @@ import co.electriccoin.zcash.ui.common.model.toStorageKeyId
 import co.electriccoin.zcash.ui.common.usecase.DisconnectUseCase
 import co.electriccoin.zcash.ui.common.usecase.ErrorMapperUseCase
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
+import co.electriccoin.zcash.ui.design.component.ButtonStyle
 import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.screen.accountlist.AccountListArgs
 import io.mockk.coEvery
@@ -36,7 +38,10 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import co.electriccoin.zcash.ui.design.R as UIR
 
 /**
  * The disconnect screen serves whichever hardware vendor is selected, or the hardware wallet the
@@ -70,6 +75,89 @@ class DisconnectVMTest {
             val ledger = vm(MutableStateFlow(ledger(isSelected = true)))
             collect(ledger)
             assertShowsLedger(assertNotNull(ledger.state.value.content))
+        }
+
+    @Test
+    fun theConnectedCardShowsTheAccountsOwnNameAndTheScreenTitleTheVendor() =
+        runTest {
+            listOf(keystone(isSelected = true), ledger(isSelected = true)).forEach { account ->
+                val vm = vm(MutableStateFlow(account))
+                collect(vm)
+                val state = assertNotNull(vm.state.value.content)
+
+                assertEquals(account.name, state.connectedTitle)
+                assertEquals(R.string.currentlyConnected, state.connectedStatus.resourceId())
+            }
+        }
+
+    @Test
+    fun theButtonsReadDisconnectInTitleCaseWhileTheAppBarKeepsItsOwnTitle() =
+        runTest {
+            val vm = vm(MutableStateFlow(keystone(isSelected = true)))
+            collect(vm)
+            val state = assertNotNull(vm.state.value.content)
+
+            assertEquals(R.string.disconnectHWWallet_title, state.header.resourceId())
+            assertEquals(R.string.disconnectHWWallet_button, state.disconnectButton.text.resourceId())
+            assertEquals(ButtonStyle.DESTRUCTIVE1, state.disconnectButton.style)
+        }
+
+    @Test
+    fun theConfirmationSheetOffersTheOutlinedDisconnectAboveCancel() =
+        runTest {
+            val vm = vm(MutableStateFlow(keystone(isSelected = true)))
+            collect(vm)
+
+            assertNotNull(vm.state.value.content).disconnectButton.onClick()
+            runCurrent()
+            val sheet = assertNotNull(assertNotNull(vm.state.value.content).confirmationDialog)
+
+            assertEquals(R.drawable.ic_disconnect_sheet_info, sheet.icon)
+            assertEquals(R.string.deleteWallet_sheet_title, sheet.title.resourceId())
+            assertEquals(R.string.disconnectHWWallet_sheetDesc, sheet.message.resourceId())
+            assertEquals(R.string.disconnectHWWallet_button, sheet.primaryAction.text.resourceId())
+            assertEquals(ButtonStyle.DESTRUCTIVE1, sheet.primaryAction.style)
+            val cancel = assertNotNull(sheet.secondaryAction)
+            assertEquals(UIR.string.general_cancel, cancel.text.resourceId())
+            assertEquals(ButtonStyle.PRIMARY, cancel.style)
+
+            cancel.onClick()
+            runCurrent()
+            assertNull(assertNotNull(vm.state.value.content).confirmationDialog)
+        }
+
+    @Test
+    fun aFailedDisconnectOffersContactSupportAboveTheTryAgainButtonThatRetries() =
+        runTest {
+            val account = keystone(isSelected = true)
+            val disconnect =
+                mockk<DisconnectUseCase> {
+                    coEvery { this@mockk(account) } throws IllegalStateException("boom")
+                }
+            val navigationRouter = mockk<NavigationRouter>(relaxed = true)
+            val vm = vm(MutableStateFlow(account), disconnect, navigationRouter)
+            collect(vm)
+
+            assertNotNull(vm.state.value.content).disconnectButton.onClick()
+            runCurrent()
+            assertNotNull(assertNotNull(vm.state.value.content).confirmationDialog).primaryAction.onClick()
+            runCurrent()
+
+            val sheet = assertIs<LceError.BottomSheet>(vm.state.value.error).state
+            assertEquals(R.drawable.ic_disconnect_sheet_info, sheet.icon)
+            assertEquals(R.string.disconnectHWWallet_failureTitle, sheet.title.resourceId())
+            assertEquals(R.string.disconnect_hardware_wallet_error_message, sheet.message.resourceId())
+            assertEquals(UIR.string.disconnectHWWallet_contactSupport, sheet.primaryAction.text.resourceId())
+            assertEquals(ButtonStyle.SECONDARY, sheet.primaryAction.style)
+            val tryAgain = assertNotNull(sheet.secondaryAction)
+            assertEquals(UIR.string.disconnectHWWallet_tryAgain, tryAgain.text.resourceId())
+            assertEquals(ButtonStyle.PRIMARY, tryAgain.style)
+
+            tryAgain.onClick()
+            runCurrent()
+
+            coVerify(exactly = 2) { disconnect.invoke(account) }
+            verify(exactly = 0) { navigationRouter.backToRoot() }
         }
 
     @Test
@@ -315,14 +403,14 @@ class DisconnectVMTest {
 
     private fun assertShowsKeystone(state: DisconnectState) {
         assertEquals(R.string.deleteKeystoneTitle, state.title.resourceId())
-        assertEquals(R.string.keystoneHW, state.connectedTitle.resourceId())
+        assertEquals(R.string.accounts_keystone, state.connectedTitle.resourceId())
         assertEquals(co.electriccoin.zcash.ui.design.R.drawable.ic_item_keystone, state.icon)
         assertEquals(R.string.connectedHWInfo, state.infoText.resourceId())
     }
 
     private fun assertShowsLedger(state: DisconnectState) {
         assertEquals(R.string.ledger_disconnect_title, state.title.resourceId())
-        assertEquals(R.string.ledgerHW, state.connectedTitle.resourceId())
+        assertEquals(R.string.accounts_ledger, state.connectedTitle.resourceId())
         assertEquals(co.electriccoin.zcash.ui.design.R.drawable.ic_item_ledger, state.icon)
         assertEquals(R.string.connectedHWInfo_ledger, state.infoText.resourceId())
     }

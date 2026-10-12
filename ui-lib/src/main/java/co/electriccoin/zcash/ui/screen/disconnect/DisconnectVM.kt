@@ -20,6 +20,7 @@ import co.electriccoin.zcash.ui.common.usecase.ObserveSelectedWalletAccountUseCa
 import co.electriccoin.zcash.ui.design.component.ButtonState
 import co.electriccoin.zcash.ui.design.component.ButtonStyle
 import co.electriccoin.zcash.ui.design.component.ZashiConfirmationState
+import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.design.util.stringRes
 import co.electriccoin.zcash.ui.screen.accountlist.AccountListArgs
 import kotlinx.coroutines.flow.Flow
@@ -86,7 +87,10 @@ class DisconnectVM(
                     error = it,
                     title = stringRes(R.string.disconnectHWWallet_failureTitle),
                     message = stringRes(R.string.disconnect_hardware_wallet_error_message),
-                    primaryStyle = ButtonStyle.DESTRUCTIVE2,
+                    primaryStyle = ButtonStyle.PRIMARY,
+                    secondaryStyle = ButtonStyle.SECONDARY,
+                    isSupportFirst = true,
+                    icon = R.drawable.ic_disconnect_sheet_info,
                 )
             }.stateIn(this)
 
@@ -117,12 +121,7 @@ class DisconnectVM(
                 } else {
                     co.electriccoin.zcash.ui.design.R.drawable.ic_item_keystone
                 },
-            connectedTitle =
-                if (hwAccount is LedgerAccount) {
-                    stringRes(R.string.ledgerHW)
-                } else {
-                    stringRes(R.string.keystoneHW)
-                },
+            connectedTitle = hwAccount.name.takeUnless { it.isBlankText() } ?: vendorLabel(hwAccount),
             connectedStatus = stringRes(R.string.currentlyConnected),
             infoText =
                 if (hwAccount is LedgerAccount) {
@@ -132,7 +131,7 @@ class DisconnectVM(
                 },
             disconnectButton =
                 ButtonState(
-                    text = stringRes(R.string.disconnectHWWallet_title),
+                    text = stringRes(R.string.disconnectHWWallet_button),
                     style = ButtonStyle.DESTRUCTIVE1,
                     isLoading = isLoading,
                     onClick = { onDisconnectClick(hwAccount) }
@@ -140,6 +139,19 @@ class DisconnectVM(
             confirmationDialog = confirmationDialog,
             onBack = ::onBack,
         )
+
+    /**
+     * The vendor label stands in only for a name that would render empty; a hardware wallet
+     * account's own name is what the Wallets & Hardware list shows for it.
+     */
+    private fun vendorLabel(hwAccount: HWWalletAccount): StringResource =
+        if (hwAccount is LedgerAccount) {
+            stringRes(R.string.ledgerHW)
+        } else {
+            stringRes(R.string.keystoneHW)
+        }
+
+    private fun StringResource.isBlankText() = this is StringResource.ByString && value.isBlank()
 
     private fun List<WalletAccount>.findByKeyId(keyId: String): WalletAccount? =
         firstOrNull { it.sdkAccount.accountUuid.toStorageKeyId() == keyId }
@@ -154,10 +166,12 @@ class DisconnectVM(
         ZashiConfirmationState.destructive(
             title = stringRes(R.string.deleteWallet_sheet_title),
             message = stringRes(R.string.disconnectHWWallet_sheetDesc),
-            primaryText = stringRes(R.string.disconnectHWWallet_title),
+            primaryText = stringRes(R.string.disconnectHWWallet_button),
             secondaryText = stringRes(co.electriccoin.zcash.ui.design.R.string.general_cancel),
             onPrimary = { onConfirmDisconnect(hwAccount) },
             onBack = ::onCancelConfirmation,
+            primaryStyle = ButtonStyle.DESTRUCTIVE1,
+            icon = R.drawable.ic_disconnect_sheet_info,
         )
 
     private fun onConfirmDisconnect(hwAccount: HWWalletAccount) {
