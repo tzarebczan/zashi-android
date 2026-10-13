@@ -53,10 +53,6 @@
     <string name="view_only_imported_message">Your view only account has been added.\nTrack its balance and activity anytime.</string>
     <string name="view_only_imported_done">Done</string>
 
-    <string name="view_only_birthday_question">Is this a new or active account?</string>
-    <string name="view_only_birthday_description">If this account already has transactions, Zodl needs to scan the blockchain from when the wallet was created to find them. We\'ll guide you through it.</string>
-    <string name="view_only_birthday_new">Import new account</string>
-    <string name="view_only_birthday_used">Import active account</string>
     <string name="view_only_birthday_enter_manually">Enter block height</string>
     <string name="view_only_birthday_import">Import</string>
 

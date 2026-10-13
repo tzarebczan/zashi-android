@@ -13,6 +13,7 @@ import co.electriccoin.zcash.ui.design.util.stringRes
 /**
  * The "Wallet Options" sheet of a hardware wallet row on the Wallets & Hardware screen. Its one
  * option, disconnecting the hardware wallet, leads into the disconnect screen for that account.
+ * The view-only feature's "Add Account" sheet is built from it as well.
  */
 @Immutable
 data class WalletOptionsState(

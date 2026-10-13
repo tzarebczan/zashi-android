@@ -6,15 +6,16 @@ import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountNameLimit
 import co.electriccoin.zcash.ui.common.model.stateIn
 import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepository
 import co.electriccoin.zcash.ui.screen.connecthw.HWWalletEnrollment
-import co.electriccoin.zcash.ui.screen.connecthw.neworactive.HWNewOrActiveArgs
+import co.electriccoin.zcash.ui.screen.connecthw.date.HWDateArgs
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 
 /**
- * Names the pending view-only account, then goes on to the shared birthday question. The name is
- * capped at [NameVKState.MAX_NAME_LENGTH] code points as it is typed. Without a pending key,
+ * Names the pending view-only account, then goes straight on to the shared birthday date screen:
+ * a view-only import always asks when the account was created, never whether it is new. The name
+ * is capped at [ViewOnlyAccountNameLimit.MAX_LENGTH] code points as it is typed. Without a pending key,
  * after process death, there is nothing to name and the flow returns to the root.
  */
 class NameVKVM(
@@ -51,7 +52,7 @@ class NameVKVM(
             return
         }
         pendingImportRepository.set(pending.copy(name = trimmed))
-        navigationRouter.forward(HWNewOrActiveArgs(HWWalletEnrollment.ViewOnly))
+        navigationRouter.forward(HWDateArgs(HWWalletEnrollment.ViewOnly))
     }
 
     /**

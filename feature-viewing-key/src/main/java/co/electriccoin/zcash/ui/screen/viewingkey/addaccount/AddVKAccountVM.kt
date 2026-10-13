@@ -6,6 +6,7 @@ import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.common.model.canConnectHardwareWallet
 import co.electriccoin.zcash.ui.common.model.stateIn
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
+import co.electriccoin.zcash.ui.screen.accountlist.options.WalletOptionsState
 import co.electriccoin.zcash.ui.screen.choosehwwallet.ChooseHWWalletArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.ImportVKArgs
 import kotlinx.coroutines.Job
@@ -32,12 +33,12 @@ class AddVKAccountVM(
 
     private var navigateJob: Job? = null
 
-    val state: StateFlow<AddVKAccountState?> =
+    val state: StateFlow<WalletOptionsState?> =
         combine(getWalletAccounts.observe(), isHidden) { accounts, isHidden ->
             if (accounts == null || isHidden) {
                 null
             } else {
-                AddVKAccountState.create(
+                WalletOptionsState.addAccount(
                     canConnectHardwareWallet = accounts.canConnectHardwareWallet(),
                     onConnectHardwareWalletClick = { hideThenReplaceWith(ChooseHWWalletArgs) },
                     onImportClick = { hideThenReplaceWith(ImportVKArgs) },
@@ -51,7 +52,7 @@ class AddVKAccountVM(
         navigateJob =
             viewModelScope.launch {
                 isHidden.update { true }
-                delay(SHEET_HIDE_DELAY)
+                delay(350.milliseconds)
                 navigationRouter.replace(route)
             }
     }
@@ -59,9 +60,5 @@ class AddVKAccountVM(
     private fun onBack() {
         if (navigateJob?.isActive == true) return
         navigationRouter.back()
-    }
-
-    private companion object {
-        val SHEET_HIDE_DELAY = 350.milliseconds
     }
 }

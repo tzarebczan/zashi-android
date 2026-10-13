@@ -12,22 +12,22 @@ import co.electriccoin.zcash.ui.screen.error.ErrorArgs
 import co.electriccoin.zcash.ui.screen.error.NavigateToErrorUseCase
 import co.electriccoin.zcash.ui.screen.viewingkey.EditVKAccountArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.RemoveVKAccountArgs
-import co.electriccoin.zcash.ui.screen.viewingkey.name.NameVKState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
  * Renames the view-only account [EditVKAccountArgs.accountKeyId] names, or opens the sheet that
  * removes it. The field starts with the account's current name and is capped at
- * [NameVKState.MAX_NAME_LENGTH] code points as it is typed; Save stores a new, non-blank name
+ * [ViewOnlyAccountNameLimit.MAX_LENGTH] code points as it is typed; Save stores a new, non-blank name
  * and returns to the account list, which already shows it; a failure to store it shows the error
  * screen and leaves the field as typed. An id that names no view-only account, the Zodl account or a
  * hardware wallet included, goes straight back.
@@ -50,11 +50,15 @@ internal class EditVKAccountVM(
 
     val state: StateFlow<EditVKAccountState?> =
         combine(
-            getViewOnlyAccount.observe(accountKeyId).filterNotNull(),
+            getViewOnlyAccount
+                .observe(accountKeyId)
+                .filterNotNull()
+                .map { it.currentName() }
+                .distinctUntilChanged(),
             name.filterNotNull(),
             isSaving,
-        ) { account, name, isSaving ->
-            createState(account = account, name = name, isSaving = isSaving)
+        ) { currentName, name, isSaving ->
+            createState(currentName = currentName, name = name, isSaving = isSaving)
         }.stateIn(this)
 
     init {
@@ -68,18 +72,13 @@ internal class EditVKAccountVM(
         }
     }
 
-    override fun onCleared() {
-        cancelSave()
-        super.onCleared()
-    }
-
     private fun createState(
-        account: ViewOnlyAccount,
+        currentName: String,
         name: String,
         isSaving: Boolean,
     ) = EditVKAccountState.create(
         name = name,
-        currentName = account.currentName(),
+        currentName = currentName,
         isSaving = isSaving,
         onValueChange = ::onValueChange,
         onSaveClick = ::onSaveClick,
@@ -104,7 +103,7 @@ internal class EditVKAccountVM(
                 isSaving.update { true }
                 try {
                     renameViewOnlyAccount(account, typed)
-                    currentCoroutineContext().ensureActive()
+                    ensureActive()
                     navigationRouter.back()
                 } catch (e: CancellationException) {
                     throw e
@@ -122,13 +121,8 @@ internal class EditVKAccountVM(
     }
 
     private fun onBack() {
-        cancelSave()
-        navigationRouter.back()
-    }
-
-    private fun cancelSave() {
         saveJob?.cancel()
-        saveJob = null
+        navigationRouter.back()
     }
 
     /**

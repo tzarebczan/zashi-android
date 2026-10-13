@@ -8,7 +8,6 @@ import co.electriccoin.zcash.ui.design.component.TextFieldState
 import co.electriccoin.zcash.ui.design.util.ImageResource
 import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.design.util.stringRes
-import co.electriccoin.zcash.ui.screen.viewingkey.name.NameVKState
 import co.electriccoin.zcash.viewingkey.R
 
 /**
@@ -64,7 +63,7 @@ data class EditVKAccountState(
                 stringRes(
                     R.string.view_only_name_counter,
                     ViewOnlyAccountNameLimit.lengthOf(name),
-                    NameVKState.MAX_NAME_LENGTH
+                    ViewOnlyAccountNameLimit.MAX_LENGTH
                 ),
             removeInfoIcon = ImageResource.ByDrawable(R.drawable.view_only_ic_info),
             removeInfo = stringRes(R.string.view_only_edit_remove_info),

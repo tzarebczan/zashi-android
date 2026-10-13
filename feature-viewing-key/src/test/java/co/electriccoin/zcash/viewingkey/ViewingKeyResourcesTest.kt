@@ -5,6 +5,7 @@ import co.electriccoin.zcash.ui.design.util.StringResource
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -42,10 +43,6 @@ class ViewingKeyResourcesTest {
                 content.keepOpenSubtitle,
                 content.keepOpenDisclaimer,
                 content.keepOpenCheckboxLabel,
-                content.enrollmentBranding.deviceQuestion,
-                content.enrollmentBranding.deviceDescription,
-                content.enrollmentBranding.connectNewDevice,
-                content.enrollmentBranding.connectActiveDevice,
                 content.enrollmentBranding.enterBlockHeightManually,
                 content.enrollmentBranding.connect,
             ).map { resource ->
@@ -57,6 +54,11 @@ class ViewingKeyResourcesTest {
             assertTrue(english[key]?.isNotBlank() == true, "$key missing in values")
             assertTrue(spanish[key]?.isNotBlank() == true, "$key missing in values-es")
         }
+    }
+
+    @Test
+    fun theViewOnlyImportCarriesNoNewOrActiveCopy() {
+        assertNull(ViewOnlyContentImpl().enrollmentBranding.newOrActive)
     }
 
     @Test

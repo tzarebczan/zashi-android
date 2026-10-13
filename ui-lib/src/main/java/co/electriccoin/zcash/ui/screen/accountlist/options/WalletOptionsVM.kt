@@ -63,7 +63,7 @@ class WalletOptionsVM(
         navigateJob =
             viewModelScope.launch {
                 isHidden.update { true }
-                delay(SHEET_HIDE_DELAY)
+                delay(350.milliseconds)
                 navigationRouter.replace(DisconnectArgs(accountKeyId = args.accountKeyId))
             }
     }
@@ -71,9 +71,5 @@ class WalletOptionsVM(
     private fun onBack() {
         if (navigateJob?.isActive == true) return
         navigationRouter.back()
-    }
-
-    private companion object {
-        val SHEET_HIDE_DELAY = 350.milliseconds
     }
 }

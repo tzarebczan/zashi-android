@@ -39,7 +39,6 @@ fun ZashiSheetListItem(
     subtitle: StyledStringResource,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    badge: ImageResource? = null,
 ) {
     BaseListItem(
         modifier = modifier,
@@ -53,7 +52,7 @@ fun ZashiSheetListItem(
                 ZashiListItemDefaults.LeadingItem(
                     modifier = Modifier.size(40.dp).clearAndSetSemantics { },
                     icon = icon,
-                    badge = badge,
+                    badge = null,
                     contentDescription = title.getValue()
                 )
                 Spacer(Modifier.width(12.dp))

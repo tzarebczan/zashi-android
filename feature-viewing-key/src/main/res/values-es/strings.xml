@@ -53,10 +53,6 @@
     <string name="view_only_imported_message">Se agregó tu cuenta de solo lectura. Sigue su saldo y su actividad en cualquier momento.</string>
     <string name="view_only_imported_done">Listo</string>
 
-    <string name="view_only_birthday_question">¿Es una cuenta nueva o activa?</string>
-    <string name="view_only_birthday_description">Si esta cuenta ya tiene transacciones, Zodl necesita escanear la cadena de bloques desde que se creó la billetera para encontrarlas. Te guiaremos en el proceso.</string>
-    <string name="view_only_birthday_new">Importar cuenta nueva</string>
-    <string name="view_only_birthday_used">Importar cuenta activa</string>
     <string name="view_only_birthday_enter_manually">Ingresar altura de bloque</string>
     <string name="view_only_birthday_import">Importar</string>
 

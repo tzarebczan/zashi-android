@@ -24,7 +24,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.selected
@@ -77,7 +76,7 @@ fun ZashiWalletListItem(
             ZashiColors.Surfaces.bgPrimary
         }
     BaseListItem(
-        modifier = state.testTag?.let { modifier.testTag(it) } ?: modifier,
+        modifier = modifier,
         shape = RoundedCornerShape(12.dp),
         color = background,
         border =
@@ -215,7 +214,6 @@ data class WalletListItemState(
     val isSelected: Boolean,
     val trailingAction: IconButtonState?,
     val onClick: () -> Unit,
-    val testTag: String? = null,
 )
 
 @PreviewScreens

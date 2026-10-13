@@ -18,9 +18,7 @@ import co.electriccoin.zcash.ui.screen.viewingkey.AlreadyImportedVKArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.NameVKArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.ScanVKArgs
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -82,7 +80,6 @@ internal class ImportVKVM(
      * flow has left the back stack. The pending key goes with it, whichever way the flow ended.
      */
     override fun onCleared() {
-        cancelSubmit()
         pendingImportRepository.clear()
         super.onCleared()
     }
@@ -112,9 +109,7 @@ internal class ImportVKVM(
             viewModelScope.launch {
                 isSubmitting.update { true }
                 try {
-                    val result = submitViewOnlyKey(text.value)
-                    currentCoroutineContext().ensureActive()
-                    when (result) {
+                    when (submitViewOnlyKey(text.value)) {
                         SubmitViewOnlyKeyResult.Accepted -> {
                             clearPasted()
                             navigationRouter.forward(NameVKArgs)
@@ -147,7 +142,7 @@ internal class ImportVKVM(
         sheetJob =
             viewModelScope.launch {
                 hideInvalidKeySheet()
-                delay(SHEET_HIDE_DELAY)
+                delay(350.milliseconds)
                 navigationRouter.forward(ScanVKArgs)
             }
     }
@@ -157,15 +152,10 @@ internal class ImportVKVM(
      * clipboard cleared when the key was pasted.
      */
     private fun onBack() {
-        cancelSubmit()
+        submitJob?.cancel()
         clearPasted()
         pendingImportRepository.clear()
         navigationRouter.back()
-    }
-
-    private fun cancelSubmit() {
-        submitJob?.cancel()
-        submitJob = null
     }
 
     private fun clearPasted() {
@@ -177,6 +167,5 @@ internal class ImportVKVM(
     private companion object {
         /** An edit that adds at least this many characters at once is taken for a paste. */
         const val PASTED_LENGTH = 20
-        val SHEET_HIDE_DELAY = 350.milliseconds
     }
 }

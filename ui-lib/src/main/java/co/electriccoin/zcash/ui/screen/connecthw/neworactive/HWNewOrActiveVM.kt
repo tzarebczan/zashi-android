@@ -19,7 +19,9 @@ import kotlinx.coroutines.flow.map
 
 /**
  * Asks whether the device being enrolled is new or has been used before: a new one imports from
- * the chain tip, an active one goes on to the birthday question.
+ * the chain tip, an active one goes on to the birthday question. Only the hardware-wallet
+ * enrollments ask it; a view-only import goes from its name straight to the birthday question, so
+ * an enrollment whose branding has no new-or-active copy shows nothing and returns to the root.
  */
 class HWNewOrActiveVM(
     private val args: HWNewOrActiveArgs,
@@ -29,38 +31,41 @@ class HWNewOrActiveVM(
     viewOnlyContent: ViewOnlyContent,
 ) : ViewModel() {
     private val branding = brandingOf(args.enrollment, viewOnlyContent)
+    private val newOrActive = branding.newOrActive
     private val createAccountLce = mutableLce<Unit>()
 
     val state: StateFlow<LceState<HWNewOrActiveState>> =
         createAccountLce.state
             .map { lce ->
-                HWNewOrActiveState(
-                    logo = branding.logo,
-                    subtitle = branding.deviceQuestion,
-                    message = branding.deviceDescription,
-                    newDevice =
-                        ButtonState(
-                            text = branding.connectNewDevice,
-                            isEnabled = !lce.loading,
-                            isLoading = lce.loading,
-                            onClick = ::onNewDeviceClick,
-                            hapticFeedbackType = HapticFeedbackType.Confirm,
-                        ),
-                    activeDevice =
-                        ButtonState(
-                            text = branding.connectActiveDevice,
-                            isEnabled = !lce.loading,
-                            onClick = ::onActiveDeviceClick,
-                        ),
-                    newDeviceTestTag = branding.newDeviceTestTag,
-                    activeDeviceTestTag = branding.activeDeviceTestTag,
-                    onBack = ::onBack,
-                )
+                newOrActive?.let {
+                    HWNewOrActiveState(
+                        logo = branding.logo,
+                        subtitle = it.deviceQuestion,
+                        message = it.deviceDescription,
+                        newDevice =
+                            ButtonState(
+                                text = it.connectNewDevice,
+                                isEnabled = !lce.loading,
+                                isLoading = lce.loading,
+                                onClick = ::onNewDeviceClick,
+                                hapticFeedbackType = HapticFeedbackType.Confirm,
+                            ),
+                        activeDevice =
+                            ButtonState(
+                                text = it.connectActiveDevice,
+                                isEnabled = !lce.loading,
+                                onClick = ::onActiveDeviceClick,
+                            ),
+                        newDeviceTestTag = it.newDeviceTestTag,
+                        activeDeviceTestTag = it.activeDeviceTestTag,
+                        onBack = ::onBack,
+                    )
+                }
             }.withLce(createAccountLce, errorStateMapper::mapToState)
             .stateIn(this)
 
     init {
-        if (!createHWWalletAccount.isReady(args.enrollment)) {
+        if (newOrActive == null || !createHWWalletAccount.isReady(args.enrollment)) {
             navigationRouter.backToRoot()
         }
     }

@@ -41,7 +41,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -51,7 +50,6 @@ import androidx.compose.ui.unit.dp
 import co.electriccoin.zcash.ui.design.R
 import co.electriccoin.zcash.ui.design.theme.AppearanceMode
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
-import co.electriccoin.zcash.ui.design.theme.internal.SecondaryTypography
 import co.electriccoin.zcash.ui.design.theme.internal.TopAppBarColors
 import co.electriccoin.zcash.ui.design.theme.typography.ZashiTypography
 
@@ -347,17 +345,9 @@ fun TopAppBarHideBalancesNavigation(
 }
 
 /**
- * The title and subtitle styles of Figma's top app bar: the title in Inter SemiBold 16 and the
- * subtitle in Inter Medium 12, 4 dp below it.
+ * Figma's top app bar: the title in Inter SemiBold 16 and the subtitle in Inter Medium 12, 4 dp
+ * below it.
  */
-object SmallTopAppBarDefaults {
-    val titleStyle: TextStyle
-        @Composable get() = ZashiTypography.textMd.copy(fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
-
-    val subTitleStyle: TextStyle
-        @Composable get() = ZashiTypography.textXs.copy(fontWeight = FontWeight.Medium, textAlign = TextAlign.Center)
-}
-
 @Composable
 @Suppress("LongParameterList")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -369,10 +359,8 @@ fun SmallTopAppBar(
     regularActions: (@Composable RowScope.() -> Unit)? = null,
     subTitle: String? = null,
     titleText: String? = null,
-    titleStyle: TextStyle = SmallTopAppBarDefaults.titleStyle,
     windowInsets: WindowInsets = TopAppBarDefaults.windowInsets,
     subTitleAllCaps: Boolean = true,
-    subTitleStyle: TextStyle = SmallTopAppBarDefaults.subTitleStyle,
 ) {
     CenterAlignedTopAppBar(
         windowInsets = windowInsets,
@@ -385,7 +373,9 @@ fun SmallTopAppBar(
                 if (titleText != null) {
                     Text(
                         text = titleText.uppercase(),
-                        style = titleStyle,
+                        style = ZashiTypography.textMd,
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center,
                         color = colors.titleColor,
                     )
                     restoringSpacerHeight = ZcashTheme.dimens.spacingTiny
@@ -397,7 +387,8 @@ fun SmallTopAppBar(
                     @Suppress("MagicNumber")
                     Text(
                         text = if (subTitleAllCaps) subTitle.uppercase() else subTitle,
-                        style = subTitleStyle,
+                        style = ZashiTypography.textXs,
+                        fontWeight = FontWeight.Medium,
                         color = colors.subTitleColor,
                         modifier = Modifier.fillMaxWidth(0.75f),
                         textAlign = TextAlign.Center,

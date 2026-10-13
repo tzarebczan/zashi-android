@@ -18,6 +18,8 @@ import kotlinx.coroutines.withContext
  *
  * Only a view-only account is ever removed here: the id is resolved again right before deleting,
  * and an id that names nothing, or names the Zodl account or a hardware wallet, removes nothing.
+ * Whether the account was selected is read again after the authentication, since the account
+ * resolved before it can be a stale snapshot.
  */
 internal class RemoveViewOnlyAccountUseCase(
     private val getViewOnlyAccount: GetViewOnlyAccountUseCase,
@@ -41,9 +43,17 @@ internal class RemoveViewOnlyAccountUseCase(
             )
 
             migrationAppHooks.cancelMigrationWork(accountKeyId)
+
+            val wasSelected =
+                accountDataSource
+                    .getAllAccounts()
+                    .firstOrNull { it.sdkAccount.accountUuid == account.sdkAccount.accountUuid }
+                    ?.isSelected
+                    ?: account.isSelected
+
             accountDataSource.deleteAccount(account)
 
-            if (account.isSelected) {
+            if (wasSelected) {
                 accountDataSource.selectAccount(accountDataSource.getZashiAccount())
             }
             true

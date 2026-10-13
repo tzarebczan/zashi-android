@@ -20,7 +20,6 @@ import co.electriccoin.zcash.ui.screen.accountlist.options.WalletOptionsArgs
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import java.util.concurrent.ConcurrentHashMap
 
 class AccountListVM(
     private val getWalletAccounts: GetWalletAccountsUseCase,
@@ -33,11 +32,10 @@ class AccountListVM(
      * One row callback per account, kept across emissions so an unchanged row's state stays equal
      * and the row skips recomposition on every balance update. A callback carries only the account's
      * UUID and resolves the account itself when it runs. Each emission drops the callbacks of
-     * accounts that are gone. Concurrent maps, since the initial state is built on the thread that
-     * creates this view model and every later one on the collecting coroutine.
+     * accounts that are gone. Touched on the main thread only.
      */
-    private val onAccountClicks = ConcurrentHashMap<AccountUuid, () -> Unit>()
-    private val onOptionsClicks = ConcurrentHashMap<AccountUuid, () -> Unit>()
+    private val onAccountClicks = mutableMapOf<AccountUuid, () -> Unit>()
+    private val onOptionsClicks = mutableMapOf<AccountUuid, () -> Unit>()
 
     val state: StateFlow<AccountListState> =
         getWalletAccounts

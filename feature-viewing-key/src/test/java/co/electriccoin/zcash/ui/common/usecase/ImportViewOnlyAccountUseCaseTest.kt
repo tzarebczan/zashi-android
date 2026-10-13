@@ -22,6 +22,7 @@ import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -36,7 +37,8 @@ import kotlin.test.assertTrue
  * restarts the synchronizer, then shows the success screen, through the keep-open screen when there
  * is history to scan. A key the wallet already holds ends on the "already imported" sheet; nothing
  * pending fails without touching the wallet; an SDK failure keeps the key so the import can be
- * retried. The importer ui-lib calls delegates to it.
+ * retried. A caller cancelled mid-import still gets the account selected, but no navigation. The
+ * importer ui-lib calls delegates to it.
  */
 class ImportViewOnlyAccountUseCaseTest {
     private val repository = ViewOnlyPendingImportRepositoryImpl()
@@ -131,6 +133,26 @@ class ImportViewOnlyAccountUseCaseTest {
             verify(exactly = 1) { synchronizerProvider.resetSynchronizer() }
             verify(exactly = 1) { navigationRouter.forward(ImportedVKArgs) }
             verify(exactly = 0) { navigationRouter.forward(AlreadyImportedVKArgs) }
+        }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun aCancelledCallerStillSelectsTheImportedAccountButDoesNotNavigate() =
+        runTest {
+            repository.set(PendingViewOnlyImport(ufvk = UFVK, name = "Savings"))
+            val imported = CompletableDeferred<Account>()
+            coEvery { accountDataSource.importViewOnlyAccount(any(), any(), any()) } coAnswers { imported.await() }
+
+            val caller = launch { useCase(birthday = null) }
+            runCurrent()
+            caller.cancel()
+            imported.complete(created)
+            caller.join()
+
+            coVerify(exactly = 1) { accountDataSource.selectAccount(created) }
+            verify(exactly = 1) { synchronizerProvider.resetSynchronizer() }
+            assertNull(repository.get())
+            verify(exactly = 0) { navigationRouter.forward(any()) }
         }
 
     @Test

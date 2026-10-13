@@ -105,7 +105,8 @@ interface ViewOnlyContent {
 
     /**
      * The logo, copy and test tags of the shared birthday screens while they import a view-only
-     * account; see `brandingOf`.
+     * account; see `brandingOf`. It has no new-or-active copy, because a view-only import never
+     * asks that question.
      */
     val enrollmentBranding: HWWalletBranding
 

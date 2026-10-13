@@ -1,12 +1,13 @@
 package co.electriccoin.zcash.ui.screen.viewingkey
 
 import co.electriccoin.zcash.ui.NavigationRouter
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountNameLimit
 import co.electriccoin.zcash.ui.common.repository.PendingViewOnlyImport
 import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepositoryImpl
 import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.screen.connecthw.HWWalletEnrollment
+import co.electriccoin.zcash.ui.screen.connecthw.date.HWDateArgs
 import co.electriccoin.zcash.ui.screen.connecthw.neworactive.HWNewOrActiveArgs
-import co.electriccoin.zcash.ui.screen.viewingkey.name.NameVKState
 import co.electriccoin.zcash.ui.screen.viewingkey.name.NameVKVM
 import io.mockk.mockk
 import io.mockk.verify
@@ -30,8 +31,8 @@ import kotlin.test.assertTrue
 
 /**
  * The name is capped at twelve characters as it is typed, the counter follows it, Continue needs a
- * name that is not blank and stores it trimmed before the birthday question, and back forgets the
- * pending key.
+ * name that is not blank and stores it trimmed before going straight to the birthday date, without
+ * the new-or-active question, and back forgets the pending key.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class NameVKVMTest {
@@ -104,7 +105,7 @@ class NameVKVMTest {
             val vm = vm()
             collect(vm)
             assertEquals(
-                listOf(0, NameVKState.MAX_NAME_LENGTH),
+                listOf(0, ViewOnlyAccountNameLimit.MAX_LENGTH),
                 vm.state.value.counter
                     .args()
             )
@@ -112,7 +113,7 @@ class NameVKVMTest {
             type(vm, "Zodl Vault")
 
             assertEquals(
-                listOf(10, NameVKState.MAX_NAME_LENGTH),
+                listOf(10, ViewOnlyAccountNameLimit.MAX_LENGTH),
                 vm.state.value.counter
                     .args()
             )
@@ -136,7 +137,7 @@ class NameVKVMTest {
         }
 
     @Test
-    fun continueStoresTheTrimmedNameAndAsksForTheBirthday() =
+    fun continueStoresTheTrimmedNameAndGoesStraightToTheBirthdayDate() =
         runTest {
             val vm = vm()
             collect(vm)
@@ -146,7 +147,8 @@ class NameVKVMTest {
                 .onClick()
 
             assertEquals(PendingViewOnlyImport(ufvk = UFVK, name = "Vault"), repository.get())
-            verify(exactly = 1) { navigationRouter.forward(HWNewOrActiveArgs(HWWalletEnrollment.ViewOnly)) }
+            verify(exactly = 1) { navigationRouter.forward(HWDateArgs(HWWalletEnrollment.ViewOnly)) }
+            verify(exactly = 0) { navigationRouter.forward(HWNewOrActiveArgs(HWWalletEnrollment.ViewOnly)) }
         }
 
     @Test

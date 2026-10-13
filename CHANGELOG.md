@@ -25,11 +25,11 @@ and this application adheres to [Semantic Versioning](https://semver.org/spec/v2
   reconnecting to the same one.
 - You can now add a view-only account by importing a Unified Full Viewing Key: tap Add Account in
   the Wallets & Hardware screen, choose Import full viewing key, paste the key or scan its QR code,
-  name the account and, if it has been used before, tell Zodl when it was created. A view-only
-  account shows its balance, addresses and activity, receives funds, swaps into ZEC, exports its
-  viewing key and tax file, and is marked View Only under its name at the top of Home. It holds
-  no spending key, so Home offers only Receive and Swap for it, and sending, paying, shielding,
-  swapping from ZEC, voting and migration are refused. A key that is malformed, for another
+  name the account and tell Zodl when it was created. A view-only account shows its balance,
+  addresses and activity, receives funds, swaps into ZEC, exports its viewing key and tax file,
+  and is marked View Only under its name at the top of Home. It holds no spending key, so Home
+  offers only Receive and Swap for it, and sending, paying, shielding, swapping from ZEC, voting
+  and migration are refused. A key that is malformed, for another
   network, or missing its Orchard or transparent part is rejected, and a key that is already in
   the wallet is not added twice.
 - A view-only account can now be edited and removed from the "..." of its row in the Wallets &
@@ -46,12 +46,10 @@ and this application adheres to [Semantic Versioning](https://semver.org/spec/v2
   view-only sections, shows each wallet's balance, which hides with Hide Balances, and marks the
   selected wallet. Tapping a wallet selects it; the "..." of a Keystone or Ledger wallet opens
   Wallet Options, from which Disconnect hardware wallet disconnects that wallet even while another
-  one is selected. While no Keystone is connected the screen shows the Keystone shop offer again.
+  one is selected; disconnecting a hardware wallet moved there from Advanced Settings, which no
+  longer offers it. While no Keystone is connected the screen shows the Keystone shop offer again.
 - The Wallets & Hardware screen's Connect Hardware Wallet button is now Add Account, which offers
   connecting a hardware wallet, while one can still be added, and importing a viewing key.
-- Disconnect Hardware Wallet in Advanced Settings now shows only while a Keystone or Ledger account
-  is selected, and disconnects that account; it used to show whenever the wallet held a Keystone
-  account, whichever account was selected.
 - The integrations sheet no longer lists Connect Keystone; hardware wallets, Keystone or Ledger, are
   connected from the Wallets & Hardware screen.
 

@@ -3,6 +3,7 @@ package co.electriccoin.zcash.ui.design.component.listitem
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -82,7 +83,7 @@ class ZashiWalletListItemTouchTargetTest {
         composeTestRule.setContent {
             ZcashTheme {
                 ZashiWalletListItem(
-                    modifier = Modifier.width(360.dp),
+                    modifier = Modifier.width(360.dp).testTag(ROW_TAG),
                     state =
                         WalletListItemState(
                             icon = imageRes(R.drawable.ic_item_zashi),
@@ -96,7 +97,6 @@ class ZashiWalletListItemTouchTargetTest {
                                     onClick = { actionClicks++ },
                                 ),
                             onClick = { rowClicks++ },
-                            testTag = ROW_TAG,
                         )
                 )
             }

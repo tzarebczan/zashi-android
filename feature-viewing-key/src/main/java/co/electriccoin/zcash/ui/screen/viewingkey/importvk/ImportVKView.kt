@@ -1,21 +1,16 @@
 package co.electriccoin.zcash.ui.screen.viewingkey.importvk
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -23,69 +18,30 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import co.electriccoin.zcash.ui.common.compose.WithoutPersonalizedLearning
-import co.electriccoin.zcash.ui.design.component.BlankBgScaffold
 import co.electriccoin.zcash.ui.design.component.ZashiButton
 import co.electriccoin.zcash.ui.design.component.ZashiConfirmationBottomSheet
 import co.electriccoin.zcash.ui.design.component.ZashiImageButton
 import co.electriccoin.zcash.ui.design.component.ZashiTextFieldPlaceholder
 import co.electriccoin.zcash.ui.design.component.ZashiViewingKeyTextField
 import co.electriccoin.zcash.ui.design.component.ZashiViewingKeyTextFieldDefaults
-import co.electriccoin.zcash.ui.design.component.rememberZashiFrostState
-import co.electriccoin.zcash.ui.design.component.zashiFrostSource
-import co.electriccoin.zcash.ui.design.component.zashiFrostedHeader
 import co.electriccoin.zcash.ui.design.newcomponent.PreviewScreens
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.design.theme.colors.ZashiColors
 import co.electriccoin.zcash.ui.design.theme.typography.ZashiTypography
 import co.electriccoin.zcash.ui.design.util.Compose
 import co.electriccoin.zcash.ui.design.util.getValue
-import co.electriccoin.zcash.ui.design.util.scaffoldPadding
-import co.electriccoin.zcash.ui.screen.viewingkey.VKHeader
-import co.electriccoin.zcash.ui.screen.viewingkey.VKTopAppBar
+import co.electriccoin.zcash.ui.screen.viewingkey.VKScreen
 
 @Composable
 fun ImportVKView(state: ImportVKState) {
-    val hazeState = rememberZashiFrostState()
-    BlankBgScaffold(
-        topBar = {
-            VKTopAppBar(
-                title = state.title,
-                subtitle = state.subtitle,
-                onBack = state.onBack,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .zashiFrostedHeader(hazeState),
-            )
-        },
-    ) { paddingValues ->
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .zashiFrostSource(hazeState)
-        ) {
-            Content(
-                state = state,
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .scaffoldPadding(paddingValues)
-            )
-        }
-    }
-}
-
-@Composable
-private fun Content(
-    state: ImportVKState,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier) {
-        Spacer(Modifier.height(4.dp))
-        VKHeader(avatar = state.avatar, heading = state.heading, message = state.message)
-        Spacer(Modifier.height(32.dp))
+    VKScreen(
+        title = state.title,
+        subtitle = state.subtitle,
+        onBack = state.onBack,
+        avatar = state.avatar,
+        heading = state.heading,
+        message = state.message,
+    ) {
         KeyField(state)
         Spacer(Modifier.weight(1f))
         Spacer(Modifier.height(24.dp))

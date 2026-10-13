@@ -291,7 +291,6 @@ class AccountDataSourceImpl(
      * closed, since importing unchecked could widen an account; the caller can retry. The account
      * list compared after the import is a last guard for an account added in between.
      */
-    @Suppress("TooGenericExceptionCaught", "SwallowedException")
     override suspend fun importViewOnlyAccount(
         ufvk: String,
         name: String,
@@ -300,21 +299,15 @@ class AccountDataSourceImpl(
         withContext(Dispatchers.IO) {
             val synchronizer = synchronizerProvider.getSynchronizer()
             val overlap =
-                try {
+                mapViewOnlyImportFailure {
                     synchronizer.findAccountSharingKeyComponents(UnifiedFullViewingKey(ufvk))
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: InitializeException.ImportAccountCollisionException) {
-                    throw ViewOnlyAccountAlreadyExistsException()
-                } catch (e: Exception) {
-                    throw ViewOnlyAccountImportException()
                 }
             if (overlap != null) {
                 throw ViewOnlyAccountAlreadyExistsException()
             }
             val existing = synchronizer.getAccounts()
             val created =
-                try {
+                mapViewOnlyImportFailure {
                     synchronizer.importAccountByUfvk(
                         AccountImportSetup(
                             accountName = name,
@@ -324,17 +317,28 @@ class AccountDataSourceImpl(
                             birthday = birthday,
                         )
                     )
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: InitializeException.ImportAccountCollisionException) {
-                    throw ViewOnlyAccountAlreadyExistsException()
-                } catch (e: Exception) {
-                    throw ViewOnlyAccountImportException()
                 }
             if (existing.any { it.accountUuid == created.accountUuid }) {
                 throw ViewOnlyAccountAlreadyExistsException()
             }
             created
+        }
+
+    /**
+     * Maps an SDK failure of the view-only import: a key collision to
+     * [ViewOnlyAccountAlreadyExistsException], anything else but cancellation to
+     * [ViewOnlyAccountImportException]. Neither carries the SDK's exception or message.
+     */
+    @Suppress("TooGenericExceptionCaught", "SwallowedException")
+    private inline fun <T> mapViewOnlyImportFailure(block: () -> T): T =
+        try {
+            block()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: InitializeException.ImportAccountCollisionException) {
+            throw ViewOnlyAccountAlreadyExistsException()
+        } catch (e: Exception) {
+            throw ViewOnlyAccountImportException()
         }
 
     @Suppress("TooGenericExceptionCaught")
@@ -377,7 +381,9 @@ class AccountDataSourceImpl(
      * account UUID is stored and the selection falls back to the default account. DisconnectUseCase
      * and RemoveViewOnlyAccountUseCase close it by selecting the Zodl account right after this
      * returns, when the deleted account was the selected one. The order is deliberate: clearing the
-     * selection before the deletion would leave a failed deletion with its account deselected.
+     * selection before the deletion would leave a failed deletion with its account deselected. A
+     * selection left naming the deleted account, when the clear never ran, falls back to the
+     * default account as well.
      */
     @Suppress("TooGenericExceptionCaught")
     override suspend fun deleteAccount(account: WalletAccount) =
@@ -552,10 +558,17 @@ class AccountDataSourceImpl(
             flowOf(null)
         }
 
+    /**
+     * A stored UUID that names none of [allAccounts] counts as no stored UUID, so the default account
+     * is selected. That heals a selection [deleteAccount] could not clear, for example when the
+     * process died between the SDK deletion and the clear.
+     */
     private fun observeIsSelected(sdkAccount: Account, allAccounts: List<Account>) =
         selectedAccountUUIDProvider
             .uuid
-            .map { uuid ->
+            .map { storedUuid ->
+                storedUuid?.takeIf { stored -> allAccounts.any { it.accountUuid == stored } }
+            }.map { uuid ->
                 if (isOrchardOnlyAccount(sdkAccount)) {
                     sdkAccount.accountUuid == uuid || allAccounts.size == 1
                 } else {

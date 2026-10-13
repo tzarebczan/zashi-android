@@ -13,8 +13,12 @@ import co.electriccoin.zcash.ui.screen.keepopen.KeepOpenArgs
 import co.electriccoin.zcash.ui.screen.keepopen.KeepOpenFlow
 import co.electriccoin.zcash.ui.screen.viewingkey.AlreadyImportedVKArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.ImportedVKArgs
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 /**
  * Imports the pending viewing key under its name at [invoke]'s birthday, selects the new account,
@@ -26,6 +30,9 @@ import kotlinx.coroutines.sync.withLock
  * the call before it (a double tap) returns without doing anything, so it neither imports the key a
  * second time nor reports the account the first call just created as already imported. Registered
  * as a single, so every caller shares the one lock.
+ *
+ * Once the import starts it runs to the restarted synchronizer even if the caller is cancelled, so
+ * an account is never left imported but unselected; only the navigation is skipped then.
  */
 internal class ImportViewOnlyAccountUseCase(
     private val pendingImportRepository: ViewOnlyPendingImportRepository,
@@ -51,6 +58,19 @@ internal class ImportViewOnlyAccountUseCase(
         pending: PendingViewOnlyImport,
         birthday: BlockHeight?,
     ) {
+        val route = withContext(NonCancellable) { importAndSelect(pending, birthday) }
+        currentCoroutineContext().ensureActive()
+        navigationRouter.forward(route)
+    }
+
+    /**
+     * Imports and selects the account, forgets the key and restarts the synchronizer, and returns
+     * where the flow goes next.
+     */
+    private suspend fun importAndSelect(
+        pending: PendingViewOnlyImport,
+        birthday: BlockHeight?,
+    ): Any {
         val created =
             try {
                 accountDataSource.importViewOnlyAccount(
@@ -60,16 +80,11 @@ internal class ImportViewOnlyAccountUseCase(
                 )
             } catch (_: ViewOnlyAccountAlreadyExistsException) {
                 pendingImportRepository.clear()
-                navigationRouter.forward(AlreadyImportedVKArgs)
-                return
+                return AlreadyImportedVKArgs
             }
         accountDataSource.selectAccount(created)
         pendingImportRepository.clear()
         synchronizerProvider.resetSynchronizer()
-        if (birthday != null) {
-            navigationRouter.forward(KeepOpenArgs(KeepOpenFlow.VIEW_ONLY))
-        } else {
-            navigationRouter.forward(ImportedVKArgs)
-        }
+        return if (birthday != null) KeepOpenArgs(KeepOpenFlow.VIEW_ONLY) else ImportedVKArgs
     }
 }

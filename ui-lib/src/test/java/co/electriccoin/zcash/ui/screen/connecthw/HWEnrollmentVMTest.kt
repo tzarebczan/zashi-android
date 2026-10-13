@@ -42,13 +42,15 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 /**
- * The four enrollment screens are shared by Keystone, Ledger and the view-only import, so every
- * case runs against all three enrollments: the flow, the wiring and the validation are asserted
- * once, and only the branding each enrollment resolves to is asserted per enrollment.
+ * The birthday screens are shared by Keystone, Ledger and the view-only import, so every case runs
+ * against all three enrollments: the flow, the wiring and the validation are asserted once, and
+ * only the branding each enrollment resolves to is asserted per enrollment. The new-or-active
+ * question is asked by the hardware wallets only, so its cases run against those two.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class HWEnrollmentVMTest {
@@ -59,17 +61,18 @@ class HWEnrollmentVMTest {
             HWWalletEnrollment.ViewOnly,
         )
 
+    private val hardwareEnrollments =
+        listOf(
+            HWWalletEnrollment.Keystone(ur = "ur:zcash-accounts/fixture"),
+            HWWalletEnrollment.Ledger,
+        )
+
     private val viewOnlyBranding =
         HWWalletBranding(
             logo = VIEW_ONLY_LOGO,
-            deviceQuestion = stringRes("Has this wallet been used before?"),
-            deviceDescription = stringRes("description"),
-            connectNewDevice = stringRes("No"),
-            connectActiveDevice = stringRes("Yes"),
+            newOrActive = null,
             enterBlockHeightManually = stringRes("Enter block height"),
             connect = stringRes("Import"),
-            newDeviceTestTag = "VIEW_ONLY_NEW",
-            activeDeviceTestTag = "VIEW_ONLY_ACTIVE",
             enterManuallyTestTag = "VIEW_ONLY_ENTER_MANUALLY",
             connectTestTag = "VIEW_ONLY_CONNECT",
             blockHeightFieldTestTag = "VIEW_ONLY_HEIGHT_FIELD",
@@ -92,17 +95,23 @@ class HWEnrollmentVMTest {
     fun theVendorNeutralEnrollmentTextsAreOneStringForBothVendors() {
         val keystone = brandingOf(HWWalletEnrollment.Keystone(ur = "ur"), viewOnlyContent)
         val ledger = brandingOf(HWWalletEnrollment.Ledger, viewOnlyContent)
+        val keystoneNewOrActive = assertNotNull(keystone.newOrActive)
+        val ledgerNewOrActive = assertNotNull(ledger.newOrActive)
 
-        assertEquals(R.string.keystone_addHWWallet_deviceQuestion, keystone.deviceQuestion.resourceId())
-        assertEquals(R.string.keystone_addHWWallet_connectNew, keystone.connectNewDevice.resourceId())
-        assertEquals(R.string.keystone_addHWWallet_connectActive, keystone.connectActiveDevice.resourceId())
+        assertEquals(R.string.keystone_addHWWallet_deviceQuestion, keystoneNewOrActive.deviceQuestion.resourceId())
+        assertEquals(R.string.keystone_addHWWallet_deviceDesc, keystoneNewOrActive.deviceDescription.resourceId())
+        assertEquals(R.string.keystone_addHWWallet_connectNew, keystoneNewOrActive.connectNewDevice.resourceId())
+        assertEquals(
+            R.string.keystone_addHWWallet_connectActive,
+            keystoneNewOrActive.connectActiveDevice.resourceId()
+        )
         assertEquals(R.string.keystone_addHWWallet_connect, keystone.connect.resourceId())
         assertEquals(R.string.keystone_addHWWallet_enterManually, keystone.enterBlockHeightManually.resourceId())
 
-        assertEquals(keystone.deviceQuestion, ledger.deviceQuestion)
-        assertEquals(keystone.deviceDescription, ledger.deviceDescription)
-        assertEquals(keystone.connectNewDevice, ledger.connectNewDevice)
-        assertEquals(keystone.connectActiveDevice, ledger.connectActiveDevice)
+        assertEquals(keystoneNewOrActive.deviceQuestion, ledgerNewOrActive.deviceQuestion)
+        assertEquals(keystoneNewOrActive.deviceDescription, ledgerNewOrActive.deviceDescription)
+        assertEquals(keystoneNewOrActive.connectNewDevice, ledgerNewOrActive.connectNewDevice)
+        assertEquals(keystoneNewOrActive.connectActiveDevice, ledgerNewOrActive.connectActiveDevice)
         assertEquals(keystone.enterBlockHeightManually, ledger.enterBlockHeightManually)
         assertEquals(keystone.connect, ledger.connect)
     }
@@ -112,9 +121,11 @@ class HWEnrollmentVMTest {
         val keystone = brandingOf(HWWalletEnrollment.Keystone(ur = "ur"), viewOnlyContent)
         val ledger = brandingOf(HWWalletEnrollment.Ledger, viewOnlyContent)
 
-        assertEquals(HWWalletEnrollmentTag.KEYSTONE_NEW_DEVICE, keystone.newDeviceTestTag)
+        assertEquals(HWWalletEnrollmentTag.KEYSTONE_NEW_DEVICE, keystone.newOrActive?.newDeviceTestTag)
+        assertEquals(HWWalletEnrollmentTag.KEYSTONE_ACTIVE_DEVICE, keystone.newOrActive?.activeDeviceTestTag)
         assertEquals(HWWalletEnrollmentTag.KEYSTONE_CONNECT_BTN, keystone.connectTestTag)
-        assertEquals(HWWalletEnrollmentTag.LEDGER_NEW_DEVICE, ledger.newDeviceTestTag)
+        assertEquals(HWWalletEnrollmentTag.LEDGER_NEW_DEVICE, ledger.newOrActive?.newDeviceTestTag)
+        assertEquals(HWWalletEnrollmentTag.LEDGER_ACTIVE_DEVICE, ledger.newOrActive?.activeDeviceTestTag)
         assertEquals(HWWalletEnrollmentTag.LEDGER_CONNECT_BTN, ledger.connectTestTag)
         assertNotEquals(keystone.logo, ledger.logo)
     }
@@ -134,9 +145,22 @@ class HWEnrollmentVMTest {
     }
 
     @Test
+    fun aViewOnlyImportNeverReachesTheNewOrActiveQuestion() =
+        runTest {
+            val createAccount = readyUseCase()
+            val navigationRouter = mockk<NavigationRouter>(relaxed = true)
+            val vm = newOrActiveVM(HWWalletEnrollment.ViewOnly, createAccount, navigationRouter)
+            collect { vm.state.collect { } }
+
+            assertNull(vm.state.value.content)
+            verify(exactly = 1) { navigationRouter.backToRoot() }
+            coVerify(exactly = 0) { createAccount.invoke(any(), any()) }
+        }
+
+    @Test
     fun newDeviceImportsFromTheTipForBothVendors() =
         runTest {
-            enrollments.forEach { enrollment ->
+            hardwareEnrollments.forEach { enrollment ->
                 val createAccount = readyUseCase()
                 val vm = newOrActiveVM(enrollment, createAccount)
                 collect { vm.state.collect { } }
@@ -153,7 +177,7 @@ class HWEnrollmentVMTest {
     @Test
     fun activeDeviceGoesToTheBirthdayQuestionForBothVendors() =
         runTest {
-            enrollments.forEach { enrollment ->
+            hardwareEnrollments.forEach { enrollment ->
                 val navigationRouter = mockk<NavigationRouter>(relaxed = true)
                 val vm = newOrActiveVM(enrollment, readyUseCase(), navigationRouter)
                 collect { vm.state.collect { } }
@@ -167,17 +191,27 @@ class HWEnrollmentVMTest {
     @Test
     fun anEnrollmentThatLostWhatItNeedsReturnsToTheRootFromEveryScreen() =
         runTest {
+            hardwareEnrollments.forEach { enrollment ->
+                val createAccount =
+                    mockk<CreateHWWalletAccountUseCase>(relaxed = true) {
+                        every { isReady(any()) } returns false
+                    }
+                val navigationRouter = mockk<NavigationRouter>(relaxed = true)
+
+                newOrActiveVM(enrollment, createAccount, navigationRouter)
+
+                verify(exactly = 1) { navigationRouter.backToRoot() }
+            }
             enrollments.forEach { enrollment ->
                 val createAccount =
                     mockk<CreateHWWalletAccountUseCase>(relaxed = true) {
                         every { isReady(any()) } returns false
                     }
-                val routers = List(4) { mockk<NavigationRouter>(relaxed = true) }
+                val routers = List(3) { mockk<NavigationRouter>(relaxed = true) }
 
-                newOrActiveVM(enrollment, createAccount, routers[0])
-                dateVM(enrollment, createAccount, routers[1])
-                estimationVM(enrollment, createAccount, routers[2])
-                heightVM(enrollment, createAccount, routers[3])
+                dateVM(enrollment, createAccount, routers[0])
+                estimationVM(enrollment, createAccount, routers[1])
+                heightVM(enrollment, createAccount, routers[2])
 
                 routers.forEach { verify(exactly = 1) { it.backToRoot() } }
             }
@@ -252,7 +286,7 @@ class HWEnrollmentVMTest {
     @Test
     fun aSecondTapOnNewDeviceWhileImportingStartsNoSecondImport() =
         runTest {
-            enrollments.forEach { enrollment ->
+            hardwareEnrollments.forEach { enrollment ->
                 val importing = CompletableDeferred<Unit>()
                 val createAccount = suspendedUseCase(importing)
                 val vm = newOrActiveVM(enrollment, createAccount)

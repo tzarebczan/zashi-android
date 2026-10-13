@@ -89,7 +89,7 @@ internal class RemoveVKAccountVM(
                     return@launch
                 }
                 isHidden.update { true }
-                delay(SHEET_HIDE_DELAY)
+                delay(350.milliseconds)
                 navigationRouter.backTo(AccountListArgs::class)
             }
     }
@@ -101,9 +101,5 @@ internal class RemoveVKAccountVM(
     private fun onBack() {
         if (removeJob?.isActive == true) return
         navigationRouter.back()
-    }
-
-    private companion object {
-        val SHEET_HIDE_DELAY = 350.milliseconds
     }
 }

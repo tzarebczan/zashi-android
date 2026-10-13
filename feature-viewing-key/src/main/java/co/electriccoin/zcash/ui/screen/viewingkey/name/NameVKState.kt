@@ -31,8 +31,6 @@ data class NameVKState(
     val onBack: () -> Unit,
 ) {
     companion object {
-        const val MAX_NAME_LENGTH = ViewOnlyAccountNameLimit.MAX_LENGTH
-
         val preview: NameVKState = preview(name = "")
 
         val previewFilled: NameVKState = preview(name = "Zodl Vault")
@@ -60,7 +58,7 @@ data class NameVKState(
                 stringRes(
                     R.string.view_only_name_counter,
                     ViewOnlyAccountNameLimit.lengthOf(name),
-                    MAX_NAME_LENGTH
+                    ViewOnlyAccountNameLimit.MAX_LENGTH
                 ),
             continueButton =
                 ButtonState(

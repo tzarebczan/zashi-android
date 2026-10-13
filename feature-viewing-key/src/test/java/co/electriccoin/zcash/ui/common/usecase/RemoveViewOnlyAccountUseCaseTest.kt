@@ -19,8 +19,9 @@ import kotlin.test.assertTrue
 
 /**
  * Removing a view-only account authenticates first, cancels its migration work, deletes it and, when
- * it was selected, selects the Zodl account. A failed or dismissed authentication removes nothing,
- * and an id that names the Zodl account or nothing at all removes nothing without asking.
+ * it was selected after the authentication, selects the Zodl account. A failed or dismissed
+ * authentication removes nothing, and an id that names the Zodl account or nothing at all removes
+ * nothing without asking.
  */
 class RemoveViewOnlyAccountUseCaseTest {
     private val zashi = ViewOnlyAccountFixtures.zashi(isSelected = false)
@@ -60,6 +61,37 @@ class RemoveViewOnlyAccountUseCaseTest {
             )
 
             coVerify(exactly = 1) { accountDataSource.deleteAccount(viewOnly) }
+            coVerify(exactly = 0) { accountDataSource.selectAccount(any<WalletAccount>()) }
+        }
+
+    @Test
+    fun anAccountSelectedWhileAuthenticatingIsReplacedByTheZodlAccount() =
+        runTest {
+            val snapshot = ViewOnlyAccountFixtures.viewOnly(isSelected = false)
+
+            useCase(
+                accounts = listOf(ViewOnlyAccountFixtures.zashi(isSelected = true), snapshot),
+                current = listOf(zashi, ViewOnlyAccountFixtures.viewOnly(isSelected = true)),
+            )(ViewOnlyAccountFixtures.viewOnlyKeyId)
+
+            coVerifyOrder {
+                accountDataSource.getAllAccounts()
+                accountDataSource.deleteAccount(snapshot)
+                accountDataSource.selectAccount(zashi)
+            }
+        }
+
+    @Test
+    fun anAccountDeselectedWhileAuthenticatingLeavesTheSelectionAlone() =
+        runTest {
+            val snapshot = ViewOnlyAccountFixtures.viewOnly(isSelected = true)
+
+            useCase(
+                accounts = listOf(zashi, snapshot),
+                current = listOf(ViewOnlyAccountFixtures.zashi(isSelected = true), ViewOnlyAccountFixtures.viewOnly()),
+            )(ViewOnlyAccountFixtures.viewOnlyKeyId)
+
+            coVerify(exactly = 1) { accountDataSource.deleteAccount(snapshot) }
             coVerify(exactly = 0) { accountDataSource.selectAccount(any<WalletAccount>()) }
         }
 
@@ -108,12 +140,21 @@ class RemoveViewOnlyAccountUseCaseTest {
             coVerify(exactly = 0) { accountDataSource.deleteAccount(any()) }
         }
 
-    private fun useCase(accounts: List<WalletAccount>) =
-        RemoveViewOnlyAccountUseCase(
+    /**
+     * [accounts] is what the account is resolved from before the authentication, [current] what
+     * the data source holds after it.
+     */
+    private fun useCase(
+        accounts: List<WalletAccount>,
+        current: List<WalletAccount> = accounts,
+    ): RemoveViewOnlyAccountUseCase {
+        coEvery { accountDataSource.getAllAccounts() } returns current
+        return RemoveViewOnlyAccountUseCase(
             getViewOnlyAccount =
                 GetViewOnlyAccountUseCase(ViewOnlyAccountFixtures.getWalletAccounts(MutableStateFlow(accounts))),
             accountDataSource = accountDataSource,
             biometricRepository = biometricRepository,
             migrationAppHooks = migrationAppHooks,
         )
+    }
 }

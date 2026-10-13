@@ -66,14 +66,9 @@ internal class ViewOnlyContentImpl : ViewOnlyContent {
     override val enrollmentBranding =
         HWWalletBranding(
             logo = R.drawable.view_only_ic_avatar,
-            deviceQuestion = stringRes(R.string.view_only_birthday_question),
-            deviceDescription = stringRes(R.string.view_only_birthday_description),
-            connectNewDevice = stringRes(R.string.view_only_birthday_new),
-            connectActiveDevice = stringRes(R.string.view_only_birthday_used),
+            newOrActive = null,
             enterBlockHeightManually = stringRes(R.string.view_only_birthday_enter_manually),
             connect = stringRes(R.string.view_only_birthday_import),
-            newDeviceTestTag = VKEnrollmentTag.NEW_ACCOUNT,
-            activeDeviceTestTag = VKEnrollmentTag.USED_ACCOUNT,
             enterManuallyTestTag = VKEnrollmentTag.ENTER_MANUALLY_BTN,
             connectTestTag = VKEnrollmentTag.IMPORT_BTN,
             blockHeightFieldTestTag = VKEnrollmentTag.BLOCK_HEIGHT_FIELD,
@@ -89,8 +84,6 @@ internal class ViewOnlyContentImpl : ViewOnlyContent {
 }
 
 internal object VKEnrollmentTag {
-    const val NEW_ACCOUNT = "VIEW_ONLY_NEW_OR_ACTIVE_NEW_ACCOUNT"
-    const val USED_ACCOUNT = "VIEW_ONLY_NEW_OR_ACTIVE_USED_ACCOUNT"
     const val ENTER_MANUALLY_BTN = "VIEW_ONLY_DATE_ENTER_MANUALLY"
     const val IMPORT_BTN = "VIEW_ONLY_HEIGHT_IMPORT"
     const val BLOCK_HEIGHT_FIELD = "VIEW_ONLY_HEIGHT_BLOCK_HEIGHT_FIELD"

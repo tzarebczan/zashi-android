@@ -160,28 +160,11 @@ data class LoadedAccountBalances(
     val transparentBalance: Zatoshi,
 )
 
-data class ZashiAccount(
-    override val sdkAccount: Account,
-    override val unifiedAddress: String,
-    override val transparentAddress: String,
-    override val saplingAddress: String,
-    override val orchardBalance: WalletBalance?,
-    override val saplingBalance: WalletBalance?,
-    override val ironwoodBalance: WalletBalance?,
-    override val transparentBalance: Zatoshi?,
-    override val isSelected: Boolean,
-) : WalletAccount {
-    override val name: StringResource
-        get() = stringRes(co.electriccoin.zcash.ui.R.string.accounts_zashi)
-
-    override val hdAccountIndex: Zip32AccountIndex
-        get() = checkNotNull(sdkAccount.hdAccountIndex)
-
-    override val icon: Int
-        get() = R.drawable.ic_item_zashi
-
-    override val isSpendable: Boolean = true
-
+/**
+ * An account whose totals count its Sapling balance next to the unified and transparent ones: the
+ * Zodl account and a view-only account.
+ */
+sealed interface SaplingBalanceAccount : WalletAccount {
     override val totalBalance: Zatoshi?
         get() {
             val unifiedTotal = unifiedBalance?.total ?: return null
@@ -215,6 +198,29 @@ data class ZashiAccount(
             val valuePendingShieldedBalance = unified.valuePending + sapling.valuePending
             return changePendingShieldedBalance + valuePendingShieldedBalance
         }
+}
+
+data class ZashiAccount(
+    override val sdkAccount: Account,
+    override val unifiedAddress: String,
+    override val transparentAddress: String,
+    override val saplingAddress: String,
+    override val orchardBalance: WalletBalance?,
+    override val saplingBalance: WalletBalance?,
+    override val ironwoodBalance: WalletBalance?,
+    override val transparentBalance: Zatoshi?,
+    override val isSelected: Boolean,
+) : SaplingBalanceAccount {
+    override val name: StringResource
+        get() = stringRes(co.electriccoin.zcash.ui.R.string.accounts_zashi)
+
+    override val hdAccountIndex: Zip32AccountIndex
+        get() = checkNotNull(sdkAccount.hdAccountIndex)
+
+    override val icon: Int
+        get() = R.drawable.ic_item_zashi
+
+    override val isSpendable: Boolean = true
 
     override fun compareTo(other: WalletAccount) =
         when (other) {
@@ -396,44 +402,10 @@ data class ViewOnlyAccount(
     override val name: StringResource,
     val customName: String?,
     @param:DrawableRes override val icon: Int,
-) : WalletAccount {
+) : SaplingBalanceAccount {
     override val isSpendable: Boolean = false
 
     override val saplingAddress: String? = null
-
-    override val totalBalance: Zatoshi?
-        get() {
-            val unifiedTotal = unifiedBalance?.total ?: return null
-            val saplingTotal = saplingBalance?.total ?: return null
-            val transparent = transparentBalance ?: return null
-            return unifiedTotal + saplingTotal + transparent
-        }
-
-    override val totalShieldedBalance: Zatoshi?
-        get() {
-            val unifiedTotal = unifiedBalance?.total ?: return null
-            val saplingTotal = saplingBalance?.total ?: return null
-            return unifiedTotal + saplingTotal
-        }
-
-    override val totalTransparentBalance: Zatoshi?
-        get() = transparentBalance
-
-    override val spendableShieldedBalance: Zatoshi?
-        get() {
-            val unifiedAvailable = unifiedBalance?.available ?: return null
-            val saplingAvailable = saplingBalance?.available ?: return null
-            return unifiedAvailable + saplingAvailable
-        }
-
-    override val pendingShieldedBalance: Zatoshi?
-        get() {
-            val unified = unifiedBalance ?: return null
-            val sapling = saplingBalance ?: return null
-            val changePendingShieldedBalance = unified.changePending + sapling.changePending
-            val valuePendingShieldedBalance = unified.valuePending + sapling.valuePending
-            return changePendingShieldedBalance + valuePendingShieldedBalance
-        }
 
     override fun compareTo(other: WalletAccount) =
         when (other) {

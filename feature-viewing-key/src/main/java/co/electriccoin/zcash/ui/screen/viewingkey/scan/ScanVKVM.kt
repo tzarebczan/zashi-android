@@ -124,7 +124,7 @@ internal class ScanVKVM(
         sheetJob =
             viewModelScope.launch {
                 hideInvalidQrSheet()
-                delay(SHEET_HIDE_DELAY)
+                delay(350.milliseconds)
                 navigationRouter.back()
             }
     }
@@ -132,8 +132,4 @@ internal class ScanVKVM(
     private fun onBack() = navigationRouter.back()
 
     private fun setValidation(validation: ScanValidationState) = this.validation.update { validation }
-
-    private companion object {
-        val SHEET_HIDE_DELAY = 350.milliseconds
-    }
 }

@@ -6,6 +6,7 @@ import cash.z.ecc.android.sdk.model.AccountUuid
 import cash.z.ecc.android.sdk.model.Zip32AccountIndex
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
+import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.provider.AccountNameProvider
 import co.electriccoin.zcash.ui.common.provider.LedgerAccountBindingProvider
 import co.electriccoin.zcash.ui.common.provider.SelectedAccountSpendableStorageProvider
@@ -19,14 +20,20 @@ import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 /**
  * Deleting a view-only account: the selection is cleared only after the SDK deleted the account and
  * only when the stored selection still names it, whatever the account snapshot says, and clearing
- * the selection or the stored name is best-effort once the account is gone.
+ * the selection or the stored name is best-effort once the account is gone. A stored selection the
+ * clear never reached, naming an account that is gone, falls back to the Zodl account.
  */
 class AccountDataSourceImplViewOnlyDeletionTest {
     private val accountUuid = AccountUuid.new(ByteArray(16) { it.toByte() })
@@ -186,6 +193,40 @@ class AccountDataSourceImplViewOnlyDeletionTest {
                 .deleteAccount(viewOnlyAccount())
 
             coVerify(exactly = 0) { selection.clearUUID() }
+        }
+
+    @Test
+    fun aStoredSelectionNamingADeletedAccountFallsBackToTheZodlAccount() =
+        runBlocking {
+            val deletedUuid = AccountUuid.new(ByteArray(16) { (it + 7).toByte() })
+            val viewOnlySdkAccount =
+                mockk<Account> {
+                    every { accountUuid } returns AccountUuid.new(ByteArray(16) { (it + 2).toByte() })
+                    every { keySource } returns VIEW_ONLY_KEYSOURCE
+                    every { accountName } returns "Savings"
+                    every { hdAccountIndex } returns null
+                }
+            val synchronizer =
+                mockk<Synchronizer> {
+                    every { accountsFlow } returns MutableStateFlow(listOf(account, viewOnlySdkAccount))
+                    every { walletBalances } returns MutableStateFlow(null)
+                    coEvery { getCustomUnifiedAddress(any(), any()) } returns "unified-address"
+                    coEvery { getTransparentAddress(any()) } returns "transparent-address"
+                    coEvery { getSaplingAddress(any()) } returns "sapling-address"
+                }
+            val dataSource =
+                dataSource(
+                    synchronizer = synchronizer,
+                    ledgerAccountBindingProvider = relaxedBindingProvider(),
+                    selectedAccountUUIDProvider = selectionProvider(selected = deletedUuid),
+                )
+
+            val accounts = withTimeout(5_000) { dataSource.allAccounts.filterNotNull().first() }
+            val selected = withTimeout(5_000) { dataSource.getSelectedAccount() }
+
+            assertTrue(accounts.filterIsInstance<ZashiAccount>().single().isSelected)
+            assertFalse(accounts.filterIsInstance<ViewOnlyAccount>().single().isSelected)
+            assertTrue(selected is ZashiAccount)
         }
 
     @Test

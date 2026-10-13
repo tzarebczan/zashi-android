@@ -1,6 +1,7 @@
 package co.electriccoin.zcash.ui.screen.viewingkey
 
 import co.electriccoin.zcash.ui.NavigationRouter
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountNameLimit
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.provider.AccountNameProvider
 import co.electriccoin.zcash.ui.common.usecase.GetViewOnlyAccountUseCase
@@ -10,7 +11,6 @@ import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.screen.error.ErrorArgs
 import co.electriccoin.zcash.ui.screen.error.NavigateToErrorUseCase
 import co.electriccoin.zcash.ui.screen.viewingkey.edit.EditVKAccountVM
-import co.electriccoin.zcash.ui.screen.viewingkey.name.NameVKState
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -74,7 +74,7 @@ class EditVKAccountVMTest {
 
             val state = assertNotNull(vm.state.value)
             assertEquals("Zodl Vault", state.field.value.text())
-            assertEquals(listOf(10, NameVKState.MAX_NAME_LENGTH), state.counter.args())
+            assertEquals(listOf(10, ViewOnlyAccountNameLimit.MAX_LENGTH), state.counter.args())
             assertFalse(state.saveButton.isEnabled)
             assertTrue(state.removeButton.isEnabled)
         }
