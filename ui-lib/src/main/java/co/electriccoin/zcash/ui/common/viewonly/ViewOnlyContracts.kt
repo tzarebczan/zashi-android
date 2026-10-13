@@ -8,9 +8,9 @@ import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.screen.connecthw.HWWalletBranding
 
 /**
- * The seam between ui-lib and the feature-viewonly module, shaped like LedgerContracts.kt: ui-lib
- * never imports feature-viewonly classes and talks only to these contracts, which the app module
- * wires in via Koin (`featureViewOnlyModule`).
+ * The seam between ui-lib and the feature-viewing-key module, shaped like LedgerContracts.kt: ui-lib
+ * never imports feature-viewing-key classes and talks only to these contracts, which the app module
+ * wires in via Koin (`featureViewingKeyModule`).
  *
  * What stays in ui-lib is what the rest of the wallet must know about a view-only account: the
  * ViewOnlyAccount model, its import and mapping in the account data source, and the spend guards

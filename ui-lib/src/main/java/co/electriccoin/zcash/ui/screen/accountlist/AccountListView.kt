@@ -5,9 +5,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -30,6 +33,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import co.electriccoin.zcash.ui.design.component.BlankBgScaffold
 import co.electriccoin.zcash.ui.design.component.ShimmerRectangle
@@ -180,19 +184,31 @@ private fun Section(state: AccountListSectionState) {
     }
 }
 
+/**
+ * The number of wallets in a section on a round background: a circle as tall as the 20 dp line for a
+ * single digit, widening into a pill only when the count needs more room.
+ */
 @Composable
 private fun CountTag(count: String) {
-    Text(
+    Box(
         modifier =
             Modifier
+                .defaultMinSize(minWidth = COUNT_TAG_SIZE, minHeight = COUNT_TAG_SIZE)
                 .background(ZashiColors.Utility.Gray.utilityGray50, CircleShape)
-                .padding(horizontal = 6.dp),
-        text = count,
-        style = ZashiTypography.textSm,
-        fontWeight = FontWeight.Medium,
-        color = ZashiColors.Text.textTertiary,
-    )
+                .padding(start = 4.dp, end = 4.dp, bottom = 1.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = count,
+            style = ZashiTypography.textSm,
+            fontWeight = FontWeight.Medium,
+            color = ZashiColors.Text.textTertiary,
+            textAlign = TextAlign.Center,
+        )
+    }
 }
+
+private val COUNT_TAG_SIZE = 20.dp
 
 /**
  * The shape of one section with two rows, shimmering until the wallets load.
@@ -226,6 +242,8 @@ private const val LOADING_ROWS = 2
 
 /**
  * Keystone's own card artwork: a dark card in both themes, its photo fading into the text panel.
+ * The photo is 99 dp wide and as tall as the card, which grows past Figma's 98 dp when the title
+ * wraps, so it never ends short of the card's bottom edge.
  */
 @Composable
 private fun KeystonePromoCard(
@@ -242,16 +260,17 @@ private fun KeystonePromoCard(
         onClick = state.onClick,
         content = {
             Row(
-                modifier = it,
+                modifier = it.height(IntrinsicSize.Min),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (state.image is ImageResource.ByDrawable) {
-                    Box(modifier = Modifier.size(width = 99.dp, height = 98.dp)) {
+                    Box(modifier = Modifier.width(99.dp).fillMaxHeight()) {
                         Image(
                             modifier = Modifier.matchParentSize(),
                             painter = painterResource(state.image.resource),
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
+                            alignment = Alignment.CenterStart,
                         )
                         Box(
                             modifier =

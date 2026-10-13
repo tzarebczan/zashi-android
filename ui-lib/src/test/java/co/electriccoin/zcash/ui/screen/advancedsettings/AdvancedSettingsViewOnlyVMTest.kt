@@ -58,8 +58,6 @@ class AdvancedSettingsViewOnlyVMTest {
 
             val titles = titles(vm)
             assertFalse(R.string.settings_exportPrivateData in titles)
-            assertFalse(R.string.disconnectHWWallet_cta in titles)
-            assertFalse(R.string.ledger_disconnect_title in titles)
             assertTrue(R.string.exportViewingKey_settingsItem in titles)
             assertTrue(R.string.taxExport_taxFile in titles)
         }

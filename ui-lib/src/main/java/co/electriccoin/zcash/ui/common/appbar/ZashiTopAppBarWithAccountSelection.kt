@@ -9,11 +9,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,8 +28,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import co.electriccoin.zcash.ui.design.R
 import co.electriccoin.zcash.ui.design.component.ShimmerableImage
 import co.electriccoin.zcash.ui.design.component.ShimmerableText
@@ -129,7 +132,7 @@ private fun AccountSwitch(state: AccountSwitchState?) {
 
 /**
  * The account name under a small label, as Figma draws a view-only account: a 10 sp Medium label in
- * the tertiary text color 4 dp above an 18 sp SemiBold name, both on a line height of one em.
+ * the tertiary text color above an 18 sp SemiBold name.
  */
 @Composable
 private fun AccountNameWithSubtitle(
@@ -139,15 +142,14 @@ private fun AccountNameWithSubtitle(
     Column {
         Text(
             text = subtitle.getValue(),
-            style = ZashiTypography.textXxs.copy(lineHeight = 10.sp),
+            style = ZashiTypography.textXxs.copy(lineHeight = TextUnit.Unspecified),
             fontWeight = FontWeight.Medium,
             color = ZashiColors.Text.textTertiary,
             maxLines = 1,
         )
-        Spacer(4.dp)
         ZashiAutoSizeText(
             text = name.getValue(),
-            style = ZashiTypography.textLg.copy(lineHeight = 18.sp),
+            style = ZashiTypography.textLg.copy(lineHeight = TextUnit.Unspecified),
             fontWeight = FontWeight.SemiBold,
             color = ZashiColors.Text.textPrimary,
             maxLines = 1,

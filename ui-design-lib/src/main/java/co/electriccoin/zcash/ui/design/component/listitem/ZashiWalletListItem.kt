@@ -151,8 +151,8 @@ private fun WalletAvatar(
                 modifier =
                     Modifier
                         .align(Alignment.BottomEnd)
-                        .offset(4.dp, 4.dp)
-                        .size(20.dp)
+                        .offset(6.dp, 6.dp)
+                        .size(21.5.dp)
                         .background(ZashiColors.Avatars.avatarStatus, CircleShape)
                         .border(1.5.dp, badgeBorderColor, CircleShape),
                 contentAlignment = Alignment.Center,

@@ -73,7 +73,7 @@ dependencies {
     implementation(projects.configurationImplAndroidLib)
     implementation(projects.featureLedger)
     implementation(projects.featureMigration)
-    implementation(projects.featureViewonly)
+    implementation(projects.featureViewingKey)
     implementation(projects.featureVoting)
     implementation(projects.sdkExtLib)
     implementation(projects.spackleAndroidLib)
