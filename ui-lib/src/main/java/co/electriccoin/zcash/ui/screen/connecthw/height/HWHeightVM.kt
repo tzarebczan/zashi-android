@@ -79,11 +79,16 @@ class HWHeightVM(
         }
     }
 
-    private fun onConfirmClick(height: Long) {
-        createAccountLce.execute {
-            createHWWalletAccount(args.enrollment, BlockHeight.new(height))
+    /**
+     * A second tap while the import runs is ignored: restarting would cancel the running import
+     * inside the SDK call, after the account exists but before it is selected.
+     */
+    private fun onConfirmClick(height: Long) =
+        createAccountLce.guardLoading {
+            createAccountLce.execute {
+                createHWWalletAccount(args.enrollment, BlockHeight.new(height))
+            }
         }
-    }
 
     private fun onInfoClick() = navigationRouter.forward(HeightInfoArgs)
 

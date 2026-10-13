@@ -333,7 +333,7 @@ class HomeVM(
         onSwapButtonClick = viewModelScope.launch { navigateToSwap() }
     }
 
-    private fun onSendButtonClick() = navigateToSend()
+    private fun onSendButtonClick() = viewModelScope.launch { navigateToSend() }
 
     private fun onReceiveButtonClick() = viewModelScope.launch { navigateToReceive() }
 

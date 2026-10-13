@@ -10,6 +10,7 @@ import co.electriccoin.zcash.ui.common.ledger.LedgerProposalPipeline
 import co.electriccoin.zcash.ui.common.model.AccountOperationUnsupportedException
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.requireSpendable
+import co.electriccoin.zcash.ui.common.provider.SelectedAccountSpendableStorageProvider
 import co.electriccoin.zcash.ui.common.provider.SynchronizerProvider
 import co.electriccoin.zcash.ui.common.repository.BiometricRepository
 import co.electriccoin.zcash.ui.common.repository.EphemeralAddressRepository
@@ -79,6 +80,7 @@ class ViewOnlySpendGuardTest {
     private val ledgerProposalPipeline = mockk<LedgerProposalPipeline>(relaxed = true)
     private val navigationRouter = mockk<NavigationRouter>(relaxed = true)
     private val navigateToError = mockk<NavigateToErrorUseCase>(relaxed = true)
+    private val spendableHint = mockk<SelectedAccountSpendableStorageProvider> { coEvery { get() } returns true }
     private val biometricRepository = mockk<BiometricRepository>(relaxed = true)
 
     @BeforeTest
@@ -299,16 +301,29 @@ class ViewOnlySpendGuardTest {
         }
 
     @Test
-    fun sendAndPayEntriesShowTheUnsupportedErrorInsteadOfTheirFlow() {
-        val swapRepository = mockk<SwapRepository>(relaxed = true)
+    fun sendAndPayEntriesShowTheUnsupportedErrorInsteadOfTheirFlow() =
+        runTest {
+            val swapRepository = mockk<SwapRepository>(relaxed = true)
 
-        NavigateToSendUseCase(navigationRouter, mockk(relaxed = true), accountDataSource, navigateToError)()
-        NavigateToNearPayUseCase(swapRepository, navigationRouter, accountDataSource, navigateToError)()
+            NavigateToSendUseCase(
+                navigationRouter,
+                mockk(relaxed = true),
+                accountDataSource,
+                navigateToError,
+                spendableHint
+            )()
+            NavigateToNearPayUseCase(
+                swapRepository,
+                navigationRouter,
+                accountDataSource,
+                navigateToError,
+                spendableHint
+            )()
 
-        verify(exactly = 2) { navigateToError(match { it.isViewOnlyError() }, any()) }
-        verify(exactly = 0) { navigationRouter.forward(*anyVararg()) }
-        verify(exactly = 0) { swapRepository.requestRefreshAssets() }
-    }
+            verify(exactly = 2) { navigateToError(match { it.isViewOnlyError() }, any()) }
+            verify(exactly = 0) { navigationRouter.forward(*anyVararg()) }
+            verify(exactly = 0) { swapRepository.requestRefreshAssets() }
+        }
 
     @Test
     fun theSwapEntryOpensBecauseSwappingIntoTheAccountSpendsNothingFromIt() {
@@ -322,21 +337,28 @@ class ViewOnlySpendGuardTest {
     }
 
     @Test
-    fun anAddressScannedFromHomeAndSendAgainShowTheUnsupportedErrorInsteadOfTheSendForm() {
-        val prefillSend = mockk<PrefillSendUseCase>(relaxed = true)
+    fun anAddressScannedFromHomeAndSendAgainShowTheUnsupportedErrorInsteadOfTheSendForm() =
+        runTest {
+            val prefillSend = mockk<PrefillSendUseCase>(relaxed = true)
 
-        OnAddressScannedUseCase(navigationRouter, prefillSend, accountDataSource, navigateToError)(
-            address = "t1address",
-            addressType = AddressType.Transparent,
-            scanArgs = ScanArgs(ScanFlow.HOMEPAGE),
-        )
-        SendTransactionAgainUseCase(prefillSend, navigationRouter, accountDataSource, navigateToError)(mockk())
+            OnAddressScannedUseCase(navigationRouter, prefillSend, accountDataSource, navigateToError, spendableHint)(
+                address = "t1address",
+                addressType = AddressType.Transparent,
+                scanArgs = ScanArgs(ScanFlow.HOMEPAGE),
+            )
+            SendTransactionAgainUseCase(
+                prefillSend,
+                navigationRouter,
+                accountDataSource,
+                navigateToError,
+                spendableHint
+            )(mockk())
 
-        verify(exactly = 2) { navigateToError(match { it.isViewOnlyError() }, any()) }
-        verify(exactly = 0) { navigationRouter.replace(*anyVararg()) }
-        verify(exactly = 0) { navigationRouter.forward(*anyVararg()) }
-        verify(exactly = 0) { prefillSend.requestFromTransactionDetail(any()) }
-    }
+            verify(exactly = 2) { navigateToError(match { it.isViewOnlyError() }, any()) }
+            verify(exactly = 0) { navigationRouter.replace(*anyVararg()) }
+            verify(exactly = 0) { navigationRouter.forward(*anyVararg()) }
+            verify(exactly = 0) { prefillSend.requestFromTransactionDetail(any()) }
+        }
 
     @Test
     fun theProposalDataSourceRefusesTheAccountBeforeTheSdkIsAsked() =

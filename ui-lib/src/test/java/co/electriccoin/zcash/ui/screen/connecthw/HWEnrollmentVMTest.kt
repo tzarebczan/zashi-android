@@ -325,6 +325,33 @@ class HWEnrollmentVMTest {
             }
         }
 
+    /**
+     * Both taps go through the state drawn before the first one, as two taps landing in one frame
+     * do, so the disabled button of the next state cannot be what stops the second import.
+     */
+    @Test
+    fun aSecondTapOnImportAtATypedHeightStartsNoSecondImport() =
+        runTest {
+            enrollments.forEach { enrollment ->
+                val importing = CompletableDeferred<Unit>()
+                val createAccount = suspendedUseCase(importing)
+                val vm = heightVM(enrollment, createAccount)
+                collect { vm.state.collect { } }
+
+                assertNotNull(vm.state.value.content).blockHeight.onValueChange(heightText(VALID_HEIGHT))
+                runCurrent()
+                val ready = assertNotNull(vm.state.value.content)
+                ready.primaryButton.onClick()
+                runCurrent()
+                ready.primaryButton.onClick()
+                runCurrent()
+
+                coVerify(exactly = 1) { createAccount.invoke(enrollment, BlockHeight.new(VALID_HEIGHT.toLong())) }
+                assertTrue(assertNotNull(vm.state.value.content).primaryButton.isLoading)
+                importing.complete(Unit)
+            }
+        }
+
     private fun suspendedUseCase(importing: CompletableDeferred<Unit>) =
         mockk<CreateHWWalletAccountUseCase>(relaxed = true) {
             every { isReady(any()) } returns true

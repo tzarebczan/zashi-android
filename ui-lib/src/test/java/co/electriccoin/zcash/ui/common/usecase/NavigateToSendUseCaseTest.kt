@@ -10,6 +10,7 @@ import co.electriccoin.zcash.ui.common.wallet.ExchangeRateError
 import co.electriccoin.zcash.ui.common.wallet.ExchangeRateState
 import co.electriccoin.zcash.ui.screen.exchangerateunavailable.ExchangeRateUnavailableArgs
 import co.electriccoin.zcash.ui.screen.send.Send
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.Flow
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.test.runTest
 import kotlin.reflect.KClass
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -34,7 +36,7 @@ class NavigateToSendUseCaseTest {
                 dataState(error = ExchangeRateError.CMC_SERVER_CONNECTION_ERROR, expectedCurrency = FiatCurrency("EUR"))
             )
 
-        useCase(router, repo)()
+        runTest { useCase(router, repo)() }
 
         assertEquals(listOf(Send(), ExchangeRateUnavailableArgs), router.forwardedRoutes)
     }
@@ -44,7 +46,7 @@ class NavigateToSendUseCaseTest {
         val router = FakeNavigationRouter()
         val repo = FakeExchangeRateRepository(dataState(error = null, expectedCurrency = FiatCurrency("EUR")))
 
-        useCase(router, repo)()
+        runTest { useCase(router, repo)() }
 
         assertEquals(listOf<Any>(Send()), router.forwardedRoutes)
     }
@@ -58,7 +60,7 @@ class NavigateToSendUseCaseTest {
                 dataState(error = ExchangeRateError.CMC_SERVER_CONNECTION_ERROR, expectedCurrency = FiatCurrency.USD)
             )
 
-        useCase(router, repo)()
+        runTest { useCase(router, repo)() }
 
         assertEquals(listOf<Any>(Send()), router.forwardedRoutes)
     }
@@ -68,7 +70,7 @@ class NavigateToSendUseCaseTest {
         val router = FakeNavigationRouter()
         val repo = FakeExchangeRateRepository(ExchangeRateState.OptIn)
 
-        useCase(router, repo)()
+        runTest { useCase(router, repo)() }
 
         assertEquals(listOf<Any>(Send()), router.forwardedRoutes)
     }
@@ -82,6 +84,7 @@ private fun useCase(
     exchangeRateRepository = repo,
     accountDataSource = mockk { every { allAccounts } returns MutableStateFlow(null) },
     navigateToError = mockk(relaxed = true),
+    selectedAccountSpendableStorageProvider = mockk { coEvery { get() } returns true },
 )
 
 private fun dataState(

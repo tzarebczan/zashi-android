@@ -3,6 +3,7 @@ package co.electriccoin.zcash.ui.common.usecase
 import cash.z.ecc.android.sdk.type.AddressType
 import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
+import co.electriccoin.zcash.ui.common.provider.SelectedAccountSpendableStorageProvider
 import co.electriccoin.zcash.ui.screen.contact.AddZashiABContactArgs
 import co.electriccoin.zcash.ui.screen.error.NavigateToErrorUseCase
 import co.electriccoin.zcash.ui.screen.scan.ScanArgs
@@ -16,12 +17,13 @@ class OnAddressScannedUseCase(
     private val prefillSend: PrefillSendUseCase,
     private val accountDataSource: AccountDataSource,
     private val navigateToError: NavigateToErrorUseCase,
+    private val selectedAccountSpendableStorageProvider: SelectedAccountSpendableStorageProvider,
 ) {
     /**
      * An address scanned from home opens the send form, so an account that cannot spend gets the
      * unsupported-operation error in place of the scanner instead.
      */
-    operator fun invoke(
+    suspend operator fun invoke(
         address: String,
         addressType: AddressType,
         scanArgs: ScanArgs
@@ -39,7 +41,12 @@ class OnAddressScannedUseCase(
             }
 
             HOMEPAGE -> {
-                if (navigateToError.rejectIfSelectedAccountCannotSpend(accountDataSource) { replace(it) }) return
+                val rejected =
+                    navigateToError.rejectIfSelectedAccountCannotSpend(
+                        accountDataSource,
+                        selectedAccountSpendableStorageProvider
+                    ) { replace(it) }
+                if (rejected) return
                 navigationRouter.replace(
                     Send(
                         address,
