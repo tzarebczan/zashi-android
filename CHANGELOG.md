@@ -7,6 +7,11 @@ and this application adheres to [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Changed:
+
+- Updated the SDK to 5.2.1, which builds `pasta_curves` with its `asm` feature. Proving, syncing and
+  shielded transactions use the assembly field arithmetic on 64-bit devices (`arm64-v8a`, `x86_64`).
+
 ## [3.17.0 (3149)] - 2026-10-10
 
 ### Added:
