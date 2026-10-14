@@ -71,6 +71,7 @@ import co.electriccoin.zcash.ui.common.usecase.IsScreenTimeoutDisabledDuringRest
 import co.electriccoin.zcash.ui.common.usecase.IsServerAutomaticUseCase
 import co.electriccoin.zcash.ui.common.usecase.IsTorEnabledUseCase
 import co.electriccoin.zcash.ui.common.usecase.MarkTxMemoAsReadUseCase
+import co.electriccoin.zcash.ui.common.usecase.MigrateStoredAccountNamesUseCase
 import co.electriccoin.zcash.ui.common.usecase.NavigateToAddressBookUseCase
 import co.electriccoin.zcash.ui.common.usecase.NavigateToColorPickerUseCase
 import co.electriccoin.zcash.ui.common.usecase.NavigateToExportPrivateDataUseCase
@@ -121,6 +122,7 @@ import co.electriccoin.zcash.ui.common.usecase.ReadClipboardTextUseCase
 import co.electriccoin.zcash.ui.common.usecase.RecoverFromSeedMismatchUseCase
 import co.electriccoin.zcash.ui.common.usecase.RefreshFastestServersUseCase
 import co.electriccoin.zcash.ui.common.usecase.RemindWalletBackupLaterUseCase
+import co.electriccoin.zcash.ui.common.usecase.RenameViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.RequestSwapQuoteUseCase
 import co.electriccoin.zcash.ui.common.usecase.RescanBlockchainUseCase
 import co.electriccoin.zcash.ui.common.usecase.RescanQrUseCase
@@ -201,6 +203,8 @@ val useCaseModule =
         factoryOf(::SelectWalletAccountUseCase)
         factoryOf(::ObserveSelectedWalletAccountUseCase)
         factoryOf(::ObserveAccountIconUseCase)
+        factoryOf(::RenameViewOnlyAccountUseCase)
+        factoryOf(::MigrateStoredAccountNamesUseCase)
         factoryOf(::ObserveZashiAccountUseCase)
         factoryOf(::GetZashiAccountUseCase)
         factoryOf(::CreateHWWalletAccountUseCase)

@@ -2,7 +2,7 @@ package co.electriccoin.zcash.ui.screen.viewingkey.name
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
-import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountNameLimit
+import co.electriccoin.zcash.ui.common.model.AccountNameLimit
 import co.electriccoin.zcash.ui.design.component.AccountAvatarState
 import co.electriccoin.zcash.ui.design.component.ButtonState
 import co.electriccoin.zcash.ui.design.component.ButtonStyle
@@ -11,6 +11,7 @@ import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.design.util.stringRes
 import co.electriccoin.zcash.ui.screen.viewingkey.vkAvatar
 import co.electriccoin.zcash.viewingkey.R
+import co.electriccoin.zcash.ui.design.R as DesignR
 
 /**
  * Names the account being imported.
@@ -58,16 +59,16 @@ data class NameVKState(
             title = stringRes(R.string.view_only_import_title),
             subtitle = stringRes(R.string.view_only_import_subtitle),
             avatar = vkAvatar(color = color, onEditClick = onAvatarEditClick),
-            heading = stringRes(R.string.view_only_name_heading),
-            message = stringRes(R.string.view_only_name_message),
-            fieldLabel = stringRes(R.string.view_only_name_label),
+            heading = stringRes(DesignR.string.accountName_heading),
+            message = stringRes(DesignR.string.accountName_message),
+            fieldLabel = stringRes(DesignR.string.accountName_label),
             field = TextFieldState(value = stringRes(name), onValueChange = onValueChange),
-            placeholder = stringRes(R.string.view_only_name_placeholder),
+            placeholder = stringRes(DesignR.string.accountName_placeholder),
             counter =
                 stringRes(
-                    R.string.view_only_name_counter,
-                    ViewOnlyAccountNameLimit.lengthOf(name),
-                    ViewOnlyAccountNameLimit.MAX_LENGTH
+                    DesignR.string.accountName_counter,
+                    AccountNameLimit.lengthOf(name),
+                    AccountNameLimit.MAX_LENGTH
                 ),
             continueButton =
                 ButtonState(

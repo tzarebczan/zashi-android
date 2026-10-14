@@ -12,6 +12,7 @@ import cash.z.ecc.android.sdk.model.ZcashNetwork
 import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.SynchronizerError
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.provider.SynchronizerProvider
@@ -226,6 +227,11 @@ private class FakeAccountDataSource(
     override suspend fun requestNextShieldedAddress(): String = unsupported()
 
     override suspend fun deleteAccount(account: WalletAccount) = unsupported()
+
+    override suspend fun renameAccount(
+        account: ViewOnlyAccount,
+        name: String
+    ) = unsupported()
 }
 
 private class FakeSynchronizerProvider(

@@ -70,6 +70,8 @@ import co.electriccoin.zcash.ui.screen.deletewallet.ResetZashiArgs
 import co.electriccoin.zcash.ui.screen.deletewallet.ResetZashiScreen
 import co.electriccoin.zcash.ui.screen.disconnect.DisconnectArgs
 import co.electriccoin.zcash.ui.screen.disconnect.DisconnectScreen
+import co.electriccoin.zcash.ui.screen.editaccount.EditAccountArgs
+import co.electriccoin.zcash.ui.screen.editaccount.EditAccountScreen
 import co.electriccoin.zcash.ui.screen.error.AndroidErrorBottomSheet
 import co.electriccoin.zcash.ui.screen.error.AndroidErrorDialog
 import co.electriccoin.zcash.ui.screen.error.ErrorBottomSheet
@@ -276,6 +278,7 @@ fun NavGraphBuilder.walletNavGraph(
         composable<SignKeystoneTransactionArgs> { SignKeystoneTransactionScreen() }
         composable<AccountListArgs> { AccountListScreen() }
         dialogComposable<WalletOptionsArgs> { WalletOptionsScreen(it.toRoute()) }
+        composable<EditAccountArgs> { EditAccountScreen(it.toRoute()) }
         composable<ScanArgs> { ScanZashiAddressScreen(it.toRoute()) }
         composable(NavigationTargets.EXPORT_PRIVATE_DATA) { WrapExportPrivateData() }
         composable<ExportVKArgs> { ExportVKScreen() }

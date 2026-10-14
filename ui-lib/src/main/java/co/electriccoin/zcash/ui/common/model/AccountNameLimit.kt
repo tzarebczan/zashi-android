@@ -1,10 +1,10 @@
 package co.electriccoin.zcash.ui.common.model
 
 /**
- * The length limit of a view-only account's name, counted in Unicode code points rather than UTF-16
+ * The length limit of an account's name, counted in Unicode code points rather than UTF-16
  * chars, so an emoji counts once and capping never cuts a surrogate pair in half.
  */
-object ViewOnlyAccountNameLimit {
+object AccountNameLimit {
     const val MAX_LENGTH = 12
 
     /** How many code points [name] has, which is what the name counter shows. */

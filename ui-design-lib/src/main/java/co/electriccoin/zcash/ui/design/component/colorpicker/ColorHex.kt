@@ -10,18 +10,18 @@ fun Color.toHex(): String =
         .uppercase()
         .padStart(HEX_LENGTH, '0')
 
-/** The colour as `#RRGGBBAA` in sRGB, upper-case, alpha last. */
-fun Color.toRgbaHex(): String {
-    val alpha = (toArgb() ushr ALPHA_SHIFT).toString(HEX_RADIX).uppercase().padStart(2, '0')
-    return "#" + toHex() + alpha
-}
+/** The colour as `#RRGGBB` in sRGB, upper-case. */
+fun Color.toRgbHex(): String = "#" + toHex()
 
-/** A colour from `#RRGGBBAA`, the form [toRgbaHex] writes; null for anything else. */
-fun parseRgbaHex(text: String): Color? {
+/**
+ * An opaque colour from `#RRGGBB`, the form [toRgbHex] writes, or from the `#RRGGBBAA` of earlier
+ * builds with its last two digits ignored; null for anything else.
+ */
+fun parseRgbHex(text: String): Color? {
     val digits = text.removePrefix("#")
-    if (!text.startsWith("#") || digits.length != RGBA_LENGTH || !digits.all { it.isHexDigit() }) return null
-    val rgba = digits.toLong(HEX_RADIX)
-    return Color(((rgba and ALPHA_MASK) shl ALPHA_SHIFT) or (rgba ushr ALPHA_BITS))
+    val isStored = digits.length == HEX_LENGTH || digits.length == LEGACY_RGBA_LENGTH
+    if (!text.startsWith("#") || !isStored || !digits.all { it.isHexDigit() }) return null
+    return parseHexColor(digits.take(HEX_LENGTH))
 }
 
 /** An opaque colour from six hex digits, with or without a leading `#`; null for anything else. */
@@ -41,10 +41,7 @@ fun filterHexInput(text: String): String =
 private fun Char.isHexDigit() = this in '0'..'9' || this in 'a'..'f' || this in 'A'..'F'
 
 private const val HEX_LENGTH = 6
-private const val RGBA_LENGTH = 8
+private const val LEGACY_RGBA_LENGTH = 8
 private const val HEX_RADIX = 16
 private const val RGB_MASK = 0xFFFFFF
 private const val OPAQUE_MASK = 0xFF shl 24
-private const val ALPHA_SHIFT = 24
-private const val ALPHA_BITS = 8
-private const val ALPHA_MASK = 0xFFL

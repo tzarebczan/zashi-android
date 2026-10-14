@@ -9,78 +9,77 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 /**
- * An account's user-given name, round-tripped through the encrypted store under a key derived from
- * the account's UUID.
+ * A view-only account's name as earlier builds stored it in encrypted preferences, read back and
+ * cleared under a key derived from the account's UUID. Clearing is best-effort: a failing store never
+ * makes it throw.
  */
 class AccountNameProviderTest {
     private val accountUuid = AccountUuid.new(ByteArray(16) { it.toByte() })
     private val otherAccountUuid = AccountUuid.new(ByteArray(16) { (it + 1).toByte() })
 
     @Test
-    fun aSavedNameComesBackOutOfTheStore() =
+    fun aStoredNameIsReadUnderTheAccountsStorageKeyId() =
         runTest {
-            val provider = provider()
+            val store = InMemoryNamePreferenceProvider()
+            store.putString(PreferenceKey(nameKey), "Vault")
 
-            provider.save(accountUuid, "Vault")
-
-            assertEquals("Vault", provider.observe(accountUuid).first())
+            assertEquals("Vault", provider(store).get(accountUuid))
         }
 
     @Test
-    fun anAccountThatWasNeverRenamedObservesNull() =
+    fun anAccountWithNoStoredNameReadsNull() =
         runTest {
-            val provider = provider()
+            val store = InMemoryNamePreferenceProvider()
+            store.putString(PreferenceKey(nameKey), "Vault")
 
-            provider.save(accountUuid, "Vault")
-
-            assertNull(provider.observe(otherAccountUuid).first())
+            assertNull(provider(store).get(otherAccountUuid))
         }
 
     @Test
     fun clearingDropsTheName() =
         runTest {
-            val provider = provider()
-            provider.save(accountUuid, "Vault")
+            val store = InMemoryNamePreferenceProvider()
+            store.putString(PreferenceKey(nameKey), "Vault")
+            val provider = provider(store)
 
             provider.clear(accountUuid)
 
-            assertNull(provider.observe(accountUuid).first())
-        }
-
-    @Test
-    fun aBlankNameIsNotStoredAndReadsAsNoName() =
-        runTest {
-            val store = InMemoryNamePreferenceProvider()
-            val provider = provider(store)
-            provider.save(accountUuid, "Vault")
-
-            provider.save(accountUuid, "   ")
-
+            assertNull(provider.get(accountUuid))
             assertNull(store.getString(PreferenceKey(nameKey)))
-            store.putString(PreferenceKey(nameKey), " ")
-            assertNull(provider.observe(accountUuid).first())
         }
 
     @Test
-    fun theNameIsKeyedByTheAccountsStorageKeyId() =
+    fun aStoreThatFailsToClearIsOnlyLogged() =
+        runTest {
+            val provider =
+                AccountNameProviderImpl(
+                    encryptedPreferenceProvider =
+                        mockk<EncryptedPreferenceProvider> {
+                            coEvery { this@mockk.invoke() } throws IllegalStateException("preferences unavailable")
+                        }
+                )
+
+            provider.clear(accountUuid)
+        }
+
+    @Test
+    fun aBlankStoredNameReadsAsNoName() =
         runTest {
             val store = InMemoryNamePreferenceProvider()
+            store.putString(PreferenceKey(nameKey), " ")
 
-            provider(store).save(accountUuid, "Vault")
-
-            assertEquals("Vault", store.getString(PreferenceKey(nameKey)))
+            assertNull(provider(store).get(accountUuid))
         }
 
     private val nameKey get() = "account_display_name_${accountUuid.toStorageKeyId()}"
 
-    private fun provider(store: PreferenceProvider = InMemoryNamePreferenceProvider()) =
+    private fun provider(store: PreferenceProvider) =
         AccountNameProviderImpl(
             encryptedPreferenceProvider =
                 mockk<EncryptedPreferenceProvider> {

@@ -18,6 +18,7 @@ import co.electriccoin.zcash.ui.common.repository.EnhancedABContact
 import co.electriccoin.zcash.ui.common.usecase.CancelProposalFlowUseCase
 import co.electriccoin.zcash.ui.common.usecase.GetExchangeRateUseCase
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
+import co.electriccoin.zcash.ui.common.usecase.ObserveAccountIconUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveContactByAddressUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveProposalUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveSelectedWalletAccountUseCase
@@ -28,6 +29,7 @@ import co.electriccoin.zcash.ui.design.component.ButtonStyle
 import co.electriccoin.zcash.ui.design.component.ChipButtonState
 import co.electriccoin.zcash.ui.design.component.ZashiConfirmationState
 import co.electriccoin.zcash.ui.design.util.Ellipsize
+import co.electriccoin.zcash.ui.design.util.ImageResource
 import co.electriccoin.zcash.ui.design.util.stringRes
 import co.electriccoin.zcash.ui.design.util.stringResByAddress
 import co.electriccoin.zcash.ui.screen.contact.AddZashiABContactArgs
@@ -52,6 +54,7 @@ class ReviewTransactionVM(
     observeContactByAddress: ObserveContactByAddressUseCase,
     observeSelectedWalletAccount: ObserveSelectedWalletAccountUseCase,
     observeProposal: ObserveProposalUseCase,
+    observeAccountIcon: ObserveAccountIconUseCase,
     private val cancelProposalFlow: CancelProposalFlowUseCase,
     private val getExchangeRate: GetExchangeRateUseCase,
     private val navigationRouter: NavigationRouter,
@@ -74,14 +77,17 @@ class ReviewTransactionVM(
     @OptIn(ExperimentalCoroutinesApi::class)
     private val baseState =
         combine(
-            observeSelectedWalletAccount.require(),
+            combine(observeSelectedWalletAccount.require(), observeAccountIcon.observeAll()) { wallet, colors ->
+                wallet to observeAccountIcon.iconOf(colors, wallet)
+            },
             observeProposal.filterSend(),
             isReceiverExpanded,
             exchangeRate,
             getWalletAccounts.observe()
         ) { wallet, zecSend, isReceiverExpanded, exchangeRate, accounts ->
             Quintuple(wallet, zecSend, isReceiverExpanded, exchangeRate, accounts)
-        }.flatMapLatest { (selectedWallet, proposal, isReceiverExpanded, exchangeRate, accounts) ->
+        }.flatMapLatest { (selected, proposal, isReceiverExpanded, exchangeRate, accounts) ->
+            val (selectedWallet, selectedWalletIcon) = selected
             observeContactByAddress(
                 if (proposal is ExactOutputSwapTransactionProposal) {
                     proposal.quote.destinationAddress.address
@@ -95,6 +101,7 @@ class ReviewTransactionVM(
                             transactionProposal = proposal,
                             addressBookContact = addressBookContact,
                             selectedWallet = selectedWallet,
+                            selectedWalletIcon = selectedWalletIcon,
                             isReceiverExpanded = isReceiverExpanded,
                             exchangeRateState = exchangeRate
                         )
@@ -105,6 +112,7 @@ class ReviewTransactionVM(
                             transactionProposal = proposal,
                             addressBookContact = addressBookContact,
                             selectedWallet = selectedWallet,
+                            selectedWalletIcon = selectedWalletIcon,
                             exchangeRateState = exchangeRate,
                             accounts = accounts
                         )
@@ -141,6 +149,7 @@ class ReviewTransactionVM(
 
     private fun createState(
         selectedWallet: WalletAccount,
+        selectedWalletIcon: ImageResource,
         transactionProposal: SendTransactionProposal,
         addressBookContact: EnhancedABContact?,
         exchangeRateState: ExchangeRateState,
@@ -167,7 +176,7 @@ class ReviewTransactionVM(
                 ),
                 SenderState(
                     title = stringRes(R.string.accounts_sendingFrom),
-                    icon = selectedWallet.icon,
+                    icon = selectedWalletIcon,
                     name = selectedWallet.name
                 ).takeIf { (accounts?.size ?: 0) > 1 },
                 FinancialInfoState(
@@ -212,6 +221,7 @@ class ReviewTransactionVM(
         transactionProposal: SendTransactionProposal,
         addressBookContact: EnhancedABContact?,
         selectedWallet: WalletAccount,
+        selectedWalletIcon: ImageResource,
         isReceiverExpanded: Boolean,
         exchangeRateState: ExchangeRateState
     ) = ReviewTransactionState(
@@ -225,7 +235,7 @@ class ReviewTransactionVM(
                 ),
                 SenderState(
                     title = stringRes(R.string.accounts_sendingFrom),
-                    icon = selectedWallet.icon,
+                    icon = selectedWalletIcon,
                     name = selectedWallet.name
                 ),
                 ReceiverExpandedState(

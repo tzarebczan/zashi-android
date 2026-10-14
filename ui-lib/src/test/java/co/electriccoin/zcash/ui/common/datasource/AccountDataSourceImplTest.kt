@@ -13,7 +13,6 @@ import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccountBindingData
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
-import co.electriccoin.zcash.ui.common.provider.AccountNameProvider
 import co.electriccoin.zcash.ui.common.provider.LedgerAccountBindingProvider
 import co.electriccoin.zcash.ui.common.provider.PersistableWalletProvider
 import co.electriccoin.zcash.ui.common.provider.SelectedAccountUUIDProvider
@@ -101,10 +100,6 @@ class AccountDataSourceImplTest {
             selectedAccountUUIDProvider = selectedAccountUUIDProvider,
             persistableWalletProvider = persistableWalletProvider,
             ledgerAccountBindingProvider = ledgerAccountBindingProvider,
-            accountNameProvider =
-                mockk<AccountNameProvider>(relaxed = true) {
-                    every { observe(any()) } returns MutableStateFlow(null)
-                },
             selectedAccountSpendableStorageProvider = mockk(relaxed = true),
             viewOnlyContent = viewOnlyContent,
             context = mockk(relaxed = true),
@@ -521,10 +516,6 @@ class AccountDataSourceImplTest {
                     every { persistableWallet } returns MutableStateFlow(mockk(relaxed = true))
                 },
             ledgerAccountBindingProvider = ledgerAccountBindingProvider,
-            accountNameProvider =
-                mockk<AccountNameProvider>(relaxed = true) {
-                    every { observe(any()) } returns MutableStateFlow(null)
-                },
             selectedAccountSpendableStorageProvider = mockk(relaxed = true),
             viewOnlyContent = viewOnlyContent,
             context = mockk(relaxed = true),

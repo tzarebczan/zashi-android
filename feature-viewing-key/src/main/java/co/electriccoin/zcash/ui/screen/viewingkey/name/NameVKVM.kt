@@ -4,7 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.electriccoin.zcash.ui.NavigationRouter
-import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountNameLimit
+import co.electriccoin.zcash.ui.common.model.AccountNameLimit
 import co.electriccoin.zcash.ui.common.model.stateIn
 import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepository
 import co.electriccoin.zcash.ui.common.usecase.NavigateToColorPickerUseCase
@@ -20,9 +20,10 @@ import kotlinx.coroutines.launch
 /**
  * Names the pending view-only account, then goes straight on to the shared birthday date screen:
  * a view-only import always asks when the account was created, never whether it is new. The name
- * is capped at [ViewOnlyAccountNameLimit.MAX_LENGTH] code points as it is typed. Without a pending key,
+ * is capped at [AccountNameLimit.MAX_LENGTH] code points as it is typed. Without a pending key,
  * after process death, there is nothing to name and the flow returns to the root. The avatar's pencil
- * badge opens the colour picker; Continue keeps the picked colour with the pending import, in memory
+ * badge opens the colour picker, the avatar follows the picks live and keeps the last one however the
+ * picker closes; Continue keeps the picked colour with the pending import, in memory
  * only, for the import to store with the new account.
  */
 class NameVKVM(
@@ -62,11 +63,11 @@ class NameVKVM(
         if (colorPickerJob?.isActive == true) return
         colorPickerJob =
             viewModelScope.launch {
-                navigateToColorPicker(color.value)?.let { picked -> color.update { picked } }
+                navigateToColorPicker(color.value).collect { picked -> color.update { picked } }
             }
     }
 
-    private fun onValueChange(value: String) = name.update { ViewOnlyAccountNameLimit.cap(value) }
+    private fun onValueChange(value: String) = name.update { AccountNameLimit.cap(value) }
 
     private fun onContinueClick() {
         val trimmed = name.value.trim()

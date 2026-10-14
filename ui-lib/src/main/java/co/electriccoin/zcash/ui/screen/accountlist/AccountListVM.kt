@@ -20,6 +20,7 @@ import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyNavigator
 import co.electriccoin.zcash.ui.design.util.ImageResource
 import co.electriccoin.zcash.ui.screen.ExternalUrl
 import co.electriccoin.zcash.ui.screen.accountlist.options.WalletOptionsArgs
+import co.electriccoin.zcash.ui.screen.editaccount.EditAccountArgs
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -90,20 +91,14 @@ class AccountListVM(
                     onAccountClick(account.sdkAccount.accountUuid)
                 },
             onOptionsClick =
-                when (account) {
-                    is ZashiAccount -> {
-                        null
-                    }
-
-                    is KeystoneAccount, is LedgerAccount -> {
-                        onOptionsClicks.getOrPut(account.sdkAccount.accountUuid) {
+                onOptionsClicks.getOrPut(account.sdkAccount.accountUuid) {
+                    when (account) {
+                        is KeystoneAccount, is LedgerAccount -> {
                             onHardwareWalletOptionsClick(account.sdkAccount.accountUuid)
                         }
-                    }
 
-                    is ViewOnlyAccount -> {
-                        onOptionsClicks.getOrPut(account.sdkAccount.accountUuid) {
-                            onViewOnlyOptionsClick(account.sdkAccount.accountUuid)
+                        is ZashiAccount, is ViewOnlyAccount -> {
+                            onEditClick(account.sdkAccount.accountUuid)
                         }
                     }
                 },
@@ -127,8 +122,9 @@ class AccountListVM(
     private fun onHardwareWalletOptionsClick(accountUuid: AccountUuid): () -> Unit =
         { navigationRouter.forward(WalletOptionsArgs(accountKeyId = accountUuid.toStorageKeyId())) }
 
-    private fun onViewOnlyOptionsClick(accountUuid: AccountUuid): () -> Unit =
-        { viewOnlyNavigator.forwardToEditAccount(accountUuid) }
+    /** Opens Edit Account, which changes the Zodl account's colour or a view-only account's colour and name. */
+    private fun onEditClick(accountUuid: AccountUuid): () -> Unit =
+        { navigationRouter.forward(EditAccountArgs(accountKeyId = accountUuid.toStorageKeyId())) }
 
     /**
      * Opens the Keystone shop in the in-app browser on top of this screen, so closing the browser

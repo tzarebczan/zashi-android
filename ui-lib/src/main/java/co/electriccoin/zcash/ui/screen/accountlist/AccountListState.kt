@@ -96,9 +96,8 @@ data class AccountListState(
 
         /**
          * Groups [entries] into sections in the fixed order Zodl, Keystone, Ledger, view-only. A
-         * section header turns plural and shows a count tag once it holds more than one wallet. A
-         * row whose entry has [AccountListEntry.onOptionsClick] gets the "..." action, any other
-         * row a chevron that does what tapping the row does.
+         * section header turns plural and shows a count tag once it holds more than one wallet.
+         * Every row gets the "..." action, which runs [AccountListEntry.onOptionsClick].
          *
          * @param entries The wallets, null while they are loading.
          * @param viewOnlySection The header above one view-only account.
@@ -200,23 +199,15 @@ data class AccountListState(
                     },
                 isSelected = isSelected,
                 trailingAction =
-                    if (onOptionsClick != null) {
-                        IconButtonState(
-                            icon = R.drawable.ic_wallet_list_more,
-                            contentDescription =
-                                stringRes(
-                                    co.electriccoin.zcash.ui.R.string.hwWallet_walletOptions_contentDescription,
-                                    name
-                                ),
-                            onClick = onOptionsClick,
-                        )
-                    } else {
-                        IconButtonState(
-                            icon = R.drawable.ic_wallet_list_chevron,
-                            contentDescription = null,
-                            onClick = onClick,
-                        )
-                    },
+                    IconButtonState(
+                        icon = R.drawable.ic_wallet_list_more,
+                        contentDescription =
+                            stringRes(
+                                co.electriccoin.zcash.ui.R.string.hwWallet_walletOptions_contentDescription,
+                                name
+                            ),
+                        onClick = onOptionsClick,
+                    ),
                 onClick = onClick,
             )
         }
@@ -244,7 +235,7 @@ data class AccountListState(
             balance = balance,
             isSelected = isSelected,
             onClick = {},
-            onOptionsClick = null,
+            onOptionsClick = {},
         )
 
         private fun previewKeystone(isSelected: Boolean) =
@@ -327,8 +318,7 @@ enum class AccountListKind {
  *
  * @param balance The account's total balance, null while it has not loaded.
  * @param onClick Selects the wallet and closes the screen.
- * @param onOptionsClick Opens the wallet's options; null for a wallet without any, whose row then
- *        shows a chevron instead of the "..." action.
+ * @param onOptionsClick Opens the wallet's options.
  */
 data class AccountListEntry(
     val kind: AccountListKind,
@@ -337,5 +327,5 @@ data class AccountListEntry(
     val balance: Zatoshi?,
     val isSelected: Boolean,
     val onClick: () -> Unit,
-    val onOptionsClick: (() -> Unit)?,
+    val onOptionsClick: () -> Unit,
 )

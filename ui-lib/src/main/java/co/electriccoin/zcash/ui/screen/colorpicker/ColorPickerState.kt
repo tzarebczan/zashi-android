@@ -17,7 +17,6 @@ import co.electriccoin.zcash.ui.design.component.colorpicker.toHex
 import co.electriccoin.zcash.ui.design.component.colorpicker.withChannel
 import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.design.util.stringRes
-import kotlin.math.roundToInt
 
 enum class ColorPickerTab { GRID, SPECTRUM, SLIDERS }
 
@@ -34,28 +33,23 @@ enum class ColorPickerField(
 /**
  * What has been picked so far.
  *
- * @param color the picked colour, always opaque; [alpha] carries its opacity.
+ * @param color the picked colour, always opaque.
  * @param spectrumPosition where the Spectrum tab rings the colour, as fractions of the spectrum.
  * @param drafts the text of a Sliders field while it is being typed, which may not be a value yet.
  */
 @Immutable
 data class ColorPickerSelection(
     val color: Color,
-    val alpha: Float,
     val tab: ColorPickerTab,
     val spectrumPosition: Offset,
     val drafts: Map<ColorPickerField, String>,
 ) {
-    /** The picked colour with its opacity. */
-    val picked: Color get() = color.copy(alpha = alpha)
-
     companion object {
         /** A selection starting on [initial], or on opaque white without one, on the Grid tab. */
         fun initial(initial: Color?): ColorPickerSelection {
             val color = (initial ?: Color.White).copy(alpha = 1f)
             return ColorPickerSelection(
                 color = color,
-                alpha = initial?.alpha ?: 1f,
                 tab = ColorPickerTab.GRID,
                 spectrumPosition = color.spectrumPosition(),
                 drafts = emptyMap()
@@ -99,9 +93,9 @@ sealed interface ColorPickerContentState {
 }
 
 /**
- * The colour picker sheet: the "Colors" toolbar whose trailing button confirms, the Grid,
- * Spectrum and Sliders tabs, the opacity slider and the swatches row. Back, a drag down or a tap
- * outside dismisses it without picking.
+ * The colour picker sheet: the "Colors" toolbar whose trailing button closes it, the Grid,
+ * Spectrum and Sliders tabs, and the swatches row. Back, a drag down or a tap outside close it as
+ * well, and every way of closing it keeps the last picked colour.
  */
 @Immutable
 data class ColorPickerState(
@@ -109,11 +103,6 @@ data class ColorPickerState(
     val doneButton: IconButtonState,
     val tabs: List<SegmentedControlItem>,
     val content: ColorPickerContentState,
-    val opacityLabel: StringResource,
-    val opacity: Float,
-    val opacityTrack: List<Color>,
-    val opacityText: StringResource,
-    val onOpacityChange: (Float) -> Unit,
     val picked: Color,
     val swatches: List<ColorSwatchState>,
     override val onBack: () -> Unit,
@@ -147,20 +136,16 @@ data class ColorPickerState(
             onSpectrumPick: (Offset) -> Unit,
             onChannelChange: (ColorChannel, Float) -> Unit,
             onFieldChange: (ColorPickerField, String) -> Unit,
-            onOpacityChange: (Float) -> Unit,
-            onSwatchSelect: (Color) -> Unit,
-            onDone: () -> Unit,
             onBack: () -> Unit,
         ): ColorPickerState {
             val color = selection.color
-            val picked = selection.picked
             return ColorPickerState(
                 title = stringRes(R.string.colorPicker_title),
                 doneButton =
                     IconButtonState(
                         icon = R.drawable.ic_close,
                         contentDescription = stringRes(R.string.colorPicker_done),
-                        onClick = onDone
+                        onClick = onBack
                     ),
                 tabs =
                     TABS.map { (tab, label) ->
@@ -208,18 +193,13 @@ data class ColorPickerState(
                             )
                         }
                     },
-                opacityLabel = stringRes(R.string.colorPicker_opacity),
-                opacity = selection.alpha,
-                opacityTrack = listOf(color.copy(alpha = 0f), color),
-                opacityText = stringRes(R.string.colorPicker_percent, (selection.alpha * PERCENT).roundToInt()),
-                onOpacityChange = onOpacityChange,
-                picked = picked,
+                picked = color,
                 swatches =
                     ColorPickerPalette.presets.map { swatch ->
                         ColorSwatchState(
                             color = swatch,
-                            isSelected = swatch.toArgb() == picked.toArgb(),
-                            onClick = onSwatchSelect
+                            isSelected = swatch.toArgb() == color.toArgb(),
+                            onClick = onColorSelect
                         )
                     },
                 onBack = onBack
@@ -237,14 +217,10 @@ data class ColorPickerState(
                 onSpectrumPick = {},
                 onChannelChange = { _, _ -> },
                 onFieldChange = { _, _ -> },
-                onOpacityChange = {},
-                onSwatchSelect = {},
-                onDone = {},
                 onBack = {}
             )
 
         private const val MAX_CHANNEL = 255f
-        private const val PERCENT = 100
         private const val PREVIEW_COLOR = 0xFFBE38F3
     }
 }

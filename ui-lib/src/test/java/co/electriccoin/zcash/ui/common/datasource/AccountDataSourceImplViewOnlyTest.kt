@@ -20,7 +20,6 @@ import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountAlreadyExistsExcepti
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountImportException
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
-import co.electriccoin.zcash.ui.common.provider.AccountNameProvider
 import co.electriccoin.zcash.ui.common.provider.LedgerAccountBindingProvider
 import co.electriccoin.zcash.ui.common.provider.SelectedAccountSpendableStorageProvider
 import co.electriccoin.zcash.ui.common.provider.SelectedAccountUUIDProvider
@@ -33,7 +32,6 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
-import io.mockk.verify
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
@@ -191,18 +189,17 @@ class AccountDataSourceImplViewOnlyTest {
         }
 
     @Test
-    fun aStoredNameReplacesTheImportedNameAndFollowsEveryRename() =
+    fun theNameFollowsTheSdkAccountsNameAcrossARename() =
         runBlocking<Unit> {
-            val storedName = MutableStateFlow<String?>(null)
+            val sdkAccounts = MutableStateFlow(listOf(viewOnlySdkAccount(name = "Savings", uuid = accountUuid)))
             val synchronizer =
                 mockk<Synchronizer> {
-                    every { accountsFlow } returns
-                        MutableStateFlow(listOf(viewOnlySdkAccount(name = "Savings", uuid = accountUuid)))
+                    every { accountsFlow } returns sdkAccounts
                     every { walletBalances } returns MutableStateFlow(null)
                     coEvery { getCustomUnifiedAddress(any(), any()) } returns "unified-address"
                     coEvery { getTransparentAddress(any()) } returns "transparent-address"
                 }
-            val dataSource = dataSource(synchronizer, relaxedBindingProvider(), nameProvider(storedName))
+            val dataSource = dataSource(synchronizer, relaxedBindingProvider())
 
             withTimeout(5_000) {
                 assertEquals(
@@ -213,7 +210,7 @@ class AccountDataSourceImplViewOnlyTest {
                         .single()
                         .name
                 )
-                storedName.value = "Vault"
+                sdkAccounts.value = listOf(viewOnlySdkAccount(name = "Vault", uuid = accountUuid))
                 dataSource.allAccounts.first {
                     val renamed = it?.singleOrNull() as? ViewOnlyAccount
                     renamed?.name == stringRes("Vault") && renamed.customName == "Vault"
@@ -222,28 +219,33 @@ class AccountDataSourceImplViewOnlyTest {
         }
 
     @Test
-    fun onlyAViewOnlyAccountReadsTheNameStore() =
+    fun renamingAViewOnlyAccountStoresTheNameThroughTheSdk() =
         runBlocking {
-            val nameProvider = nameProvider(MutableStateFlow("Renamed"))
             val synchronizer =
-                mockk<Synchronizer> {
+                mockk<Synchronizer>(relaxed = true) {
                     every { accountsFlow } returns MutableStateFlow(listOf(account))
                     every { walletBalances } returns MutableStateFlow(null)
-                    coEvery { getCustomUnifiedAddress(any(), any()) } returns "unified-address"
-                    coEvery { getTransparentAddress(any()) } returns "transparent-address"
-                    coEvery { getSaplingAddress(any()) } returns "sapling-address"
                 }
 
-            val accounts =
-                withTimeout(5_000) {
-                    dataSource(synchronizer, relaxedBindingProvider(), nameProvider)
-                        .allAccounts
-                        .filterNotNull()
-                        .first()
+            dataSource(synchronizer, relaxedBindingProvider()).renameAccount(viewOnlyAccount(), "Vault")
+
+            coVerify(exactly = 1) { synchronizer.renameAccount(accountUuid, "Vault") }
+        }
+
+    @Test
+    fun aFailedRenamePropagatesTheSdkFailure() =
+        runBlocking<Unit> {
+            val failure = InitializeException.RenameAccountException(RuntimeException("Account not found"))
+            val synchronizer =
+                mockk<Synchronizer>(relaxed = true) {
+                    every { accountsFlow } returns MutableStateFlow(listOf(account))
+                    every { walletBalances } returns MutableStateFlow(null)
+                    coEvery { renameAccount(any(), any()) } throws failure
                 }
 
-            assertTrue(accounts.single() is ZashiAccount)
-            verify(exactly = 0) { nameProvider.observe(any()) }
+            assertFailsWith<InitializeException.RenameAccountException> {
+                dataSource(synchronizer, relaxedBindingProvider()).renameAccount(viewOnlyAccount(), "Vault")
+            }
         }
 
     @Test
@@ -676,11 +678,6 @@ class AccountDataSourceImplViewOnlyTest {
                 )
         )
 
-    private fun nameProvider(storedName: MutableStateFlow<String?> = MutableStateFlow(null)) =
-        mockk<AccountNameProvider>(relaxed = true) {
-            every { observe(any()) } returns storedName
-        }
-
     private fun selectionProvider(selected: AccountUuid?) =
         mockk<SelectedAccountUUIDProvider>(relaxed = true) {
             every { uuid } returns MutableStateFlow(selected)
@@ -690,7 +687,6 @@ class AccountDataSourceImplViewOnlyTest {
     private fun dataSource(
         synchronizer: Synchronizer,
         ledgerAccountBindingProvider: LedgerAccountBindingProvider,
-        accountNameProvider: AccountNameProvider = nameProvider(),
         selectedAccountUUIDProvider: SelectedAccountUUIDProvider = selectionProvider(selected = null),
         selectedAccountSpendableStorageProvider: SelectedAccountSpendableStorageProvider = mockk(relaxed = true),
     ): AccountDataSourceImpl {
@@ -707,7 +703,6 @@ class AccountDataSourceImplViewOnlyTest {
                     every { persistableWallet } returns MutableStateFlow(mockk(relaxed = true))
                 },
             ledgerAccountBindingProvider = ledgerAccountBindingProvider,
-            accountNameProvider = accountNameProvider,
             selectedAccountSpendableStorageProvider = selectedAccountSpendableStorageProvider,
             viewOnlyContent = viewOnlyContent,
             context = mockk(relaxed = true),

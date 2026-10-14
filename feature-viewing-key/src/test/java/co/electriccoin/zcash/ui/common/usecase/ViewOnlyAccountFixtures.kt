@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 
 /**
- * Accounts for the edit and remove tests: a real [ViewOnlyAccount] (so `is` checks and its name
+ * Accounts for the remove tests: a real [ViewOnlyAccount] (so `is` checks and its name
  * behave as in the app) and a Zodl account that must never be renamed or removed.
  */
 internal object ViewOnlyAccountFixtures {

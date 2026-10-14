@@ -7,6 +7,7 @@ import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.model.metadata.MetadataV3
 import co.electriccoin.zcash.ui.design.R
+import co.electriccoin.zcash.ui.design.util.ImageResource
 import co.electriccoin.zcash.ui.design.util.imageRes
 import co.electriccoin.zcash.ui.design.util.stringRes
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -20,8 +21,8 @@ import kotlin.test.assertEquals
 
 /**
  * Every account's colour comes from the repository's shared metadata map, empty at first, an account
- * without a colour left out; a view-only icon takes its colour, the default circle without one, and
- * every other account shows its own drawable.
+ * without a colour left out; a view-only icon takes its colour, the default circle without one; the
+ * Zodl account shows its own drawable until it has a colour, then its mark on a circle in it.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ObserveAccountIconUseCaseTest {
@@ -53,6 +54,17 @@ class ObserveAccountIconUseCaseTest {
         assertEquals(
             AccountIconFixtures.viewOnlyIcon(Color(PICKED)),
             useCase.iconOf(mapOf(VIEW_ONLY_UUID to Color(PICKED)), viewOnly())
+        )
+    }
+
+    @Test
+    fun aColoredZodlIconIsItsMarkOnACircleInTheColor() {
+        assertEquals(
+            ImageResource.Layered(
+                background = Color(PICKED),
+                foreground = ImageResource.ByDrawable(R.drawable.ic_item_zodl_glyph)
+            ),
+            useCase.iconOf(mapOf(ZASHI_UUID to Color(PICKED)), zashi())
         )
     }
 
@@ -93,7 +105,7 @@ class ObserveAccountIconUseCaseTest {
     private companion object {
         val ZASHI_UUID: AccountUuid = AccountUuid.new(ByteArray(16) { it.toByte() })
         val VIEW_ONLY_UUID: AccountUuid = AccountUuid.new(ByteArray(16) { (it + 1).toByte() })
-        const val PICKED = 0x80BE38F3
+        const val PICKED = 0xFFBE38F3
         const val OTHER = 0xFF0088FF
     }
 }

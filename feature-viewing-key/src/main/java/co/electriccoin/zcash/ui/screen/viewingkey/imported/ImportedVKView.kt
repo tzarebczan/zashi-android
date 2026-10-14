@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import co.electriccoin.zcash.ui.common.compose.AccountFormHeader
 import co.electriccoin.zcash.ui.design.component.BlankBgScaffold
 import co.electriccoin.zcash.ui.design.component.ZashiButton
 import co.electriccoin.zcash.ui.design.component.zashiVerticalGradient
@@ -21,7 +22,6 @@ import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.design.theme.colors.ZashiColors
 import co.electriccoin.zcash.ui.design.theme.typography.ZashiTypography
 import co.electriccoin.zcash.ui.design.util.scaffoldPadding
-import co.electriccoin.zcash.ui.screen.viewingkey.VKHeader
 
 @Composable
 fun ImportedVKView(state: ImportedVKState) {
@@ -39,7 +39,7 @@ fun ImportedVKView(state: ImportedVKState) {
                         .scaffoldPadding(paddingValues)
             ) {
                 Spacer(Modifier.height(TopAppBarDefaults.TopAppBarExpandedHeight + HEADER_TOP_SPACING))
-                VKHeader(
+                AccountFormHeader(
                     avatar = state.avatar,
                     heading = state.heading,
                     message = state.message,

@@ -199,7 +199,7 @@ private fun AddressPanel(
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
             Box {
-                state.icon.Compose(modifier = Modifier.size(40.dp), surface = containerColor)
+                state.icon.Compose(modifier = Modifier.size(40.dp))
                 if (state.isShielded) {
                     Image(
                         modifier =

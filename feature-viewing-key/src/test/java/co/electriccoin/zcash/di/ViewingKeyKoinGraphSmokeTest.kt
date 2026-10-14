@@ -13,6 +13,7 @@ import co.electriccoin.zcash.ui.common.usecase.GetViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
 import co.electriccoin.zcash.ui.common.usecase.ImportViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.NavigateToColorPickerUseCase
+import co.electriccoin.zcash.ui.common.usecase.ObserveAccountIconUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveSelectedWalletAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.RemoveViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.RenameViewOnlyAccountUseCase
@@ -22,12 +23,12 @@ import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyAccountImporter
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyNavContributor
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyNavigator
+import co.electriccoin.zcash.ui.screen.editaccount.EditAccountArgs
+import co.electriccoin.zcash.ui.screen.editaccount.EditAccountVM
 import co.electriccoin.zcash.ui.screen.error.NavigateToErrorUseCase
-import co.electriccoin.zcash.ui.screen.viewingkey.EditVKAccountArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.RemoveVKAccountArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.addaccount.AddVKAccountVM
 import co.electriccoin.zcash.ui.screen.viewingkey.alreadyimported.AlreadyImportedVKVM
-import co.electriccoin.zcash.ui.screen.viewingkey.edit.EditVKAccountVM
 import co.electriccoin.zcash.ui.screen.viewingkey.imported.ImportedVKVM
 import co.electriccoin.zcash.ui.screen.viewingkey.importvk.ImportVKVM
 import co.electriccoin.zcash.ui.screen.viewingkey.name.NameVKVM
@@ -41,6 +42,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.koin.core.KoinApplication
+import org.koin.core.module.dsl.viewModelOf
 import org.koin.core.parameter.parametersOf
 import org.koin.dsl.koinApplication
 import org.koin.dsl.module
@@ -52,10 +54,11 @@ import kotlin.test.assertSame
 /**
  * Smoke-tests the Koin graph of [featureViewingKeyModule], like LedgerKoinGraphSmokeTest does for its
  * module: every contract ui-lib resolves, [ViewOnlyContent] included, and every use case and view
- * model of the import flow and of the edit and remove flow must come out of the module plus stubs
- * for the types ui-lib owns. A missing binding fails here with a NoDefinitionFoundException instead
- * of when a screen opens on a device. The main dispatcher is a standard test dispatcher so work the
- * view models launch at construction never runs.
+ * model of the import flow and of the remove flow must come out of the module plus stubs
+ * for the types ui-lib owns. ui-lib's [EditAccountVM] is declared here as ui-lib declares it, so the
+ * contracts it takes from this module are checked too. A missing binding fails here with a
+ * NoDefinitionFoundException instead of when a screen opens on a device. The main dispatcher is a
+ * standard test dispatcher so work the view models launch at construction never runs.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ViewingKeyKoinGraphSmokeTest {
@@ -71,13 +74,16 @@ class ViewingKeyKoinGraphSmokeTest {
                 single<SynchronizerProvider> { mockk(relaxed = true) }
                 factory { mockk<GetWalletAccountsUseCase>(relaxed = true) }
                 factory { mockk<ClearClipboardUseCase>(relaxed = true) }
-                single<AccountNameProvider> { mockk(relaxed = true) }
                 single<BiometricRepository> { mockk(relaxed = true) }
                 single<MigrationAppHooks> { mockk(relaxed = true) }
+                single<AccountNameProvider> { mockk(relaxed = true) }
                 factory { mockk<NavigateToErrorUseCase>(relaxed = true) }
                 single { mockk<NavigateToColorPickerUseCase>(relaxed = true) }
                 single<MetadataRepository> { mockk(relaxed = true) }
                 factory { mockk<ObserveSelectedWalletAccountUseCase>(relaxed = true) }
+                factory { mockk<RenameViewOnlyAccountUseCase>(relaxed = true) }
+                factory { mockk<ObserveAccountIconUseCase>(relaxed = true) }
+                viewModelOf(::EditAccountVM)
             }
 
         koin =
@@ -105,7 +111,6 @@ class ViewingKeyKoinGraphSmokeTest {
         koin.koin.get<SubmitViewOnlyKeyUseCase>()
         koin.koin.get<ImportViewOnlyAccountUseCase>()
         koin.koin.get<GetViewOnlyAccountUseCase>()
-        koin.koin.get<RenameViewOnlyAccountUseCase>()
         koin.koin.get<RemoveViewOnlyAccountUseCase>()
     }
 
@@ -117,8 +122,8 @@ class ViewingKeyKoinGraphSmokeTest {
         koin.koin.get<NameVKVM>()
         koin.koin.get<ImportedVKVM>()
         koin.koin.get<AlreadyImportedVKVM>()
-        koin.koin.get<EditVKAccountVM> { parametersOf(EditVKAccountArgs(ACCOUNT_KEY_ID)) }
         koin.koin.get<RemoveVKAccountVM> { parametersOf(RemoveVKAccountArgs(ACCOUNT_KEY_ID)) }
+        koin.koin.get<EditAccountVM> { parametersOf(EditAccountArgs(ACCOUNT_KEY_ID)) }
     }
 
     @Test

@@ -7,6 +7,7 @@ import co.electriccoin.zcash.preference.StandardPreferenceProvider
 import co.electriccoin.zcash.preference.api.PreferenceProvider
 import co.electriccoin.zcash.preference.model.entry.PreferenceKey
 import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.model.toStorageKeyId
@@ -223,4 +224,9 @@ private class FakeAccountDataSource(
     override suspend fun requestNextShieldedAddress(): String = error("unsupported")
 
     override suspend fun deleteAccount(account: WalletAccount) = error("unsupported")
+
+    override suspend fun renameAccount(
+        account: ViewOnlyAccount,
+        name: String
+    ) = error("unsupported")
 }

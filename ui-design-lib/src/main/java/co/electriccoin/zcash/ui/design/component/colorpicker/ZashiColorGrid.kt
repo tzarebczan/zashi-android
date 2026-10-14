@@ -84,8 +84,8 @@ fun ZashiColorGrid(
 private fun outlineColor(cell: Color) = if (cell.luminance() > LIGHT_CELL) Color.Black else Color.White
 
 private fun gridIndexOf(color: Color): Int {
-    val argb = color.copy(alpha = 1f).toArgb()
-    return ColorPickerPalette.grid.indexOfFirst { it.toArgb() == argb }
+    val rgb = color.toArgb() and RGB_MASK
+    return ColorPickerPalette.grid.indexOfFirst { (it.toArgb() and RGB_MASK) == rgb }
 }
 
 private fun cellOrigin(
@@ -102,6 +102,7 @@ internal val COLOR_PICKER_AREA_RADIUS = 10.dp
 
 private val SELECTION_OUTLINE = 3.dp
 private const val LIGHT_CELL = 0.5f
+private const val RGB_MASK = 0xFFFFFF
 
 @PreviewScreens
 @Composable

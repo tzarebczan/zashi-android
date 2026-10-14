@@ -3,7 +3,6 @@ package co.electriccoin.zcash.ui.screen.colorpicker
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import co.electriccoin.zcash.ui.common.model.stateIn
 import co.electriccoin.zcash.ui.common.usecase.NavigateToColorPickerUseCase
 import co.electriccoin.zcash.ui.design.component.colorpicker.ColorChannel
@@ -13,28 +12,29 @@ import co.electriccoin.zcash.ui.design.component.colorpicker.parseHexColor
 import co.electriccoin.zcash.ui.design.component.colorpicker.spectrumColor
 import co.electriccoin.zcash.ui.design.component.colorpicker.spectrumPosition
 import co.electriccoin.zcash.ui.design.component.colorpicker.withChannel
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.updateAndGet
 import kotlin.math.roundToInt
 
 /**
- * Picks a colour for [ColorPickerArgs] and answers through [NavigateToColorPickerUseCase]: the
- * toolbar's trailing button returns the picked colour with its opacity, any dismissal returns
- * nothing. Only the first answer counts, because the sheet also reports its own hiding as a
- * dismissal once it has gone.
+ * Picks a colour for [ColorPickerArgs] and reports through [NavigateToColorPickerUseCase]: every
+ * change of the picked opaque colour as it happens, then one close, which keeps the last pick. The
+ * toolbar's trailing button, back, a drag down or a tap outside close the sheet, and a sheet cleared
+ * without a close, popped or replaced by another navigation, closes it too, so the caller's flow
+ * always ends. Only the first close is reported, because the sheet also reports its own hiding once it
+ * has gone, but every close pops the sheet while it is still on top, so a pop that never arrived does
+ * not leave it stuck. A sheet restored without a caller collecting its picks, after process death,
+ * closes itself.
  */
-@Suppress("TooManyFunctions")
 class ColorPickerVM(
     private val args: ColorPickerArgs,
     private val navigateToColorPicker: NavigateToColorPickerUseCase,
 ) : ViewModel() {
     private val selection = MutableStateFlow(ColorPickerSelection.initial(args.initialArgb?.let { Color(it) }))
 
-    private var answerJob: Job? = null
+    private var isClosed = false
 
     val state: StateFlow<ColorPickerState> =
         selection.map(::createState).stateIn(viewModel = this, initialValue = createState(selection.value))
@@ -43,19 +43,23 @@ class ColorPickerVM(
         ColorPickerState.create(
             selection = selection,
             onTabSelect = ::onTabSelect,
-            onColorSelect = ::onColorSelect,
+            onColorSelect = ::pick,
             onSpectrumPick = ::onSpectrumPick,
             onChannelChange = ::onChannelChange,
             onFieldChange = ::onFieldChange,
-            onOpacityChange = ::onOpacityChange,
-            onSwatchSelect = ::onSwatchSelect,
-            onDone = ::onDone,
-            onBack = ::onBack,
+            onBack = ::onClose,
         )
 
-    private fun onTabSelect(tab: ColorPickerTab) = selection.update { it.copy(tab = tab) }
+    init {
+        if (!navigateToColorPicker.hasCollector()) onClose()
+    }
 
-    private fun onColorSelect(color: Color) = pick(color)
+    override fun onCleared() {
+        reportClosed()
+        super.onCleared()
+    }
+
+    private fun onTabSelect(tab: ColorPickerTab) = select { it.copy(tab = tab) }
 
     private fun onSpectrumPick(position: Offset) = pick(spectrumColor(position), spectrumPosition = position)
 
@@ -67,7 +71,7 @@ class ColorPickerVM(
     private fun onFieldChange(
         field: ColorPickerField,
         text: String
-    ) = selection.update { current ->
+    ) = select { current ->
         val channel = field.channel
         val draft = if (channel == null) filterHexInput(text) else text.filter(Char::isDigit).take(CHANNEL_DIGITS)
         val parsed =
@@ -83,31 +87,35 @@ class ColorPickerVM(
         )
     }
 
-    private fun onOpacityChange(alpha: Float) = selection.update { it.copy(alpha = alpha.coerceIn(0f, 1f)) }
-
-    private fun onSwatchSelect(color: Color) = pick(color, alpha = color.alpha)
-
-    private fun onDone() = answer { navigateToColorPicker.onSelected(selection.value.picked, args) }
-
-    private fun onBack() = answer { navigateToColorPicker.onCancelled(args) }
+    private fun onClose() {
+        reportClosed()
+        navigateToColorPicker.dismiss(args)
+    }
 
     /** Picks the opaque part of [color], which clears every half-typed field. */
     private fun pick(
         color: Color,
-        alpha: Float = selection.value.alpha,
         spectrumPosition: Offset = color.spectrumPosition(),
-    ) = selection.update {
+    ) = select {
         it.copy(
             color = color.copy(alpha = 1f),
-            alpha = alpha,
             spectrumPosition = spectrumPosition,
             drafts = emptyMap()
         )
     }
 
-    private fun answer(block: suspend () -> Unit) {
-        if (answerJob != null) return
-        answerJob = viewModelScope.launch { block() }
+    /** Applies [transform] to the selection and reports the picked colour when it changed, until closed. */
+    private fun select(transform: (ColorPickerSelection) -> ColorPickerSelection) {
+        val before = selection.value.color
+        val after = selection.updateAndGet(transform).color
+        if (after != before && !isClosed) navigateToColorPicker.onPicked(after, args)
+    }
+
+    /** Ends the caller's flow on the last pick, once. */
+    private fun reportClosed() {
+        if (isClosed) return
+        isClosed = true
+        navigateToColorPicker.onClosed(args)
     }
 
     private companion object {

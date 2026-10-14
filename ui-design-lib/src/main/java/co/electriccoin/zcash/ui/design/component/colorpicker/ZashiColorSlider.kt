@@ -16,7 +16,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.progressBarRangeInfo
@@ -28,20 +27,17 @@ import co.electriccoin.zcash.ui.design.newcomponent.PreviewScreens
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 
 /**
- * A 34 dp capsule track filled with [trackColors] from left to right, over a checkerboard when
- * [isCheckered] so transparency shows, with a 34 dp white ring and a soft shadow as the knob at
- * [value] (0 to 1). On the checkerboard the colours run from 12 % to 88 % of the track, as in Figma.
- * The knob is filled with [knobColor] when given and otherwise lets the track show through. Tapping
- * or dragging anywhere in its 48 dp tall touch area moves the knob.
+ * A 34 dp capsule track filled with [trackColors] from left to right, with a 34 dp white ring and a
+ * soft shadow as the knob at [value] (0 to 1), filled with [knobColor]. Tapping or dragging anywhere
+ * in its 48 dp tall touch area moves the knob.
  */
 @Composable
 fun ZashiColorSlider(
     value: Float,
     trackColors: List<Color>,
+    knobColor: Color,
     onValueChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
-    knobColor: Color? = null,
-    isCheckered: Boolean = false,
 ) {
     val currentOnValueChange by rememberUpdatedState(onValueChange)
     val knob = with(LocalDensity.current) { KNOB_SIZE.toPx() }
@@ -76,18 +72,8 @@ fun ZashiColorSlider(
                 )
             }
         clipPath(trackShape) {
-            if (isCheckered) {
-                translate(top = top) {
-                    drawCheckerboard(cell = COLOR_CHECKER_CELL.toPx(), size = Size(size.width, track))
-                }
-            }
             drawRect(
-                brush =
-                    if (isCheckered) {
-                        opacityGradient(trackColors, size.width)
-                    } else {
-                        Brush.horizontalGradient(trackColors)
-                    },
+                brush = Brush.horizontalGradient(trackColors),
                 topLeft = Offset(0f, top),
                 size = Size(size.width, track)
             )
@@ -96,31 +82,14 @@ fun ZashiColorSlider(
         val center = Offset(radius + value.coerceIn(0f, 1f) * (size.width - track), size.height / 2)
         val ring = KNOB_RING.toPx()
         drawRingShadow(center = center, outerRadius = radius, ringWidth = ring)
-        knobColor?.let { drawCircle(color = it, radius = radius, center = center) }
+        drawCircle(color = knobColor, radius = radius, center = center)
         drawCircle(color = Color.White, radius = radius - ring / 2, center = center, style = Stroke(width = ring))
     }
 }
 
-/** [colors] spread evenly between [OPACITY_STOP_START] and [OPACITY_STOP_END] of a track [width] wide. */
-private fun opacityGradient(
-    colors: List<Color>,
-    width: Float
-): Brush =
-    Brush.horizontalGradient(
-        colors = colors,
-        startX = width * OPACITY_STOP_START,
-        endX = width * OPACITY_STOP_END
-    )
-
 private val TOUCH_HEIGHT = 48.dp
 private val KNOB_SIZE = 34.dp
 private val KNOB_RING = 3.dp
-private const val CHECKER_ROWS = 3
-private const val OPACITY_STOP_START = 0.12f
-private const val OPACITY_STOP_END = 0.88f
-
-/** The checkerboard cell of the slider track, three to its height, shared with the colour preview. */
-internal val COLOR_CHECKER_CELL = KNOB_SIZE / CHECKER_ROWS
 
 @PreviewScreens
 @Composable
@@ -129,9 +98,9 @@ private fun Preview() =
         BlankSurface {
             ZashiColorSlider(
                 value = 1f,
-                trackColors = listOf(Color(0x00AF52DE), Color(0xFFAF52DE)),
-                onValueChange = {},
-                isCheckered = true
+                trackColors = listOf(Color.Black, Color(0xFFAF52DE)),
+                knobColor = Color(0xFFAF52DE),
+                onValueChange = {}
             )
         }
     }

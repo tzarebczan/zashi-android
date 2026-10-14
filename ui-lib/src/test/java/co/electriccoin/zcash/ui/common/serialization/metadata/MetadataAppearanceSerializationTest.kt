@@ -15,7 +15,7 @@ import kotlin.test.assertTrue
 
 /**
  * The optional appearance block of a V3 metadata file: it round-trips as
- * `{"color":"#RRGGBBAA","lastUpdated":…}`, is left out when there is none, a file written before it
+ * `{"color":"#RRGGBB","lastUpdated":…}`, is left out when there is none, a file written before it
  * existed still reads, unknown keys are still ignored, and an unreadable colour drops only the block.
  */
 class MetadataAppearanceSerializationTest {
@@ -23,11 +23,11 @@ class MetadataAppearanceSerializationTest {
 
     @Test
     fun anAppearanceRoundTrips() {
-        val metadata = metadata(AccountAppearanceMetadataV3(Color(0x80BE38F3), Instant.ofEpochMilli(2_000)))
+        val metadata = metadata(AccountAppearanceMetadataV3(Color(0xFFBE38F3), Instant.ofEpochMilli(2_000)))
 
         val json = write(metadata)
 
-        assertTrue(json.contains(""""appearance":{"color":"#BE38F380","lastUpdated":2000}"""), json)
+        assertTrue(json.contains(""""appearance":{"color":"#BE38F3","lastUpdated":2000}"""), json)
         assertEquals(metadata, read(json))
     }
 

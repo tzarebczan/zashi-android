@@ -1,23 +1,19 @@
 package co.electriccoin.zcash.ui.design.component.colorpicker
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.layout
@@ -34,9 +30,8 @@ import co.electriccoin.zcash.ui.design.newcomponent.PreviewScreens
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 
 /**
- * The bottom row of the picker: a 75 dp preview of [current] (over the slider's checkerboard, so
- * its opacity shows), then the [swatches] as 30 dp dots five to a row at a 45 dp row pitch, the
- * picked one ringed in white. A short last row keeps its dots in the full rows' columns.
+ * The bottom row of the picker: a 75 dp preview of [current], then the [swatches] as 30 dp dots
+ * five to a row at a 45 dp row pitch, the picked one ringed in white.
  */
 @Composable
 fun ZashiColorSwatches(
@@ -48,16 +43,13 @@ fun ZashiColorSwatches(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(PREVIEW_GAP),
     ) {
-        Canvas(
+        Box(
             modifier =
                 Modifier
                     .padding(top = (TAP_TARGET_SIZE - DOT_SIZE) / 2)
                     .size(PREVIEW_SIZE)
-                    .clip(RoundedCornerShape(PREVIEW_RADIUS))
-        ) {
-            drawCheckerboard(cell = COLOR_CHECKER_CELL.toPx())
-            drawRect(current)
-        }
+                    .background(current, RoundedCornerShape(PREVIEW_RADIUS))
+        )
         Column(
             modifier = Modifier.weight(1f).widenBy(SLOT_OVERHANG),
             verticalArrangement = Arrangement.spacedBy(-ROW_OVERLAP)
@@ -68,7 +60,6 @@ fun ZashiColorSwatches(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     row.forEach { swatch -> SwatchDot(swatch) }
-                    repeat(PER_ROW - row.size) { Spacer(Modifier.width(TAP_TARGET_SIZE)) }
                 }
             }
         }

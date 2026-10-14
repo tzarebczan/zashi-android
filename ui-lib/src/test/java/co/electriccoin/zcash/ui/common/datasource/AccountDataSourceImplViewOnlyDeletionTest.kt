@@ -3,11 +3,8 @@ package co.electriccoin.zcash.ui.common.datasource
 import cash.z.ecc.android.sdk.Synchronizer
 import cash.z.ecc.android.sdk.model.Account
 import cash.z.ecc.android.sdk.model.AccountUuid
-import cash.z.ecc.android.sdk.model.Zip32AccountIndex
-import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
-import co.electriccoin.zcash.ui.common.provider.AccountNameProvider
 import co.electriccoin.zcash.ui.common.provider.LedgerAccountBindingProvider
 import co.electriccoin.zcash.ui.common.provider.SelectedAccountSpendableStorageProvider
 import co.electriccoin.zcash.ui.common.provider.SelectedAccountUUIDProvider
@@ -32,8 +29,8 @@ import kotlin.test.assertTrue
 /**
  * Deleting a view-only account: the selection is cleared only after the SDK deleted the account and
  * only when the stored selection still names it, whatever the account snapshot says, and clearing
- * the selection or the stored name is best-effort once the account is gone. A stored selection the
- * clear never reached, naming an account that is gone, falls back to the Zodl account.
+ * the selection is best-effort once the account is gone. A stored selection the clear never reached,
+ * naming an account that is gone, falls back to the Zodl account.
  */
 class AccountDataSourceImplViewOnlyDeletionTest {
     private val accountUuid = AccountUuid.new(ByteArray(16) { it.toByte() })
@@ -43,23 +40,6 @@ class AccountDataSourceImplViewOnlyDeletionTest {
         mockk<ViewOnlyContent> {
             every { defaultAccountName } returns DEFAULT_NAME
             every { accountIcon } returns VIEW_ONLY_ICON
-        }
-
-    @Test
-    fun deletingAViewOnlyAccountForgetsItsStoredName() =
-        runBlocking {
-            val nameProvider = nameProvider()
-            val synchronizer =
-                mockk<Synchronizer>(relaxed = true) {
-                    every { accountsFlow } returns MutableStateFlow(listOf(account))
-                    every { walletBalances } returns MutableStateFlow(null)
-                    coEvery { deleteAccount(accountUuid) } returns true
-                }
-
-            dataSource(synchronizer, relaxedBindingProvider(), nameProvider).deleteAccount(viewOnlyAccount())
-
-            coVerify(exactly = 1) { synchronizer.deleteAccount(accountUuid) }
-            coVerify(exactly = 1) { nameProvider.clear(accountUuid) }
         }
 
     @Test
@@ -129,11 +109,6 @@ class AccountDataSourceImplViewOnlyDeletionTest {
                     coEvery { getUUID() } returns accountUuid
                     coEvery { clearUUID() } throws IllegalStateException("preferences unavailable")
                 }
-            val nameProvider =
-                mockk<AccountNameProvider>(relaxed = true) {
-                    every { observe(any()) } returns MutableStateFlow(null)
-                    coEvery { clear(any()) } throws IllegalStateException("preferences unavailable")
-                }
             val synchronizer =
                 mockk<Synchronizer>(relaxed = true) {
                     every { accountsFlow } returns MutableStateFlow(listOf(account))
@@ -144,12 +119,10 @@ class AccountDataSourceImplViewOnlyDeletionTest {
             dataSource(
                 synchronizer = synchronizer,
                 ledgerAccountBindingProvider = relaxedBindingProvider(),
-                accountNameProvider = nameProvider,
                 selectedAccountUUIDProvider = selection,
             ).deleteAccount(viewOnlyAccount().copy(isSelected = true))
 
             coVerify(exactly = 1) { selection.clearUUID() }
-            coVerify(exactly = 1) { nameProvider.clear(accountUuid) }
         }
 
     @Test
@@ -160,7 +133,6 @@ class AccountDataSourceImplViewOnlyDeletionTest {
                     every { uuid } returns MutableStateFlow(accountUuid)
                     coEvery { getUUID() } throws IllegalStateException("preferences unavailable")
                 }
-            val nameProvider = nameProvider()
             val synchronizer =
                 mockk<Synchronizer>(relaxed = true) {
                     every { accountsFlow } returns MutableStateFlow(listOf(account))
@@ -171,11 +143,10 @@ class AccountDataSourceImplViewOnlyDeletionTest {
             dataSource(
                 synchronizer = synchronizer,
                 ledgerAccountBindingProvider = relaxedBindingProvider(),
-                accountNameProvider = nameProvider,
                 selectedAccountUUIDProvider = selection,
             ).deleteAccount(viewOnlyAccount())
 
-            coVerify(exactly = 1) { nameProvider.clear(accountUuid) }
+            coVerify(exactly = 1) { synchronizer.deleteAccount(accountUuid) }
         }
 
     @Test
@@ -229,22 +200,6 @@ class AccountDataSourceImplViewOnlyDeletionTest {
             assertTrue(selected is ZashiAccount)
         }
 
-    @Test
-    fun deletingAnotherAccountLeavesTheNameStoreAlone() =
-        runBlocking {
-            val nameProvider = nameProvider()
-            val synchronizer =
-                mockk<Synchronizer>(relaxed = true) {
-                    every { accountsFlow } returns MutableStateFlow(listOf(account))
-                    every { walletBalances } returns MutableStateFlow(null)
-                    coEvery { deleteAccount(accountUuid) } returns true
-                }
-
-            dataSource(synchronizer, relaxedBindingProvider(), nameProvider).deleteAccount(ledgerAccount())
-
-            coVerify(exactly = 0) { nameProvider.clear(any()) }
-        }
-
     private fun viewOnlyAccount() =
         ViewOnlyAccount(
             sdkAccount = account,
@@ -265,24 +220,6 @@ class AccountDataSourceImplViewOnlyDeletionTest {
             every { observe(any()) } returns MutableStateFlow(null)
         }
 
-    private fun ledgerAccount() =
-        LedgerAccount(
-            sdkAccount = account,
-            unifiedAddress = "u",
-            transparentAddress = "t",
-            orchardBalance = null,
-            ironwoodBalance = null,
-            transparentBalance = null,
-            isSelected = false,
-            deviceIdentity = null,
-            zip32AccountIndex = Zip32AccountIndex.new(0L),
-        )
-
-    private fun nameProvider(storedName: MutableStateFlow<String?> = MutableStateFlow(null)) =
-        mockk<AccountNameProvider>(relaxed = true) {
-            every { observe(any()) } returns storedName
-        }
-
     private fun selectionProvider(selected: AccountUuid?) =
         mockk<SelectedAccountUUIDProvider>(relaxed = true) {
             every { uuid } returns MutableStateFlow(selected)
@@ -292,7 +229,6 @@ class AccountDataSourceImplViewOnlyDeletionTest {
     private fun dataSource(
         synchronizer: Synchronizer,
         ledgerAccountBindingProvider: LedgerAccountBindingProvider,
-        accountNameProvider: AccountNameProvider = nameProvider(),
         selectedAccountUUIDProvider: SelectedAccountUUIDProvider = selectionProvider(selected = null),
         selectedAccountSpendableStorageProvider: SelectedAccountSpendableStorageProvider = mockk(relaxed = true),
     ): AccountDataSourceImpl {
@@ -309,7 +245,6 @@ class AccountDataSourceImplViewOnlyDeletionTest {
                     every { persistableWallet } returns MutableStateFlow(mockk(relaxed = true))
                 },
             ledgerAccountBindingProvider = ledgerAccountBindingProvider,
-            accountNameProvider = accountNameProvider,
             selectedAccountSpendableStorageProvider = selectedAccountSpendableStorageProvider,
             viewOnlyContent = viewOnlyContent,
             context = mockk(relaxed = true),

@@ -3,10 +3,8 @@ package co.electriccoin.zcash.viewingkey
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
-import cash.z.ecc.android.sdk.model.AccountUuid
 import cash.z.ecc.android.sdk.model.BlockHeight
 import co.electriccoin.zcash.ui.NavigationRouter
-import co.electriccoin.zcash.ui.common.model.toStorageKeyId
 import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepository
 import co.electriccoin.zcash.ui.common.usecase.ImportViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyAccountImporter
@@ -18,7 +16,6 @@ import co.electriccoin.zcash.ui.dialogComposable
 import co.electriccoin.zcash.ui.screen.connecthw.HWWalletBranding
 import co.electriccoin.zcash.ui.screen.viewingkey.AddVKAccountArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.AlreadyImportedVKArgs
-import co.electriccoin.zcash.ui.screen.viewingkey.EditVKAccountArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.ImportVKArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.ImportedVKArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.NameVKArgs
@@ -26,7 +23,6 @@ import co.electriccoin.zcash.ui.screen.viewingkey.RemoveVKAccountArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.ScanVKArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.addaccount.AddVKAccountScreen
 import co.electriccoin.zcash.ui.screen.viewingkey.alreadyimported.AlreadyImportedVKScreen
-import co.electriccoin.zcash.ui.screen.viewingkey.edit.EditVKAccountScreen
 import co.electriccoin.zcash.ui.screen.viewingkey.imported.ImportedVKScreen
 import co.electriccoin.zcash.ui.screen.viewingkey.importvk.ImportVKScreen
 import co.electriccoin.zcash.ui.screen.viewingkey.name.NameVKScreen
@@ -81,6 +77,12 @@ internal class ViewOnlyContentImpl : ViewOnlyContent {
     override val keepOpenDisclaimer = stringRes(R.string.view_only_keep_open_warning)
 
     override val keepOpenCheckboxLabel = stringRes(R.string.view_only_keep_open_checkbox)
+
+    override val removeAccountInfoIcon: Int = R.drawable.view_only_ic_info
+
+    override val removeAccountInfo = stringRes(R.string.view_only_edit_remove_info)
+
+    override val removeAccountButton = stringRes(R.string.view_only_remove_account)
 }
 
 internal object VKEnrollmentTag {
@@ -105,8 +107,8 @@ internal class ViewOnlyNavigatorImpl(
 
     override fun forwardToImported() = navigationRouter.forward(ImportedVKArgs)
 
-    override fun forwardToEditAccount(accountUuid: AccountUuid) =
-        navigationRouter.forward(EditVKAccountArgs(accountKeyId = accountUuid.toStorageKeyId()))
+    override fun forwardToRemoveAccount(accountKeyId: String) =
+        navigationRouter.forward(RemoveVKAccountArgs(accountKeyId = accountKeyId))
 }
 
 internal class ViewOnlyNavContributorImpl : ViewOnlyNavContributor {
@@ -118,7 +120,6 @@ internal class ViewOnlyNavContributorImpl : ViewOnlyNavContributor {
             composable<NameVKArgs> { NameVKScreen() }
             composable<ImportedVKArgs> { ImportedVKScreen() }
             dialogComposable<AlreadyImportedVKArgs> { AlreadyImportedVKScreen() }
-            composable<EditVKAccountArgs> { EditVKAccountScreen(it.toRoute()) }
             dialogComposable<RemoveVKAccountArgs> { RemoveVKAccountScreen(it.toRoute()) }
         }
     }

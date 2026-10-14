@@ -1,4 +1,4 @@
-package co.electriccoin.zcash.ui.screen.viewingkey.edit
+package co.electriccoin.zcash.ui.screen.editaccount
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -12,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import co.electriccoin.zcash.ui.common.compose.AccountFormScreen
+import co.electriccoin.zcash.ui.common.compose.AccountNameField
 import co.electriccoin.zcash.ui.design.component.ZashiButton
 import co.electriccoin.zcash.ui.design.newcomponent.PreviewScreens
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
@@ -19,16 +21,14 @@ import co.electriccoin.zcash.ui.design.theme.colors.ZashiColors
 import co.electriccoin.zcash.ui.design.theme.typography.ZashiTypography
 import co.electriccoin.zcash.ui.design.util.Compose
 import co.electriccoin.zcash.ui.design.util.getValue
-import co.electriccoin.zcash.ui.screen.viewingkey.NameVKField
-import co.electriccoin.zcash.ui.screen.viewingkey.VKScreen
 
 /**
- * The import's name screen with an edit top bar, and the removal entry under the field: the
- * confirmation hint, the destructive Remove Account button and Save changes.
+ * The account form with an edit top bar: the name field, then for a view-only account the removal
+ * entry (the confirmation hint and the destructive Remove Account button), then Save changes.
  */
 @Composable
-fun EditVKAccountView(state: EditVKAccountState) {
-    VKScreen(
+fun EditAccountView(state: EditAccountState) {
+    AccountFormScreen(
         title = state.title,
         subtitle = null,
         onBack = state.onBack,
@@ -36,47 +36,49 @@ fun EditVKAccountView(state: EditVKAccountState) {
         heading = state.heading,
         message = state.message,
     ) {
-        NameVKField(
+        AccountNameField(
             label = state.fieldLabel,
             field = state.field,
             placeholder = state.placeholder,
             counter = state.counter,
             onDone = { if (state.saveButton.isEnabled) state.saveButton.onClick() },
-            fieldTestTag = EditVKAccountTag.FIELD,
-            counterTestTag = EditVKAccountTag.COUNTER,
+            fieldTestTag = EditAccountTag.FIELD,
+            counterTestTag = EditAccountTag.COUNTER,
         )
         Spacer(Modifier.weight(1f))
         Spacer(Modifier.height(24.dp))
-        RemoveInfo(state)
-        Spacer(Modifier.height(16.dp))
-        ZashiButton(
-            state = state.removeButton,
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .testTag(EditVKAccountTag.REMOVE_BUTTON)
-        )
-        Spacer(Modifier.height(8.dp))
+        state.remove?.let { remove ->
+            RemoveInfo(remove)
+            Spacer(Modifier.height(16.dp))
+            ZashiButton(
+                state = remove.button,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .testTag(EditAccountTag.REMOVE_BUTTON)
+            )
+            Spacer(Modifier.height(8.dp))
+        }
         ZashiButton(
             state = state.saveButton,
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .testTag(EditVKAccountTag.SAVE_BUTTON)
+                    .testTag(EditAccountTag.SAVE_BUTTON)
         )
     }
 }
 
 @Composable
-private fun RemoveInfo(state: EditVKAccountState) {
+private fun RemoveInfo(state: EditAccountRemoveState) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        state.removeInfoIcon.Compose(modifier = Modifier.size(16.dp))
+        state.icon.Compose(modifier = Modifier.size(16.dp))
         Text(
-            text = state.removeInfo.getValue(),
+            text = state.info.getValue(),
             style = ZashiTypography.textXs,
             color = ZashiColors.Text.textTertiary,
         )
@@ -87,26 +89,33 @@ private fun RemoveInfo(state: EditVKAccountState) {
 @Composable
 private fun DefaultPreview() =
     ZcashTheme {
-        EditVKAccountView(EditVKAccountState.preview)
-    }
-
-@PreviewScreens
-@Composable
-private fun ChangedPreview() =
-    ZcashTheme {
-        EditVKAccountView(EditVKAccountState.previewChanged)
+        EditAccountView(EditAccountState.preview)
     }
 
 @PreviewScreens
 @Composable
 private fun LimitPreview() =
     ZcashTheme {
-        EditVKAccountView(EditVKAccountState.previewLimit)
+        EditAccountView(EditAccountState.previewLimit)
     }
 
 @PreviewScreens
 @Composable
 private fun ColoredPreview() =
     ZcashTheme {
-        EditVKAccountView(EditVKAccountState.previewColored)
+        EditAccountView(EditAccountState.previewColored)
+    }
+
+@PreviewScreens
+@Composable
+private fun ZodlPreview() =
+    ZcashTheme {
+        EditAccountView(EditAccountState.previewZodl)
+    }
+
+@PreviewScreens
+@Composable
+private fun ZodlColoredPreview() =
+    ZcashTheme {
+        EditAccountView(EditAccountState.previewZodlColored)
     }

@@ -1,8 +1,8 @@
 package co.electriccoin.zcash.ui.common.serialization
 
 import androidx.compose.ui.graphics.Color
-import co.electriccoin.zcash.ui.design.component.colorpicker.parseRgbaHex
-import co.electriccoin.zcash.ui.design.component.colorpicker.toRgbaHex
+import co.electriccoin.zcash.ui.design.component.colorpicker.parseRgbHex
+import co.electriccoin.zcash.ui.design.component.colorpicker.toRgbHex
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -12,8 +12,9 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
 /**
- * A colour as `#RRGGBBAA` in sRGB, written upper-case and read in either case. Anything else fails
- * with a [SerializationException].
+ * An opaque colour as `#RRGGBB` in sRGB, written upper-case and read in either case. The `#RRGGBBAA`
+ * of earlier builds still reads, as the opaque colour. Anything else fails with a
+ * [SerializationException].
  */
 object ColorSerializer : KSerializer<Color> {
     override val descriptor: SerialDescriptor =
@@ -23,11 +24,11 @@ object ColorSerializer : KSerializer<Color> {
         encoder: Encoder,
         value: Color
     ) {
-        encoder.encodeString(value.toRgbaHex())
+        encoder.encodeString(value.toRgbHex())
     }
 
     override fun deserialize(decoder: Decoder): Color {
         val text = decoder.decodeString()
-        return parseRgbaHex(text) ?: throw SerializationException("Not a #RRGGBBAA colour")
+        return parseRgbHex(text) ?: throw SerializationException("Not a #RRGGBB colour")
     }
 }

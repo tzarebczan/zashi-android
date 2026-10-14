@@ -2,7 +2,6 @@ package co.electriccoin.zcash.ui.common.viewonly
 
 import androidx.annotation.DrawableRes
 import androidx.navigation.NavGraphBuilder
-import cash.z.ecc.android.sdk.model.AccountUuid
 import cash.z.ecc.android.sdk.model.BlockHeight
 import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.screen.connecthw.HWWalletBranding
@@ -22,11 +21,11 @@ interface ViewOnlyNavigator {
     fun forwardToAddAccount()
 
     /**
-     * Opens the screen that renames or removes the view-only account [accountUuid], the destination
-     * of its "..." button on the Wallets & Hardware screen. Implementations put only the account's storage-key id
-     * (`AccountUuid.toStorageKeyId()`) in a route, never the viewing key or any other secret.
+     * Opens the sheet that confirms removing the view-only account [accountKeyId] names
+     * (`AccountUuid.toStorageKeyId()`), from the Edit Account screen. Only that id goes in a route,
+     * never the viewing key or any other secret.
      */
-    fun forwardToEditAccount(accountUuid: AccountUuid)
+    fun forwardToRemoveAccount(accountKeyId: String)
 
     /** Shows the import success screen for the account that was just imported. */
     fun forwardToImported()
@@ -124,4 +123,14 @@ interface ViewOnlyContent {
 
     /** The label of that keep-open screen's keep-screen-on checkbox. */
     val keepOpenCheckboxLabel: StringResource
+
+    /** The icon of [removeAccountInfo]. */
+    @get:DrawableRes
+    val removeAccountInfoIcon: Int
+
+    /** The Edit Account screen's line above Remove Account, saying removing asks for a confirmation. */
+    val removeAccountInfo: StringResource
+
+    /** The Edit Account screen's Remove Account button. */
+    val removeAccountButton: StringResource
 }

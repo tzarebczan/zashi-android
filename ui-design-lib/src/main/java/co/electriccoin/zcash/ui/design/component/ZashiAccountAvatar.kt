@@ -24,24 +24,20 @@ import co.electriccoin.zcash.ui.design.util.Compose
 import co.electriccoin.zcash.ui.design.util.ImageResource
 import co.electriccoin.zcash.ui.design.util.getValue
 import co.electriccoin.zcash.ui.design.util.imageRes
+import co.electriccoin.zcash.ui.design.util.stringRes
 
-/**
- * Draws [state] at [size] over [background], the colour of the screen behind it, which a
- * translucent avatar colour is composited over before the glyph's contrast is chosen.
- */
+/** Draws [state] at [size]. */
 @Composable
 fun ZashiAccountAvatar(
     state: AccountAvatarState,
     modifier: Modifier = Modifier,
     size: Dp = DEFAULT_SIZE,
-    background: Color = ZashiColors.Surfaces.bgPrimary,
 ) {
     Box(modifier = modifier.size(size)) {
-        state.image.Compose(modifier = Modifier.size(size), surface = background)
+        state.image.Compose(modifier = Modifier.size(size))
         state.editButton?.let { button ->
             AvatarEditBadge(
                 state = button,
-                ring = background,
                 modifier = Modifier.offset(x = size - BADGE_OFFSET, y = size - BADGE_OFFSET)
             )
         }
@@ -49,13 +45,13 @@ fun ZashiAccountAvatar(
 }
 
 /**
- * The pencil badge on an avatar: a 32 dp dark circle cut out of the screen by a 3 dp [ring], inside
- * a 48 dp tap target with the design system's press-morph and ripple.
+ * The pencil badge on an avatar: a 32 dp dark circle cut out of the screen by a 3 dp ring in the
+ * screen's background colour, inside a 48 dp tap target with the design system's press-morph and
+ * ripple.
  */
 @Composable
 private fun AvatarEditBadge(
     state: IconButtonState,
-    ring: Color,
     modifier: Modifier = Modifier,
 ) {
     ZashiCircleTapTarget(
@@ -68,7 +64,7 @@ private fun AvatarEditBadge(
             modifier =
                 Modifier
                     .size(BADGE_SIZE + BADGE_RING * 2)
-                    .background(ring, CircleShape)
+                    .background(ZashiColors.Surfaces.bgPrimary, CircleShape)
                     .padding(BADGE_RING)
                     .background(ZashiColors.Btns.Primary.btnPrimaryBg, CircleShape),
             contentAlignment = Alignment.Center
@@ -91,7 +87,25 @@ private fun AvatarEditBadge(
 data class AccountAvatarState(
     val image: ImageResource,
     val editButton: IconButtonState? = null,
-)
+) {
+    companion object {
+        /** [image] with the pencil badge that opens the colour picker through [onEditClick], none without it. */
+        fun create(
+            image: ImageResource,
+            onEditClick: (() -> Unit)? = null,
+        ) = AccountAvatarState(
+            image = image,
+            editButton =
+                onEditClick?.let {
+                    IconButtonState(
+                        icon = R.drawable.ic_avatar_edit,
+                        contentDescription = stringRes(R.string.colorPicker_edit),
+                        onClick = it
+                    )
+                },
+        )
+    }
+}
 
 private val DEFAULT_SIZE = 90.dp
 private val BADGE_SIZE = 32.dp

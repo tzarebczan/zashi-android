@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import co.electriccoin.zcash.ui.common.compose.AccountFormScreen
 import co.electriccoin.zcash.ui.common.compose.WithoutPersonalizedLearning
 import co.electriccoin.zcash.ui.design.component.ZashiButton
 import co.electriccoin.zcash.ui.design.component.ZashiConfirmationBottomSheet
@@ -30,11 +31,10 @@ import co.electriccoin.zcash.ui.design.theme.colors.ZashiColors
 import co.electriccoin.zcash.ui.design.theme.typography.ZashiTypography
 import co.electriccoin.zcash.ui.design.util.Compose
 import co.electriccoin.zcash.ui.design.util.getValue
-import co.electriccoin.zcash.ui.screen.viewingkey.VKScreen
 
 @Composable
 fun ImportVKView(state: ImportVKState) {
-    VKScreen(
+    AccountFormScreen(
         title = state.title,
         subtitle = state.subtitle,
         onBack = state.onBack,

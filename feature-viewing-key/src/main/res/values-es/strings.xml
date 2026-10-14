@@ -43,12 +43,6 @@
     <string name="view_only_already_imported_message">Esta clave de visualización pertenece a una cuenta que ya está en tu billetera.</string>
     <string name="view_only_already_imported_close">Cerrar</string>
 
-    <string name="view_only_name_heading">Personalizar cuenta</string>
-    <string name="view_only_name_message">Elige un nombre para distinguirla de tus otras cuentas.</string>
-    <string name="view_only_name_label">Nombre de la cuenta</string>
-    <string name="view_only_name_placeholder">Ingresa...</string>
-    <string name="view_only_name_counter">%1$d/%2$d</string>
-
     <string name="view_only_imported_heading">Cuenta importada</string>
     <string name="view_only_imported_message">Se agregó tu cuenta de solo lectura. Sigue su saldo y su actividad en cualquier momento.</string>
     <string name="view_only_imported_done">Listo</string>
@@ -61,9 +55,7 @@
     <string name="view_only_keep_open_warning">El saldo y la actividad de esta cuenta estarán completos cuando termine la sincronización.</string>
     <string name="view_only_keep_open_checkbox">Mantener la pantalla encendida durante la sincronización</string>
 
-    <string name="view_only_edit_title">Editar cuenta</string>
     <string name="view_only_edit_remove_info">Al tocar Eliminar cuenta se te pedirá que lo confirmes</string>
-    <string name="view_only_edit_save">Guardar cambios</string>
     <string name="view_only_remove_account">Eliminar cuenta</string>
 
     <string name="view_only_remove_title">¿Eliminar esta cuenta?</string>

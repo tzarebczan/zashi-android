@@ -5,7 +5,6 @@ import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepositor
 import co.electriccoin.zcash.ui.common.usecase.GetViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.ImportViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.RemoveViewOnlyAccountUseCase
-import co.electriccoin.zcash.ui.common.usecase.RenameViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.SdkUfvkDescriber
 import co.electriccoin.zcash.ui.common.usecase.SubmitViewOnlyKeyUseCase
 import co.electriccoin.zcash.ui.common.usecase.UfvkDescriber
@@ -16,7 +15,6 @@ import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyNavContributor
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyNavigator
 import co.electriccoin.zcash.ui.screen.viewingkey.addaccount.AddVKAccountVM
 import co.electriccoin.zcash.ui.screen.viewingkey.alreadyimported.AlreadyImportedVKVM
-import co.electriccoin.zcash.ui.screen.viewingkey.edit.EditVKAccountVM
 import co.electriccoin.zcash.ui.screen.viewingkey.imported.ImportedVKVM
 import co.electriccoin.zcash.ui.screen.viewingkey.importvk.ImportVKVM
 import co.electriccoin.zcash.ui.screen.viewingkey.name.NameVKVM
@@ -36,7 +34,7 @@ import org.koin.dsl.module
  * Everything the view-only feature contributes to the app's Koin graph: the implementations of
  * ui-lib's view-only contracts (see ViewOnlyContracts.kt), the module's copy and images behind
  * [ViewOnlyContent], the in-memory pending import, and the use cases and view models of the import
- * flow and of the edit and remove flow.
+ * flow and of the remove flow.
  * Wired in ZcashApplication.startKoin next to the Ledger, migration and voting modules.
  */
 val featureViewingKeyModule =
@@ -53,7 +51,6 @@ val featureViewingKeyModule =
         factoryOf(::SubmitViewOnlyKeyUseCase)
         singleOf(::ImportViewOnlyAccountUseCase)
         factoryOf(::GetViewOnlyAccountUseCase)
-        factoryOf(::RenameViewOnlyAccountUseCase)
         factoryOf(::RemoveViewOnlyAccountUseCase)
 
         viewModelOf(::AddVKAccountVM)
@@ -62,6 +59,5 @@ val featureViewingKeyModule =
         viewModelOf(::NameVKVM)
         viewModelOf(::ImportedVKVM)
         viewModelOf(::AlreadyImportedVKVM)
-        viewModelOf(::EditVKAccountVM)
         viewModelOf(::RemoveVKAccountVM)
     }

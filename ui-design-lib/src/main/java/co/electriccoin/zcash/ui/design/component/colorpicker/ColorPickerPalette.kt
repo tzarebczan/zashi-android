@@ -5,7 +5,7 @@ import androidx.compose.ui.graphics.Color
 /**
  * The fixed colours of the picker, taken from the iOS colour picker in Figma (Dev Ready Q3 2026,
  * "Color Picker - iPhone"): the Grid tab's 12 x 10 cells, row by row from the grey ramp at the top,
- * and the nine preset swatch dots.
+ * and the ten preset swatch dots.
  */
 @Suppress("MagicNumber")
 object ColorPickerPalette {
@@ -148,5 +148,6 @@ object ColorPickerPalette {
             0xFF6155F5,
             0xFFFF2D55,
             0xFFAC7F5E,
+            0xFF00C3D0,
         ).map { Color(it) }
 }

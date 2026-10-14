@@ -138,8 +138,7 @@ private fun WalletAvatar(
             modifier =
                 Modifier
                     .size(40.dp)
-                    .clip(CircleShape),
-            surface = badgeBorderColor,
+                    .clip(CircleShape)
         )
         if (isSelected) {
             Box(

@@ -7,15 +7,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import co.electriccoin.zcash.ui.common.compose.AccountFormScreen
+import co.electriccoin.zcash.ui.common.compose.AccountNameField
 import co.electriccoin.zcash.ui.design.component.ZashiButton
 import co.electriccoin.zcash.ui.design.newcomponent.PreviewScreens
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
-import co.electriccoin.zcash.ui.screen.viewingkey.NameVKField
-import co.electriccoin.zcash.ui.screen.viewingkey.VKScreen
 
 @Composable
 fun NameVKView(state: NameVKState) {
-    VKScreen(
+    AccountFormScreen(
         title = state.title,
         subtitle = state.subtitle,
         onBack = state.onBack,
@@ -23,7 +23,7 @@ fun NameVKView(state: NameVKState) {
         heading = state.heading,
         message = state.message,
     ) {
-        NameVKField(
+        AccountNameField(
             label = state.fieldLabel,
             field = state.field,
             placeholder = state.placeholder,

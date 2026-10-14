@@ -2,7 +2,6 @@ package co.electriccoin.zcash.ui.design.component.colorpicker
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.toArgb
 import kotlin.math.abs
 import kotlin.test.Test
@@ -12,8 +11,8 @@ import kotlin.test.assertTrue
 
 /**
  * The picker's colour conversions: HSV both ways, the spectrum mapping and its inverse, hex and
- * channel parsing with the alpha kept apart, `#RRGGBBAA` both ways, and the white-or-black choice by
- * WCAG's 3:1 contrast for graphics.
+ * channel parsing, `#RRGGBB` both ways with the legacy `#RRGGBBAA` read as opaque, and the
+ * white-or-black choice by WCAG's 3:1 contrast for graphics.
  */
 class ColorPickerMathTest {
     @Test
@@ -72,13 +71,14 @@ class ColorPickerMathTest {
     }
 
     @Test
-    fun rgbaHexRoundTripsWithAlphaLast() {
-        assertEquals("#BE38F380", Color(0x80BE38F3).toRgbaHex())
-        assertEquals("#00000AFF", Color(0xFF00000A).toRgbaHex())
-        assertEquals(0x80BE38F3.toInt(), parseRgbaHex("#be38f380")?.toArgb())
-        assertNull(parseRgbaHex("BE38F380"))
-        assertNull(parseRgbaHex("#BE38F3"))
-        assertNull(parseRgbaHex("#BE38F38G"))
+    fun rgbHexRoundTripsAndReadsTheLegacyFormAsOpaque() {
+        assertEquals("#BE38F3", Color(0xFFBE38F3).toRgbHex())
+        assertEquals("#00000A", Color(0xFF00000A).toRgbHex())
+        assertEquals(0xFFBE38F3.toInt(), parseRgbHex("#be38f3")?.toArgb())
+        assertEquals(0xFFBE38F3.toInt(), parseRgbHex("#be38f380")?.toArgb())
+        assertNull(parseRgbHex("BE38F3"))
+        assertNull(parseRgbHex("#BE38F"))
+        assertNull(parseRgbHex("#BE38F38G"))
     }
 
     /** White wherever it reaches WCAG's 3:1 for graphics, as Figma's white eye on #BE38F3 does. */
@@ -95,6 +95,7 @@ class ColorPickerMathTest {
                 0xFF6155F5 to Color.White,
                 0xFFFF2D55 to Color.White,
                 0xFFAC7F5E to Color.White,
+                0xFF00C3D0 to Color.Black,
             )
         assertEquals(ColorPickerPalette.presets.map { it.toArgb() }, expected.keys.map { it.toInt() })
         expected.forEach { (argb, content) -> assertEquals(content, contrastingContentColor(Color(argb)), "$argb") }
@@ -103,14 +104,6 @@ class ColorPickerMathTest {
         assertEquals(Color.White, contrastingContentColor(Color.Black))
         assertEquals(Color.White, contrastingContentColor(Color(0xFF808080)))
         assertEquals(21f, contrastRatio(Color.White, Color.Black), 0.01f)
-    }
-
-    @Test
-    fun aTranslucentColorIsJudgedAsItShowsOverTheBackground() {
-        val faint = Color(0xFF000000).copy(alpha = 0.1f)
-
-        assertEquals(Color.Black, contrastingContentColor(faint.compositeOver(Color.White)))
-        assertEquals(Color.White, contrastingContentColor(faint.compositeOver(Color(0xFF231F20))))
     }
 
     private companion object {

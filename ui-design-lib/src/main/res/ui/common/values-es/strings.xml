@@ -1309,8 +1309,6 @@
     <string name="colorPicker_grid">Cuadrícula</string>
     <string name="colorPicker_spectrum">Espectro</string>
     <string name="colorPicker_sliders">Controles</string>
-    <string name="colorPicker_opacity">Opacidad</string>
-    <string name="colorPicker_percent">%1$d%%</string>
     <string name="colorPicker_red">Rojo</string>
     <string name="colorPicker_green">Verde</string>
     <string name="colorPicker_blue">Azul</string>
@@ -1320,5 +1318,12 @@
     <string name="colorPicker_gridDescription">Cuadrícula de colores</string>
     <string name="colorPicker_spectrumDescription">Espectro de colores</string>
     <string name="colorPicker_selectedHex">Color seleccionado #%1$s</string>
+    <string name="editAccount_title">Editar cuenta</string>
+    <string name="accountName_heading">Personalizar cuenta</string>
+    <string name="accountName_message">Elige un nombre para distinguirla de tus otras cuentas.</string>
+    <string name="accountName_label">Nombre de la cuenta</string>
+    <string name="accountName_placeholder">Ingresa...</string>
+    <string name="accountName_counter">%1$d/%2$d</string>
+    <string name="editAccount_save">Guardar cambios</string>
 
 </resources>

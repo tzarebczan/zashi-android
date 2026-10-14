@@ -13,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.DefaultAlpha
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -23,7 +22,6 @@ import co.electriccoin.zcash.ui.design.component.ShimmerCircle
 import co.electriccoin.zcash.ui.design.component.colorpicker.contrastingContentColor
 import co.electriccoin.zcash.ui.design.component.rememberZashiShimmer
 import co.electriccoin.zcash.ui.design.theme.colors.Gray
-import co.electriccoin.zcash.ui.design.theme.colors.ZashiColors
 import com.valentinilk.shimmer.shimmer
 
 sealed interface ImageResource {
@@ -41,8 +39,8 @@ sealed interface ImageResource {
 
     /**
      * A circle filled with [background] under [foreground], a glyph authored with its padding built
-     * in, tinted white or black by [contrastingContentColor] against the circle as it shows over the
-     * surface behind it. [Color.Unspecified] is the theme's default avatar circle.
+     * in, tinted white or black by [contrastingContentColor] against the circle. [Color.Unspecified]
+     * is the theme's default avatar circle.
      */
     data class Layered(
         val background: Color,
@@ -90,33 +88,24 @@ fun ImageResource.ByDrawable.Compose(
     )
 }
 
-/** Draws the circle and its glyph at the size of [modifier]; [surface] is what a translucent circle shows over. */
+/** Draws the circle and its glyph at the size of [modifier]. */
 @Composable
-private fun ImageResource.Layered.Compose(
-    modifier: Modifier = Modifier,
-    surface: Color = ZashiColors.Surfaces.bgPrimary,
-) {
+private fun ImageResource.Layered.Compose(modifier: Modifier = Modifier) {
     val circle = background.takeOrElse { Gray.`50` orDark Gray.`950` }
     Box(modifier = modifier.background(circle, CircleShape), propagateMinConstraints = true) {
-        foreground.Compose(
-            colorFilter = ColorFilter.tint(contrastingContentColor(circle.compositeOver(surface)))
-        )
+        foreground.Compose(colorFilter = ColorFilter.tint(contrastingContentColor(circle)))
     }
 }
 
 /**
- * Draws a drawable or layered image at the size of [modifier]; [surface] is what a layered tint shows
- * over. [ImageResource.DisplayString] and [ImageResource.Loading] draw nothing, since their callers
- * render them their own way.
+ * Draws a drawable or layered image at the size of [modifier]. [ImageResource.DisplayString] and
+ * [ImageResource.Loading] draw nothing, since their callers render them their own way.
  */
 @Composable
-fun ImageResource.Compose(
-    modifier: Modifier = Modifier,
-    surface: Color = ZashiColors.Surfaces.bgPrimary,
-) {
+fun ImageResource.Compose(modifier: Modifier = Modifier) {
     when (this) {
         is ImageResource.ByDrawable -> Compose(modifier = modifier)
-        is ImageResource.Layered -> Compose(modifier = modifier, surface = surface)
+        is ImageResource.Layered -> Compose(modifier = modifier)
         is ImageResource.DisplayString, ImageResource.Loading -> Unit
     }
 }

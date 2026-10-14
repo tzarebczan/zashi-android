@@ -69,25 +69,6 @@ fun ColorPickerView(state: ColorPickerState?) {
                 Spacer(Modifier.height(12.dp))
                 Content(innerState.content)
                 Spacer(Modifier.height(15.dp))
-                Label(innerState.opacityLabel)
-                Row(
-                    modifier = Modifier.offset(y = -SLIDER_LIFT),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(11.dp)
-                ) {
-                    ZashiColorSlider(
-                        value = innerState.opacity,
-                        trackColors = innerState.opacityTrack,
-                        onValueChange = innerState.onOpacityChange,
-                        modifier = Modifier.weight(1f),
-                        isCheckered = true
-                    )
-                    ZashiColorValueField(
-                        value = innerState.opacityText.getValue(),
-                        modifier = Modifier.width(VALUE_FIELD_WIDTH)
-                    )
-                }
-                Spacer(Modifier.height(15.dp - SLIDER_LIFT))
                 ZashiHorizontalDivider(color = ZashiColors.Surfaces.strokePrimary)
                 Spacer(Modifier.height(11.dp))
                 ZashiColorSwatches(
@@ -176,7 +157,8 @@ private fun Sliders(state: ColorPickerContentState.Sliders) {
                 ZashiColorValueField(
                     value = channel.text,
                     onValueChange = channel.onTextChange,
-                    modifier = Modifier.width(VALUE_FIELD_WIDTH)
+                    modifier = Modifier.width(VALUE_FIELD_WIDTH),
+                    label = channel.label.getValue()
                 )
             }
             Spacer(Modifier.height(8.dp))

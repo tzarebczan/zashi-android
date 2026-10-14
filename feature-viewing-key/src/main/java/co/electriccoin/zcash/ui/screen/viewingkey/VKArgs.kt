@@ -31,15 +31,9 @@ data object ImportedVKArgs
 data object AlreadyImportedVKArgs
 
 /**
- * Renames or removes the view-only account [accountKeyId] names (`AccountUuid.toStorageKeyId()`).
- * The route carries only that id, never the account's viewing key.
+ * The sheet that confirms removing the view-only account [accountKeyId] names
+ * (`AccountUuid.toStorageKeyId()`). The route carries only that id, never the account's viewing key.
  */
-@Serializable
-data class EditVKAccountArgs(
-    val accountKeyId: String
-)
-
-/** The sheet that confirms removing the view-only account [accountKeyId] names. */
 @Serializable
 data class RemoveVKAccountArgs(
     val accountKeyId: String

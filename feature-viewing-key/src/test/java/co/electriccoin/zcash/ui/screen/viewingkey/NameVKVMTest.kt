@@ -3,7 +3,7 @@ package co.electriccoin.zcash.ui.screen.viewingkey
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
 import co.electriccoin.zcash.ui.NavigationRouter
-import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountNameLimit
+import co.electriccoin.zcash.ui.common.model.AccountNameLimit
 import co.electriccoin.zcash.ui.common.repository.PendingViewOnlyImport
 import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepositoryImpl
 import co.electriccoin.zcash.ui.common.usecase.NavigateToColorPickerUseCase
@@ -41,7 +41,8 @@ import kotlin.test.assertTrue
  * The name is capped at twelve characters as it is typed, the counter follows it, Continue needs a
  * name that is not blank and stores it trimmed before going straight to the birthday date, without
  * the new-or-active question, and back forgets the pending key. The avatar's pencil badge opens the
- * colour picker; a picked colour shows on the avatar, and Continue keeps it with the pending import.
+ * colour picker; the avatar follows the picks live and keeps the last one however the picker closes,
+ * and Continue keeps it with the pending import.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class NameVKVMTest {
@@ -125,7 +126,7 @@ class NameVKVMTest {
             val vm = vm()
             collect(vm)
             assertEquals(
-                listOf(0, ViewOnlyAccountNameLimit.MAX_LENGTH),
+                listOf(0, AccountNameLimit.MAX_LENGTH),
                 vm.state.value.counter
                     .args()
             )
@@ -133,7 +134,7 @@ class NameVKVMTest {
             type(vm, "Zodl Vault")
 
             assertEquals(
-                listOf(10, ViewOnlyAccountNameLimit.MAX_LENGTH),
+                listOf(10, AccountNameLimit.MAX_LENGTH),
                 vm.state.value.counter
                     .args()
             )
@@ -203,7 +204,8 @@ class NameVKVMTest {
             openPicker(vm)
             val request = pickerRequests.single()
             assertNull(request.initialArgb)
-            navigateToColorPicker.onSelected(Color(PICKED), request)
+            navigateToColorPicker.onPicked(Color(PICKED), request)
+            navigateToColorPicker.onClosed(request)
             runCurrent()
 
             assertEquals(Color(PICKED), vm.state.value.avatarColor())
@@ -227,21 +229,43 @@ class NameVKVMTest {
         }
 
     @Test
-    fun aDismissedPickerKeepsTheColorAndReopensWithIt() =
+    fun aPickerClosedWithoutAPickKeepsTheColorAndReopensWithIt() =
         runTest {
             val vm = vm()
             collect(vm)
             openPicker(vm)
-            navigateToColorPicker.onSelected(Color(PICKED), pickerRequests.last())
+            navigateToColorPicker.onPicked(Color(PICKED), pickerRequests.last())
+            navigateToColorPicker.onClosed(pickerRequests.last())
             runCurrent()
 
             openPicker(vm)
             val second = pickerRequests.last()
             assertEquals(Color(PICKED), Color(assertNotNull(second.initialArgb)))
-            navigateToColorPicker.onCancelled(second)
+            navigateToColorPicker.onClosed(second)
             runCurrent()
 
             assertEquals(Color(PICKED), vm.state.value.avatarColor())
+        }
+
+    @Test
+    fun theAvatarFollowsLivePicksAndKeepsTheLastOneWhenThePickerCloses() =
+        runTest {
+            val vm = vm()
+            collect(vm)
+            openPicker(vm)
+            val request = pickerRequests.single()
+
+            navigateToColorPicker.onPicked(Color(OTHER), request)
+            runCurrent()
+            assertEquals(Color(OTHER), vm.state.value.avatarColor())
+
+            navigateToColorPicker.onPicked(Color(PICKED), request)
+            navigateToColorPicker.onClosed(request)
+            runCurrent()
+            assertEquals(Color(PICKED), vm.state.value.avatarColor())
+
+            openPicker(vm)
+            assertEquals(2, pickerRequests.size)
         }
 
     @Test
@@ -292,6 +316,7 @@ class NameVKVMTest {
     private companion object {
         const val UFVK = "uview1namefixture"
         const val PICKED = 0x80BE38F3
+        const val OTHER = 0xFF0088FF
     }
 }
 

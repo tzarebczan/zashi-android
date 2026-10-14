@@ -3,6 +3,7 @@ package co.electriccoin.zcash.ui.common.usecase
 import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
 import co.electriccoin.zcash.ui.common.migration.MigrationAppHooks
 import co.electriccoin.zcash.ui.common.model.WalletAccount
+import co.electriccoin.zcash.ui.common.provider.AccountNameProvider
 import co.electriccoin.zcash.ui.common.repository.BiometricRepository
 import co.electriccoin.zcash.ui.common.repository.BiometricsCancelledException
 import co.electriccoin.zcash.ui.common.repository.BiometricsFailureException
@@ -22,6 +23,7 @@ import kotlin.test.assertTrue
  * it was selected after the authentication, selects the Zodl account. A failed or dismissed
  * authentication removes nothing, and an id that names the Zodl account or nothing at all removes
  * nothing without asking. The account's metadata is never touched: the use case has no access to it.
+ * The name an earlier build stored for the account is cleared after the deletion, best-effort.
  */
 class RemoveViewOnlyAccountUseCaseTest {
     private val zashi = ViewOnlyAccountFixtures.zashi(isSelected = false)
@@ -34,6 +36,8 @@ class RemoveViewOnlyAccountUseCaseTest {
     private val biometricRepository = mockk<BiometricRepository>(relaxed = true)
 
     private val migrationAppHooks = mockk<MigrationAppHooks>(relaxed = true)
+
+    private val accountNameProvider = mockk<AccountNameProvider>(relaxed = true)
 
     @Test
     fun aSelectedAccountIsRemovedAfterAuthenticationAndTheZodlAccountIsSelected() =
@@ -49,6 +53,31 @@ class RemoveViewOnlyAccountUseCaseTest {
                 accountDataSource.deleteAccount(viewOnly)
                 accountDataSource.selectAccount(zashi)
             }
+        }
+
+    @Test
+    fun theStoredNameIsClearedAfterTheAccountIsDeleted() =
+        runTest {
+            val viewOnly = ViewOnlyAccountFixtures.viewOnly()
+
+            useCase(listOf(zashi, viewOnly))(ViewOnlyAccountFixtures.viewOnlyKeyId)
+
+            coVerifyOrder {
+                accountDataSource.deleteAccount(viewOnly)
+                accountNameProvider.clear(ViewOnlyAccountFixtures.viewOnlyUuid)
+            }
+        }
+
+    @Test
+    fun aFailedDeletionLeavesTheStoredNameAlone() =
+        runTest {
+            coEvery { accountDataSource.deleteAccount(any()) } throws IllegalStateException("database locked")
+
+            assertFailsWith<IllegalStateException> {
+                useCase(listOf(zashi, ViewOnlyAccountFixtures.viewOnly()))(ViewOnlyAccountFixtures.viewOnlyKeyId)
+            }
+
+            coVerify(exactly = 0) { accountNameProvider.clear(any()) }
         }
 
     @Test
@@ -106,6 +135,7 @@ class RemoveViewOnlyAccountUseCaseTest {
 
             coVerify(exactly = 0) { accountDataSource.deleteAccount(any()) }
             coVerify(exactly = 0) { migrationAppHooks.cancelMigrationWork(any()) }
+            coVerify(exactly = 0) { accountNameProvider.clear(any()) }
         }
 
     @Test
@@ -155,6 +185,7 @@ class RemoveViewOnlyAccountUseCaseTest {
             accountDataSource = accountDataSource,
             biometricRepository = biometricRepository,
             migrationAppHooks = migrationAppHooks,
+            accountNameProvider = accountNameProvider,
         )
     }
 }

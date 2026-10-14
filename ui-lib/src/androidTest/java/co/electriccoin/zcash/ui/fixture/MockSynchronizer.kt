@@ -341,6 +341,10 @@ internal class MockSynchronizer(
         error("Intentionally not implemented in ${MockSynchronizer::class.simpleName} implementation.")
     }
 
+    override suspend fun renameAccount(accountUuid: AccountUuid, name: String) {
+        error("Intentionally not implemented in ${MockSynchronizer::class.simpleName} implementation.")
+    }
+
     companion object {
         fun new() = MockSynchronizer()
     }

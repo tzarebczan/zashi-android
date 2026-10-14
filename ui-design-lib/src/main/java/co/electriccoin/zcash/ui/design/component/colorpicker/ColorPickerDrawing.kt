@@ -5,14 +5,12 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.drag
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import kotlin.math.ceil
 
 /**
  * Reports every position of a press and of the drag that follows it, together with the size of
@@ -32,27 +30,6 @@ internal fun Modifier.pickGestures(onPick: (Offset, IntSize) -> Unit): Modifier 
             }
         }
     }
-
-/** Black and white squares of [cell] pixels over [size], the backdrop that shows transparency. */
-internal fun DrawScope.drawCheckerboard(
-    cell: Float,
-    size: Size = this.size
-) {
-    drawRect(Color.White, size = size)
-    val columns = ceil(size.width / cell).toInt()
-    val rows = ceil(size.height / cell).toInt()
-    for (row in 0 until rows) {
-        for (column in 0 until columns) {
-            if ((row + column) % 2 == 0) {
-                drawRect(
-                    color = Color.Black,
-                    topLeft = Offset(column * cell, row * cell),
-                    size = Size(cell, cell)
-                )
-            }
-        }
-    }
-}
 
 /**
  * A soft shadow, about 3 dp wide and 10 % black, on both sides of a ring of [ringWidth] whose outer

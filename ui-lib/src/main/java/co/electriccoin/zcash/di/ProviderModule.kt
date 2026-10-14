@@ -1,5 +1,6 @@
 package co.electriccoin.zcash.di
 
+import co.electriccoin.zcash.ui.common.provider.AccountNameLock
 import co.electriccoin.zcash.ui.common.provider.AccountNameProvider
 import co.electriccoin.zcash.ui.common.provider.AccountNameProviderImpl
 import co.electriccoin.zcash.ui.common.provider.AppearanceModeStorageProvider
@@ -144,6 +145,7 @@ val providerModule =
         singleOf(::LastNetworkActivityStorageProviderImpl) bind LastNetworkActivityStorageProvider::class
         singleOf(::LedgerAccountBindingProviderImpl) bind LedgerAccountBindingProvider::class
         singleOf(::AccountNameProviderImpl) bind AccountNameProvider::class
+        singleOf(::AccountNameLock)
         factoryOf(::IsBackgroundExecutionAvailableProvider)
         singleOf(::SdkEncryptedPreferenceRecoveryProviderImpl) bind SdkEncryptedPreferenceRecoveryProvider::class
     }

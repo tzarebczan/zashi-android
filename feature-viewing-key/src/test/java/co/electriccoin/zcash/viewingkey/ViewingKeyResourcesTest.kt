@@ -43,6 +43,8 @@ class ViewingKeyResourcesTest {
                 content.keepOpenSubtitle,
                 content.keepOpenDisclaimer,
                 content.keepOpenCheckboxLabel,
+                content.removeAccountInfo,
+                content.removeAccountButton,
                 content.enrollmentBranding.enterBlockHeightManually,
                 content.enrollmentBranding.connect,
             ).map { resource ->
