@@ -26,8 +26,10 @@ import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -43,8 +45,8 @@ import kotlin.test.assertTrue
  * is history to scan. A key the wallet already holds ends on the "already imported" sheet; nothing
  * pending fails without touching the wallet; an SDK failure keeps the key so the import can be
  * retried. A caller cancelled mid-import still gets the account selected, but no navigation. A picked
- * colour is stored for the new account once the wallet lists it. The importer ui-lib calls delegates
- * to it.
+ * colour is stored for the new account once the wallet lists it, and a store that hangs is given up
+ * without holding back the import. The importer ui-lib calls delegates to it.
  */
 class ImportViewOnlyAccountUseCaseTest {
     private val repository = ViewOnlyPendingImportRepositoryImpl()
@@ -114,6 +116,25 @@ class ImportViewOnlyAccountUseCaseTest {
             coVerify(exactly = 0) { metadataRepository.setAccountColor(any(), any()) }
             verify(exactly = 1) { synchronizerProvider.resetSynchronizer() }
             verify(exactly = 1) { navigationRouter.forward(ImportedVKArgs) }
+        }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun aColorWriteThatNeverReturnsStillLetsTheImportFinish() =
+        runTest {
+            val account = ViewOnlyAccountFixtures.viewOnly()
+            every { accountDataSource.allAccounts } returns MutableStateFlow(listOf(account))
+            coEvery { metadataRepository.setAccountColor(any(), any()) } coAnswers { awaitCancellation() }
+            repository.set(PendingViewOnlyImport(ufvk = UFVK, name = "Savings", color = Color(PICKED)))
+
+            useCase(birthday = null)
+
+            coVerify(exactly = 1) { metadataRepository.setAccountColor(account, Color(PICKED)) }
+            coVerify(exactly = 1) { accountDataSource.selectAccount(created) }
+            verify(exactly = 1) { synchronizerProvider.resetSynchronizer() }
+            verify(exactly = 1) { navigationRouter.forward(ImportedVKArgs) }
+            assertNull(repository.get())
+            assertEquals(COLOR_BUDGET_MILLIS, currentTime)
         }
 
     @Test
@@ -247,5 +268,6 @@ class ImportViewOnlyAccountUseCaseTest {
     private companion object {
         const val UFVK = "uview1testkeythatmustneverbeprinted"
         const val PICKED = 0x80BE38F3
+        const val COLOR_BUDGET_MILLIS = 5_000L
     }
 }

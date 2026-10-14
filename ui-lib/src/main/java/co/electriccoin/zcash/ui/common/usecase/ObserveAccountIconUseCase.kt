@@ -5,7 +5,6 @@ import cash.z.ecc.android.sdk.model.AccountUuid
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.repository.MetadataRepository
-import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
 import co.electriccoin.zcash.ui.design.util.ImageResource
 import co.electriccoin.zcash.ui.design.util.imageRes
 import kotlinx.coroutines.flow.Flow
@@ -18,7 +17,6 @@ import kotlinx.coroutines.flow.map
  */
 class ObserveAccountIconUseCase(
     private val metadataRepository: MetadataRepository,
-    private val viewOnlyContent: ViewOnlyContent,
 ) {
     /** Every account's stored colour by UUID; empty at first, so a consumer never waits. Read with [iconOf]. */
     fun observeAll(): Flow<Map<AccountUuid, Color>> =
@@ -40,7 +38,7 @@ class ObserveAccountIconUseCase(
         if (account is ViewOnlyAccount) {
             ImageResource.Layered(
                 background = colors[account.sdkAccount.accountUuid] ?: Color.Unspecified,
-                foreground = ImageResource.ByDrawable(viewOnlyContent.accountIconForeground),
+                foreground = ImageResource.ByDrawable(account.icon),
             )
         } else {
             imageRes(account.icon)

@@ -1317,5 +1317,8 @@
     <string name="colorPicker_hex">Color hex #</string>
     <string name="colorPicker_done">Listo</string>
     <string name="colorPicker_edit">Cambiar color</string>
+    <string name="colorPicker_gridDescription">Cuadrícula de colores</string>
+    <string name="colorPicker_spectrumDescription">Espectro de colores</string>
+    <string name="colorPicker_selectedHex">Color seleccionado #%1$s</string>
 
 </resources>

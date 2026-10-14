@@ -205,7 +205,7 @@ class ZashiTopAppBarVMTest {
             isSelected = isSelected,
             name = stringRes("Savings"),
             customName = "Savings",
-            icon = VIEW_ONLY_ICON,
+            icon = AccountIconFixtures.VIEW_ONLY_ICON,
         )
 }
 
@@ -214,5 +214,3 @@ class ZashiTopAppBarVMTest {
  * interface property.
  */
 private val VIEW_ONLY_LABEL = StringResource.ByResource(resource = 7, args = emptyList())
-
-private const val VIEW_ONLY_ICON = 43

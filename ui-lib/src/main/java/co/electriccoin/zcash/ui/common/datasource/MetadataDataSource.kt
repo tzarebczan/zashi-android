@@ -116,10 +116,7 @@ class MetadataDataSourceImpl(
 ) : MetadataDataSource {
     private val mutex = Mutex()
 
-    private val metadataUpdatePipeline = MutableSharedFlow<MetadataUpdate>()
-
-    /** The number of updates published to [metadataUpdatePipeline]; read and written only under [mutex]. */
-    private var updateVersion = 0L
+    private val metadataUpdatePipeline = MutableSharedFlow<Pair<MetadataKey, MetadataV3?>>()
 
     /**
      * Non-canonical and set-aside files that failed to decode, remembered for the process lifetime:
@@ -143,21 +140,22 @@ class MetadataDataSourceImpl(
 
     /**
      * Null, then the file content, then every later update for [key]. The updates are subscribed to
-     * before the file is read, so a write landing right after the read is never lost; an update the
-     * read already includes is dropped, so the content never goes back to an older state.
+     * under the same [mutex] as the read, and every update is published under it, so none is lost
+     * or replayed between the two.
      */
     override fun observe(key: MetadataKey): Flow<MetadataV3?> =
         channelFlow {
-            val updates = Channel<MetadataUpdate>(Channel.UNLIMITED)
-            launch(start = CoroutineStart.UNDISPATCHED) {
-                metadataUpdatePipeline.collect { update -> if (update.key.isSameAs(key)) updates.send(update) }
-            }
+            val updates = Channel<MetadataV3?>(Channel.UNLIMITED)
             send(null)
-            val (readVersion, initial) = mutex.withLock { updateVersion to getMetadataInternal(key) }
+            val initial =
+                mutex.withLock {
+                    launch(start = CoroutineStart.UNDISPATCHED) {
+                        metadataUpdatePipeline.collect { (k, m) -> if (k.isSameAs(key)) updates.send(m) }
+                    }
+                    getMetadataInternal(key)
+                }
             send(initial)
-            for (update in updates) {
-                if (update.version > readVersion) send(update.metadata)
-            }
+            for (update in updates) send(update)
         }.distinctUntilChanged()
 
     override suspend fun flipTxAsBookmarked(txId: String, key: MetadataKey) =
@@ -339,7 +337,7 @@ class MetadataDataSourceImpl(
         withContext(ioDispatcher) {
             mutex.withLock {
                 metadataStorageProvider.deleteStorageFiles(key)
-                publishUpdate(key, null)
+                metadataUpdatePipeline.emit(key to null)
             }
         }
 
@@ -673,18 +671,12 @@ class MetadataDataSourceImpl(
 
             val isWritten = writeToLocalStorage(updatedMetadata, key)
             if (isWritten) {
-                publishUpdate(key, updatedMetadata)
+                metadataUpdatePipeline.emit(key to updatedMetadata)
             } else {
                 Twig.error { "Skipping the metadata update, the write failed" }
             }
             isWritten
         }
-
-    /** Publishes [metadata] as [key]'s latest content; called only under [mutex]. */
-    private suspend fun publishUpdate(key: MetadataKey, metadata: MetadataV3?) {
-        updateVersion++
-        metadataUpdatePipeline.emit(MetadataUpdate(version = updateVersion, key = key, metadata = metadata))
-    }
 
     private fun MetadataKey.isSameAs(other: MetadataKey): Boolean =
         bytes.size == other.bytes.size &&
@@ -716,13 +708,6 @@ private data class FileSignature(
     val size: Long,
     val lastModified: Long,
     val keyFingerprint: String
-)
-
-/** One published change of [key]'s metadata, numbered by [MetadataDataSourceImpl]'s update counter. */
-private class MetadataUpdate(
-    val version: Long,
-    val key: MetadataKey,
-    val metadata: MetadataV3?
 )
 
 /**

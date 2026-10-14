@@ -219,7 +219,7 @@ data class ColorPickerState(
                         ColorSwatchState(
                             color = swatch,
                             isSelected = swatch.toArgb() == picked.toArgb(),
-                            onClick = { onSwatchSelect(swatch) }
+                            onClick = onSwatchSelect
                         )
                     },
                 onBack = onBack

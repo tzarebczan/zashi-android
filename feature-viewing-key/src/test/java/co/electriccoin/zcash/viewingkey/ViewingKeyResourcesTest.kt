@@ -96,7 +96,6 @@ class ViewingKeyResourcesTest {
         val light = File("src/main/res/drawable").list().orEmpty().toSet()
         val night = File("src/main/res/drawable-night").list().orEmpty().toSet()
 
-        assertTrue("view_only_ic_account.xml" in light)
         assertTrue("view_only_ic_avatar.xml" in light)
         assertEquals(emptySet(), light - night - TINTED_ICONS)
     }

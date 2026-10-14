@@ -83,7 +83,7 @@ private fun SwatchDot(state: ColorSwatchState) {
             if (!state.isSelected) {
                 runCatching { haptic.performHapticFeedback(HapticFeedbackType.SegmentTick) }
             }
-            state.onClick()
+            state.onClick(state.color)
         },
         modifier =
             Modifier.semantics {
@@ -129,11 +129,11 @@ private fun Modifier.widenBy(overhang: Dp): Modifier =
         }
     }
 
-/** One swatch dot: its colour, whether it is the picked colour, and what picking it does. */
+/** One swatch dot: its colour, whether it is the picked colour, and what picking it does with that colour. */
 data class ColorSwatchState(
     val color: Color,
     val isSelected: Boolean,
-    val onClick: () -> Unit,
+    val onClick: (Color) -> Unit,
 )
 
 private const val PER_ROW = 5

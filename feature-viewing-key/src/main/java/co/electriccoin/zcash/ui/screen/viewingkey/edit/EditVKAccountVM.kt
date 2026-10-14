@@ -38,7 +38,8 @@ import kotlinx.coroutines.launch
  * screen and leaves the field as typed. An id that names no view-only account, the Zodl account or a
  * hardware wallet included, goes straight back. The avatar shows the account's stored colour; its
  * pencil badge opens the colour picker on the colour shown, and a newly picked colour enables Save as
- * a new name does. Save stores whichever of the two changed.
+ * a new name does. Save stores whichever of the two changed; a colour that could not be stored shows
+ * the error screen and keeps the picked colour, as a failed rename does.
  */
 internal class EditVKAccountVM(
     args: EditVKAccountArgs,
@@ -67,7 +68,6 @@ internal class EditVKAccountVM(
             .map { it.sdkAccount.accountUuid }
             .distinctUntilChanged()
             .flatMapLatest(metadataRepository::observeColor)
-            .distinctUntilChanged()
             .stateIn(viewModel = this, initialValue = null)
 
     private var saveJob: Job? = null
@@ -155,9 +155,13 @@ internal class EditVKAccountVM(
                 isSaving.update { true }
                 try {
                     if (renames) renameViewOnlyAccount(account, typed)
-                    color?.let { metadataRepository.setAccountColor(account, it) }
+                    val isColorSaved = color == null || metadataRepository.setAccountColor(account, color)
                     ensureActive()
-                    navigationRouter.back()
+                    if (isColorSaved) {
+                        navigationRouter.back()
+                    } else {
+                        navigateToError(ErrorArgs.General(AccountColorNotSavedException()))
+                    }
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
@@ -191,3 +195,6 @@ internal class EditVKAccountVM(
         stored: Color?
     ): Color? = picked?.takeIf { it.toArgb() != stored?.toArgb() }
 }
+
+/** The picked colour could not be written to the account's metadata. */
+internal class AccountColorNotSavedException : Exception("The account colour was not saved")

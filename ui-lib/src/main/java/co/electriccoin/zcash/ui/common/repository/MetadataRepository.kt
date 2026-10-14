@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.dropWhile
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -50,11 +51,10 @@ import java.time.Instant
 
 @Suppress("TooManyFunctions")
 interface MetadataRepository {
-
     /**
      * Every account's metadata by its UUID, each read under the account's own key; empty at first,
      * an account missing until its metadata is read. Shared by all collectors, and the accounts are
-     * subscribed to again only when their set changes.
+     * subscribed to again only when their set changes, each keeping its entry while it is read again.
      */
     val metadata: StateFlow<Map<AccountUuid, MetadataV3>>
 
@@ -124,8 +124,8 @@ interface MetadataRepository {
     /** [accountUuid]'s icon colour from [metadata], null while unread or when it has none. */
     fun observeColor(accountUuid: AccountUuid): Flow<Color?>
 
-    /** Stores [color] as [account]'s icon colour; a failure is only logged. */
-    suspend fun setAccountColor(account: WalletAccount, color: Color)
+    /** Stores [color] as [account]'s icon colour and returns whether it was saved; see [flipTxBookmark]. */
+    suspend fun setAccountColor(account: WalletAccount, color: Color): Boolean
 
     fun delete()
 }
@@ -150,9 +150,12 @@ class MetadataRepositoryImpl(
             .filterNotNull()
             .distinctUntilChangedBy { accounts -> accounts.map { it.sdkAccount.accountUuid } }
             .flatMapLatest { accounts ->
+                val previous = metadata.value
                 accounts
-                    .map { account -> observeMetadata(account).map { account.sdkAccount.accountUuid to it } }
-                    .combineToFlow()
+                    .map { account ->
+                        val uuid = account.sdkAccount.accountUuid
+                        observeMetadata(account, initial = previous[uuid]).map { uuid to it }
+                    }.combineToFlow()
                     .map { entries -> entries.mapNotNull { (uuid, content) -> content?.let { uuid to it } }.toMap() }
             }.stateIn(
                 scope = scope,
@@ -334,18 +337,19 @@ class MetadataRepositoryImpl(
         metadata.map { it[accountUuid]?.accountMetadata?.appearance?.color }.distinctUntilChanged()
 
     /**
-     * [account]'s metadata: null first, so a slow key never holds back the other accounts, then the
-     * content as it changes. A failure is logged and keeps the last content.
+     * [account]'s metadata: [initial] first, the content [metadata] already holds or null, so a slow
+     * key never holds back the other accounts and a change of the account set never blanks a known
+     * entry; then the content as it changes, without the data source's leading null. A failure is
+     * logged and keeps the last content.
      */
-    private fun observeMetadata(account: WalletAccount): Flow<MetadataV3?> =
+    private fun observeMetadata(account: WalletAccount, initial: MetadataV3?): Flow<MetadataV3?> =
         flow {
-            emit(null)
-            emitAll(metadataDataSource.observe(getMetadataKey(account)))
+            emit(initial)
+            emitAll(metadataDataSource.observe(getMetadataKey(account)).dropWhile { it == null })
         }.catch { e -> Twig.error(e) { "Unable to read Metadata" } }
 
-    override suspend fun setAccountColor(account: WalletAccount, color: Color) {
+    override suspend fun setAccountColor(account: WalletAccount, color: Color): Boolean =
         updateMetadataAndAwait(account) { metadataDataSource.setAccountColor(color = color, key = it) }
-    }
 
     @Suppress("TooGenericExceptionCaught")
     override fun delete() {
@@ -394,12 +398,12 @@ class MetadataRepositoryImpl(
         }
 
     /**
-     * [account]'s key from the key storage, or derived from the seed and, for every account but the
-     * Zodl one, the account's viewing key, then stored; one at a time, so two readers never derive
-     * the same key twice.
+     * [account]'s key from the key storage, read without a lock; or derived from the seed and, for
+     * every account but the Zodl one, the account's viewing key, then stored. Derivations run one at
+     * a time and check the storage again first, so two readers never derive the same key twice.
      */
     private suspend fun getMetadataKey(account: WalletAccount): MetadataKey =
-        keyMutex.withLock {
+        metadataKeyStorageProvider.get(account.sdkAccount.accountUuid) ?: keyMutex.withLock {
             val key = metadataKeyStorageProvider.get(account.sdkAccount.accountUuid)
 
             if (key != null) {

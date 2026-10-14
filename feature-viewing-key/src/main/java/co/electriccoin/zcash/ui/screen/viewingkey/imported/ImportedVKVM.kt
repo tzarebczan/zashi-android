@@ -29,7 +29,6 @@ class ImportedVKVM(
             .map { it.sdkAccount.accountUuid }
             .distinctUntilChanged()
             .flatMapLatest(metadataRepository::observeColor)
-            .distinctUntilChanged()
             .map(::createState)
             .stateIn(viewModel = this, initialValue = createState(null))
 

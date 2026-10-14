@@ -87,13 +87,12 @@ class ObserveAccountIconUseCaseTest {
             isSelected = false,
             name = stringRes("Savings"),
             customName = "Savings",
-            icon = VIEW_ONLY_ICON,
+            icon = AccountIconFixtures.VIEW_ONLY_ICON,
         )
 
     private companion object {
         val ZASHI_UUID: AccountUuid = AccountUuid.new(ByteArray(16) { it.toByte() })
         val VIEW_ONLY_UUID: AccountUuid = AccountUuid.new(ByteArray(16) { (it + 1).toByte() })
-        const val VIEW_ONLY_ICON = 43
         const val PICKED = 0x80BE38F3
         const val OTHER = 0xFF0088FF
     }

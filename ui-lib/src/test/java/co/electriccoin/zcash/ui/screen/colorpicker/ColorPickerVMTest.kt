@@ -190,7 +190,7 @@ class ColorPickerVMTest {
         val vm = vm()
         val swatch = vm.state.value.swatches[6]
 
-        swatch.onClick()
+        swatch.onClick(swatch.color)
 
         assertEquals(swatch.color, vm.state.value.picked)
         assertEquals(

@@ -92,7 +92,7 @@ fun ImageResource.ByDrawable.Compose(
 
 /** Draws the circle and its glyph at the size of [modifier]; [surface] is what a translucent circle shows over. */
 @Composable
-fun ImageResource.Layered.Compose(
+private fun ImageResource.Layered.Compose(
     modifier: Modifier = Modifier,
     surface: Color = ZashiColors.Surfaces.bgPrimary,
 ) {

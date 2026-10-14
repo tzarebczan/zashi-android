@@ -195,7 +195,8 @@ private fun Sliders(state: ColorPickerContentState.Sliders) {
                 value = state.hex,
                 onValueChange = state.onHexChange,
                 modifier = Modifier.width(HEX_FIELD_WIDTH),
-                keyboardType = KeyboardType.Ascii
+                keyboardType = KeyboardType.Ascii,
+                label = state.hexLabel.getValue()
             )
         }
     }

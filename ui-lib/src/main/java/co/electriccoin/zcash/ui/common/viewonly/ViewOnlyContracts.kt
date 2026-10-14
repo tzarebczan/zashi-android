@@ -62,16 +62,12 @@ interface ViewOnlyAccountImporter {
  * resources, so none of this copy lives in ui-lib or ui-design-lib.
  */
 interface ViewOnlyContent {
-    /** The account's avatar, used wherever an account icon is shown. */
-    @get:DrawableRes
-    val accountIcon: Int
-
     /**
-     * The eye of the account's coloured icon, padding built in, drawn over a circle in the account's
-     * colour or the default avatar circle.
+     * The eye of the account's icon, padding built in, drawn over a circle in the account's colour or
+     * the default avatar circle.
      */
     @get:DrawableRes
-    val accountIconForeground: Int
+    val accountIcon: Int
 
     /** The account name used when the name stored with the account is blank. */
     val defaultAccountName: StringResource

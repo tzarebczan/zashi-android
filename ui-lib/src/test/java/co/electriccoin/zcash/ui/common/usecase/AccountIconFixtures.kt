@@ -6,7 +6,6 @@ import co.electriccoin.zcash.ui.common.model.metadata.AccountAppearanceMetadataV
 import co.electriccoin.zcash.ui.common.model.metadata.AccountMetadataV3
 import co.electriccoin.zcash.ui.common.model.metadata.MetadataV3
 import co.electriccoin.zcash.ui.common.repository.MetadataRepository
-import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
 import co.electriccoin.zcash.ui.design.util.ImageResource
 import io.mockk.every
 import io.mockk.mockk
@@ -16,12 +15,12 @@ import java.time.Instant
 
 /** A real [ObserveAccountIconUseCase] over every account's [allMetadata]. */
 internal object AccountIconFixtures {
-    const val VIEW_ONLY_GLYPH = 4242
+    /** The drawable every test view-only account carries as its icon. */
+    const val VIEW_ONLY_ICON = 43
 
     fun useCase(allMetadata: StateFlow<Map<AccountUuid, MetadataV3>> = MutableStateFlow(emptyMap())) =
         ObserveAccountIconUseCase(
             metadataRepository = mockk<MetadataRepository> { every { metadata } returns allMetadata },
-            viewOnlyContent = mockk<ViewOnlyContent> { every { accountIconForeground } returns VIEW_ONLY_GLYPH },
         )
 
     /** An account's metadata with [color] as its icon colour, none without one. */
@@ -42,6 +41,6 @@ internal object AccountIconFixtures {
     fun viewOnlyIcon(color: Color? = null) =
         ImageResource.Layered(
             background = color ?: Color.Unspecified,
-            foreground = ImageResource.ByDrawable(VIEW_ONLY_GLYPH)
+            foreground = ImageResource.ByDrawable(VIEW_ONLY_ICON)
         )
 }

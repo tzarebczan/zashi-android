@@ -3,6 +3,7 @@ package co.electriccoin.zcash.ui.common.usecase
 import androidx.compose.ui.graphics.Color
 import cash.z.ecc.android.sdk.model.Account
 import cash.z.ecc.android.sdk.model.BlockHeight
+import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountAlreadyExistsException
@@ -99,24 +100,29 @@ internal class ImportViewOnlyAccountUseCase(
     }
 
     /**
-     * Stores [color] for [created] once the wallet lists it, waiting at most [COLOR_WAIT]; a failure
-     * to store it is only logged.
+     * Stores [color] for [created] once the wallet lists it. The wait and the write together get at
+     * most [COLOR_BUDGET], so a stuck store never holds back the synchronizer restart; running out of
+     * it is only logged.
      */
     private suspend fun storeColor(
         created: Account,
         color: Color,
     ) {
-        val account =
-            withTimeoutOrNull(COLOR_WAIT) {
+        withTimeoutOrNull(COLOR_BUDGET) {
+            val account =
                 accountDataSource.allAccounts
                     .mapNotNull { accounts ->
                         accounts?.firstOrNull { it.sdkAccount.accountUuid == created.accountUuid }
                     }.first()
-            } ?: return
-        metadataRepository.setAccountColor(account, color)
+            metadataRepository.setAccountColor(account, color)
+        } ?: Twig.warn { "View-only import: the account colour was not stored within $COLOR_BUDGET" }
     }
 
     private companion object {
-        val COLOR_WAIT = 5.seconds
+        /**
+         * The colour is cosmetic and the user waits behind it, so the whole step keeps the cap the
+         * wait alone had; the account normally lists at once and the write is one small file.
+         */
+        val COLOR_BUDGET = 5.seconds
     }
 }

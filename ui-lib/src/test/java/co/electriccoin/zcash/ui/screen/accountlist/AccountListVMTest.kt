@@ -603,7 +603,7 @@ class AccountListVMTest {
         isSelected = isSelected,
         name = stringRes("Savings"),
         customName = "Savings",
-        icon = VIEW_ONLY_ICON,
+        icon = AccountIconFixtures.VIEW_ONLY_ICON,
     )
 
     private fun TestScope.collect(vm: AccountListVM) {
@@ -624,5 +624,3 @@ private val VIEW_ONLY_SECTION_PLURAL = StringResource.ByResource(resource = 3, a
 private val VIEW_ONLY_LABEL = StringResource.ByResource(resource = 4, args = emptyList())
 
 private const val ADD_ACCOUNT_ICON = 42
-
-private const val VIEW_ONLY_ICON = 43

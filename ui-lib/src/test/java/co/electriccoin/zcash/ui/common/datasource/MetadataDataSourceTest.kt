@@ -840,19 +840,28 @@ class MetadataDataSourceTest {
     /**
      * The import flow stores the colour just as the account appears and its observer starts: a
      * write that takes the lock the moment the initial read releases it, before the observer could
-     * start collecting updates, must still reach the observer. The unconfined dispatchers run the
-     * waiting write to completion inside the read's unlock, which is exactly that gap.
+     * start collecting updates, must still reach the observer. The write starts during the initial
+     * read and waits for the lock; the unconfined dispatchers run it to completion inside the read's
+     * unlock, which is exactly that gap.
      */
     @Test
     fun aWriteRightAfterTheInitialReadIsStillObserved() =
         runTest {
             val written = slot<MetadataV3>()
+            lateinit var dataSource: MetadataDataSourceImpl
+            var isWriteStarted = false
             every { metadataStorageProvider.getStorageFiles(key) } returns listOf(canonicalFile)
             every { metadataProvider.readMetadataFromFile(canonicalFile, key) } answers {
+                if (!isWriteStarted) {
+                    isWriteStarted = true
+                    backgroundScope.launch(Dispatchers.Unconfined) {
+                        dataSource.setAccountColor(Color(0x80BE38F3), key)
+                    }
+                }
                 if (written.isCaptured) written.captured else metadata(lastUpdated = 1)
             }
             every { metadataProvider.writeMetadataToFile(canonicalFile, capture(written), key) } just Runs
-            val dataSource =
+            dataSource =
                 MetadataDataSourceImpl(
                     metadataStorageProvider = metadataStorageProvider,
                     metadataProvider = metadataProvider,
@@ -863,9 +872,6 @@ class MetadataDataSourceTest {
 
             backgroundScope.launch {
                 dataSource.observe(key).filterNotNull().collect { metadata ->
-                    if (colors.isEmpty()) {
-                        launch(Dispatchers.Unconfined) { dataSource.setAccountColor(Color(0x80BE38F3), key) }
-                    }
                     colors += metadata.accountMetadata.appearance?.color
                 }
             }

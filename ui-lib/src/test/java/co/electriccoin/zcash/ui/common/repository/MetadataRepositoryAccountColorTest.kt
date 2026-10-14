@@ -27,6 +27,8 @@ import java.io.IOException
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 /**
  * [MetadataRepositoryImpl] writing an account's colour under that account's own metadata key,
@@ -63,18 +65,20 @@ class MetadataRepositoryAccountColorTest {
         runTest {
             coEvery { metadataDataSource.setAccountColor(any(), any()) } returns true
 
-            repository.setAccountColor(viewOnly, Color(PICKED))
+            assertTrue(repository.setAccountColor(viewOnly, Color(PICKED)))
 
             coVerify(exactly = 1) { metadataDataSource.setAccountColor(Color(PICKED), viewOnlyKey) }
             coVerify(exactly = 0) { metadataDataSource.setAccountColor(any(), selectedKey) }
         }
 
     @Test
-    fun aFailedWriteIsOnlyLogged() =
+    fun aFailedWriteReportsFalse() =
         runTest {
             coEvery { metadataDataSource.setAccountColor(any(), any()) } throws IOException()
+            assertFalse(repository.setAccountColor(viewOnly, Color(PICKED)))
 
-            repository.setAccountColor(viewOnly, Color(PICKED))
+            coEvery { metadataDataSource.setAccountColor(any(), any()) } returns false
+            assertFalse(repository.setAccountColor(viewOnly, Color(PICKED)))
         }
 
     @Test

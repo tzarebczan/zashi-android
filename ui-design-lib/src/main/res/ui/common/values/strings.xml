@@ -1609,5 +1609,8 @@ Your vote can no longer be submitted.</string>
     <string name="colorPicker_hex">Hex Color #</string>
     <string name="colorPicker_done">Done</string>
     <string name="colorPicker_edit">Change color</string>
+    <string name="colorPicker_gridDescription">Color grid</string>
+    <string name="colorPicker_spectrumDescription">Color spectrum</string>
+    <string name="colorPicker_selectedHex">Selected color #%1$s</string>
 
 </resources>

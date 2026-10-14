@@ -15,7 +15,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
+import co.electriccoin.zcash.ui.design.R
 import co.electriccoin.zcash.ui.design.component.BlankSurface
 import co.electriccoin.zcash.ui.design.newcomponent.PreviewScreens
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
@@ -23,6 +30,7 @@ import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 /**
  * The Grid tab: [ColorPickerPalette.grid] as 12 x 10 cells. Tapping or dragging over a cell picks
  * its colour; the cell matching [selected] carries a white outline, black on the lightest cells.
+ * Accessibility services read it as one image whose state names [selected] in hex.
  */
 @Composable
 fun ZashiColorGrid(
@@ -32,13 +40,19 @@ fun ZashiColorGrid(
 ) {
     val currentOnSelect by rememberUpdatedState(onSelect)
     val selectedIndex = gridIndexOf(selected)
+    val description = stringResource(R.string.colorPicker_gridDescription)
+    val selectedHex = stringResource(R.string.colorPicker_selectedHex, selected.toHex())
     Canvas(
         modifier =
             modifier
                 .fillMaxWidth()
                 .height(COLOR_PICKER_AREA_HEIGHT)
                 .clip(RoundedCornerShape(COLOR_PICKER_AREA_RADIUS))
-                .pickGestures { position, size ->
+                .semantics {
+                    contentDescription = description
+                    role = Role.Image
+                    stateDescription = selectedHex
+                }.pickGestures { position, size ->
                     val column =
                         (position.x / size.width * ColorPickerPalette.GRID_COLUMNS)
                             .toInt()

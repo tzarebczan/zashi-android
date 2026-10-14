@@ -17,6 +17,7 @@ import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.screen.colorpicker.ColorPickerArgs
 import co.electriccoin.zcash.ui.screen.error.ErrorArgs
 import co.electriccoin.zcash.ui.screen.error.NavigateToErrorUseCase
+import co.electriccoin.zcash.ui.screen.viewingkey.edit.AccountColorNotSavedException
 import co.electriccoin.zcash.ui.screen.viewingkey.edit.EditVKAccountState
 import co.electriccoin.zcash.ui.screen.viewingkey.edit.EditVKAccountVM
 import io.mockk.coEvery
@@ -54,7 +55,7 @@ import kotlin.test.assertTrue
  * returns, opens the removal sheet, and goes straight back for an id that names no view-only account.
  * Back cancels a save that is still running. The avatar shows the stored colour and its pencil badge
  * opens the colour picker on it; a newly picked colour enables Save, which stores whichever of the
- * name and the colour changed.
+ * name and the colour changed, and a colour that was not saved shows the error and keeps the pick.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class EditVKAccountVMTest {
@@ -80,6 +81,7 @@ class EditVKAccountVMTest {
     private val metadataRepository =
         mockk<MetadataRepository>(relaxed = true) {
             every { observeColor(any()) } answers { storedColors.map { it[firstArg()] } }
+            coEvery { setAccountColor(any(), any()) } returns true
         }
 
     private val accounts =
@@ -317,6 +319,26 @@ class EditVKAccountVMTest {
 
             coVerify(exactly = 1) { accountNameProvider.save(ViewOnlyAccountFixtures.viewOnlyUuid, "Savings") }
             coVerify(exactly = 1) { metadataRepository.setAccountColor(any(), Color(PICKED)) }
+        }
+
+    @Test
+    fun anUnsavedColorShowsTheErrorAndKeepsThePickedColor() =
+        runTest {
+            coEvery { metadataRepository.setAccountColor(any(), any()) } returns false
+            val vm = vm()
+            collect(vm)
+            pick(vm, Color(PICKED))
+
+            assertNotNull(vm.state.value).saveButton.onClick()
+            runCurrent()
+
+            verify(exactly = 1) {
+                navigateToError(match { (it as? ErrorArgs.General)?.exception is AccountColorNotSavedException }, any())
+            }
+            verify(exactly = 0) { navigationRouter.back() }
+            val state = assertNotNull(vm.state.value)
+            assertEquals(Color(PICKED), state.avatarColor())
+            assertTrue(state.saveButton.isEnabled)
         }
 
     @Test

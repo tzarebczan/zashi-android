@@ -13,6 +13,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -30,8 +32,8 @@ import co.electriccoin.zcash.ui.design.theme.typography.ZashiTypography
 /**
  * The small rounded box next to a picker slider that shows its value, such as "100%" or "190", in
  * 17/22 SemiBold, so with its 6/14 dp padding the box is 34 dp tall.
- * With [onValueChange] it is a one-line text field of [keyboardType], 48 dp tall to tap; without
- * it, plain text.
+ * With [onValueChange] it is a one-line text field of [keyboardType], 48 dp tall to tap, which
+ * accessibility services announce with [label]; without it, plain text.
  */
 @Composable
 fun ZashiColorValueField(
@@ -39,6 +41,7 @@ fun ZashiColorValueField(
     modifier: Modifier = Modifier,
     onValueChange: ((String) -> Unit)? = null,
     keyboardType: KeyboardType = KeyboardType.Number,
+    label: String? = null,
 ) {
     val style = valueTextStyle()
     if (onValueChange == null) {
@@ -49,7 +52,10 @@ fun ZashiColorValueField(
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = modifier.heightIn(min = TOUCH_HEIGHT),
+            modifier =
+                modifier
+                    .heightIn(min = TOUCH_HEIGHT)
+                    .then(if (label != null) Modifier.semantics { contentDescription = label } else Modifier),
             textStyle = style,
             singleLine = true,
             cursorBrush = SolidColor(ZashiColors.Text.textPrimary),
