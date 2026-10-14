@@ -7,6 +7,8 @@ and this application adheres to [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [3.17.1 (3155)] - 2026-10-14
+
 ### Changed:
 
 - Updated the SDK to 5.2.1, which builds `pasta_curves` with its `asm` feature. Proving, syncing and
