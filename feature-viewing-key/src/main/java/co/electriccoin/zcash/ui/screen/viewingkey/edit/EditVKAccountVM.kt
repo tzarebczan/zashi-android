@@ -1,18 +1,23 @@
 package co.electriccoin.zcash.ui.screen.viewingkey.edit
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountNameLimit
 import co.electriccoin.zcash.ui.common.model.stateIn
+import co.electriccoin.zcash.ui.common.repository.MetadataRepository
 import co.electriccoin.zcash.ui.common.usecase.GetViewOnlyAccountUseCase
+import co.electriccoin.zcash.ui.common.usecase.NavigateToColorPickerUseCase
 import co.electriccoin.zcash.ui.common.usecase.RenameViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.screen.error.ErrorArgs
 import co.electriccoin.zcash.ui.screen.error.NavigateToErrorUseCase
 import co.electriccoin.zcash.ui.screen.viewingkey.EditVKAccountArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.RemoveVKAccountArgs
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +25,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -30,7 +36,9 @@ import kotlinx.coroutines.launch
  * [ViewOnlyAccountNameLimit.MAX_LENGTH] code points as it is typed; Save stores a new, non-blank name
  * and returns to the account list, which already shows it; a failure to store it shows the error
  * screen and leaves the field as typed. An id that names no view-only account, the Zodl account or a
- * hardware wallet included, goes straight back.
+ * hardware wallet included, goes straight back. The avatar shows the account's stored colour; its
+ * pencil badge opens the colour picker on the colour shown, and a newly picked colour enables Save as
+ * a new name does. Save stores whichever of the two changed.
  */
 internal class EditVKAccountVM(
     args: EditVKAccountArgs,
@@ -38,6 +46,8 @@ internal class EditVKAccountVM(
     private val renameViewOnlyAccount: RenameViewOnlyAccountUseCase,
     private val navigateToError: NavigateToErrorUseCase,
     private val navigationRouter: NavigationRouter,
+    private val navigateToColorPicker: NavigateToColorPickerUseCase,
+    private val metadataRepository: MetadataRepository,
 ) : ViewModel() {
     private val accountKeyId = args.accountKeyId
 
@@ -46,7 +56,23 @@ internal class EditVKAccountVM(
 
     private val isSaving = MutableStateFlow(false)
 
+    /** The colour picked on this screen, null until one is. */
+    private val pickedColor = MutableStateFlow<Color?>(null)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val storedColor: StateFlow<Color?> =
+        getViewOnlyAccount
+            .observe(accountKeyId)
+            .filterNotNull()
+            .map { it.sdkAccount.accountUuid }
+            .distinctUntilChanged()
+            .flatMapLatest(metadataRepository::observeColor)
+            .distinctUntilChanged()
+            .stateIn(viewModel = this, initialValue = null)
+
     private var saveJob: Job? = null
+
+    private var colorPickerJob: Job? = null
 
     val state: StateFlow<EditVKAccountState?> =
         combine(
@@ -57,8 +83,16 @@ internal class EditVKAccountVM(
                 .distinctUntilChanged(),
             name.filterNotNull(),
             isSaving,
-        ) { currentName, name, isSaving ->
-            createState(currentName = currentName, name = name, isSaving = isSaving)
+            storedColor,
+            pickedColor,
+        ) { currentName, name, isSaving, stored, picked ->
+            createState(
+                currentName = currentName,
+                name = name,
+                isSaving = isSaving,
+                color = picked ?: stored,
+                isColorChanged = newColor(picked, stored) != null
+            )
         }.stateIn(this)
 
     init {
@@ -76,15 +110,30 @@ internal class EditVKAccountVM(
         currentName: String,
         name: String,
         isSaving: Boolean,
+        color: Color?,
+        isColorChanged: Boolean,
     ) = EditVKAccountState.create(
         name = name,
         currentName = currentName,
         isSaving = isSaving,
+        color = color,
+        isColorChanged = isColorChanged,
+        onAvatarEditClick = ::onAvatarEditClick,
         onValueChange = ::onValueChange,
         onSaveClick = ::onSaveClick,
         onRemoveClick = ::onRemoveClick,
         onBack = ::onBack,
     )
+
+    private fun onAvatarEditClick() {
+        if (colorPickerJob?.isActive == true) return
+        colorPickerJob =
+            viewModelScope.launch {
+                navigateToColorPicker(pickedColor.value ?: storedColor.value)?.let { picked ->
+                    pickedColor.update { picked }
+                }
+            }
+    }
 
     private fun onValueChange(value: String) = name.update { ViewOnlyAccountNameLimit.cap(value) }
 
@@ -92,6 +141,7 @@ internal class EditVKAccountVM(
     private fun onSaveClick() {
         if (saveJob?.isActive == true) return
         val typed = name.value ?: return
+        val picked = pickedColor.value
         saveJob =
             viewModelScope.launch {
                 val account = getViewOnlyAccount(accountKeyId)
@@ -99,10 +149,13 @@ internal class EditVKAccountVM(
                     navigationRouter.back()
                     return@launch
                 }
-                if (!EditVKAccountState.canSave(typed, account.currentName())) return@launch
+                val renames = EditVKAccountState.canSave(typed, account.currentName())
+                val color = newColor(picked, storedColor.value)
+                if (!renames && color == null) return@launch
                 isSaving.update { true }
                 try {
-                    renameViewOnlyAccount(account, typed)
+                    if (renames) renameViewOnlyAccount(account, typed)
+                    color?.let { metadataRepository.setAccountColor(account, it) }
                     ensureActive()
                     navigationRouter.back()
                 } catch (e: CancellationException) {
@@ -122,6 +175,7 @@ internal class EditVKAccountVM(
 
     private fun onBack() {
         saveJob?.cancel()
+        colorPickerJob?.cancel()
         navigationRouter.back()
     }
 
@@ -130,4 +184,10 @@ internal class EditVKAccountVM(
      * that shows the default view-only name has no name of its own, so the field starts empty.
      */
     private fun ViewOnlyAccount.currentName(): String = customName.orEmpty()
+
+    /** [picked] when it differs from the [stored] colour, otherwise null. */
+    private fun newColor(
+        picked: Color?,
+        stored: Color?
+    ): Color? = picked?.takeIf { it.toArgb() != stored?.toArgb() }
 }

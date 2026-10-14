@@ -12,6 +12,7 @@ import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.model.toStorageKeyId
+import co.electriccoin.zcash.ui.common.usecase.AccountIconFixtures
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
 import co.electriccoin.zcash.ui.common.usecase.SelectWalletAccountUseCase
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
@@ -93,8 +94,8 @@ class AccountListVMTest {
                 sections.map { it.title }
             )
             assertEquals(
-                listOf(R.drawable.ic_item_zashi, R.drawable.ic_item_keystone, R.drawable.ic_item_ledger, VIEW_ONLY_ICON)
-                    .map { imageRes(it) },
+                listOf(R.drawable.ic_item_zashi, R.drawable.ic_item_keystone, R.drawable.ic_item_ledger)
+                    .map { imageRes(it) } + AccountIconFixtures.viewOnlyIcon(),
                 sections.flatMap { section -> section.items.map { it.icon } }
             )
             assertTrue(sections.all { it.count == null })
@@ -530,6 +531,7 @@ class AccountListVMTest {
                 every { accountListSectionPlural } returns VIEW_ONLY_SECTION_PLURAL
                 every { topBarSubtitle } returns VIEW_ONLY_LABEL
             },
+        observeAccountIcon = AccountIconFixtures.useCase(),
     )
 
     private fun sdkAccount(id: Int) = Account.new(AccountUuid.new(ByteArray(16) { (it + id * 16).toByte() }))

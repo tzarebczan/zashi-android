@@ -29,8 +29,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import co.electriccoin.zcash.ui.design.component.AccountAvatarState
 import co.electriccoin.zcash.ui.design.component.BlankBgScaffold
 import co.electriccoin.zcash.ui.design.component.TextFieldState
+import co.electriccoin.zcash.ui.design.component.ZashiAccountAvatar
 import co.electriccoin.zcash.ui.design.component.ZashiSmallTopAppBar
 import co.electriccoin.zcash.ui.design.component.ZashiTextField
 import co.electriccoin.zcash.ui.design.component.ZashiTextFieldPlaceholder
@@ -77,7 +79,7 @@ internal fun VKScreen(
     title: StringResource,
     subtitle: StringResource?,
     onBack: () -> Unit,
-    avatar: ImageResource.ByDrawable,
+    avatar: AccountAvatarState,
     heading: StringResource,
     message: StringResource,
     content: @Composable ColumnScope.() -> Unit,
@@ -169,11 +171,12 @@ internal fun ColumnScope.VKSheetContent(
 
 /**
  * The account avatar over a heading and a message, which opens every screen of the import flow.
- * The heading is Text XL unless [headingStyle] says otherwise.
+ * The avatar carries the pencil badge when [avatar] has an edit button. The heading is Text XL
+ * unless [headingStyle] says otherwise.
  */
 @Composable
 internal fun VKHeader(
-    avatar: ImageResource.ByDrawable,
+    avatar: AccountAvatarState,
     heading: StringResource,
     message: StringResource,
     modifier: Modifier = Modifier,
@@ -183,7 +186,7 @@ internal fun VKHeader(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        avatar.Compose(modifier = Modifier.size(AVATAR_SIZE))
+        ZashiAccountAvatar(state = avatar, size = AVATAR_SIZE)
         Spacer(Modifier.height(20.dp))
         Text(
             text = heading.getValue(),

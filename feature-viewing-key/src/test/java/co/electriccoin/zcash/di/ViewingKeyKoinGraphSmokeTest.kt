@@ -6,11 +6,14 @@ import co.electriccoin.zcash.ui.common.migration.MigrationAppHooks
 import co.electriccoin.zcash.ui.common.provider.AccountNameProvider
 import co.electriccoin.zcash.ui.common.provider.SynchronizerProvider
 import co.electriccoin.zcash.ui.common.repository.BiometricRepository
+import co.electriccoin.zcash.ui.common.repository.MetadataRepository
 import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepository
 import co.electriccoin.zcash.ui.common.usecase.ClearClipboardUseCase
 import co.electriccoin.zcash.ui.common.usecase.GetViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
 import co.electriccoin.zcash.ui.common.usecase.ImportViewOnlyAccountUseCase
+import co.electriccoin.zcash.ui.common.usecase.NavigateToColorPickerUseCase
+import co.electriccoin.zcash.ui.common.usecase.ObserveSelectedWalletAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.RemoveViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.RenameViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.SubmitViewOnlyKeyUseCase
@@ -72,6 +75,9 @@ class ViewingKeyKoinGraphSmokeTest {
                 single<BiometricRepository> { mockk(relaxed = true) }
                 single<MigrationAppHooks> { mockk(relaxed = true) }
                 factory { mockk<NavigateToErrorUseCase>(relaxed = true) }
+                single { mockk<NavigateToColorPickerUseCase>(relaxed = true) }
+                single<MetadataRepository> { mockk(relaxed = true) }
+                factory { mockk<ObserveSelectedWalletAccountUseCase>(relaxed = true) }
             }
 
         koin =

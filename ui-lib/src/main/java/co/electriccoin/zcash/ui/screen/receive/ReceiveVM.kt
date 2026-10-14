@@ -13,9 +13,12 @@ import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.usecase.CopyToClipboardUseCase
 import co.electriccoin.zcash.ui.common.usecase.NavigateToRequestZecUseCase
+import co.electriccoin.zcash.ui.common.usecase.ObserveAccountIconUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveSelectedWalletAccountUseCase
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
 import co.electriccoin.zcash.ui.design.component.IconButtonState
+import co.electriccoin.zcash.ui.design.util.ImageResource
+import co.electriccoin.zcash.ui.design.util.imageRes
 import co.electriccoin.zcash.ui.design.util.stringRes
 import co.electriccoin.zcash.ui.design.util.stringResByAddress
 import co.electriccoin.zcash.ui.screen.receive.ReceiveAddressState.ColorMode.DEFAULT
@@ -39,16 +42,28 @@ class ReceiveVM(
     private val navigationRouter: NavigationRouter,
     private val navigateToRequestZec: NavigateToRequestZecUseCase,
     private val viewOnlyContent: ViewOnlyContent,
+    private val observeAccountIcon: ObserveAccountIconUseCase,
 ) : ViewModel() {
     private val expandedIndex = MutableStateFlow(0)
 
     internal val state =
-        combine(expandedIndex, observeSelectedWalletAccount.require()) { expandedIndex, account ->
+        combine(
+            expandedIndex,
+            observeSelectedWalletAccount.require(),
+            observeAccountIcon.observeAll()
+        ) { expandedIndex, account, colors ->
+            val icon =
+                if (account is ZashiAccount) {
+                    imageRes(R.drawable.ic_zec_round_full)
+                } else {
+                    observeAccountIcon.iconOf(colors, account)
+                }
             ReceiveState(
                 items =
                     listOfNotNull(
                         createAddressState(
                             account = account,
+                            icon = icon,
                             address = account.unifiedAddress,
                             type = Unified,
                             isExpanded = expandedIndex == 0,
@@ -56,6 +71,7 @@ class ReceiveVM(
                         ),
                         createAddressState(
                             account = account,
+                            icon = icon,
                             address = account.transparentAddress,
                             type = Transparent,
                             isExpanded = expandedIndex == 1,
@@ -81,18 +97,13 @@ class ReceiveVM(
     @Suppress("CyclomaticComplexMethod")
     private fun createAddressState(
         account: WalletAccount,
+        icon: ImageResource,
         address: String,
         type: ReceiveAddressType,
         isExpanded: Boolean,
         onClick: () -> Unit,
     ) = ReceiveAddressState(
-        icon =
-            when (account) {
-                is KeystoneAccount -> co.electriccoin.zcash.ui.design.R.drawable.ic_item_keystone
-                is LedgerAccount -> co.electriccoin.zcash.ui.design.R.drawable.ic_item_ledger
-                is ViewOnlyAccount -> account.icon
-                is ZashiAccount -> R.drawable.ic_zec_round_full
-            },
+        icon = icon,
         title =
             when (account) {
                 is KeystoneAccount -> {

@@ -1,6 +1,7 @@
 package co.electriccoin.zcash.ui.screen.viewingkey.importvk
 
 import androidx.compose.runtime.Immutable
+import co.electriccoin.zcash.ui.design.component.AccountAvatarState
 import co.electriccoin.zcash.ui.design.component.ButtonState
 import co.electriccoin.zcash.ui.design.component.ButtonStyle
 import co.electriccoin.zcash.ui.design.component.IconButtonState
@@ -8,6 +9,7 @@ import co.electriccoin.zcash.ui.design.component.TextFieldState
 import co.electriccoin.zcash.ui.design.util.ImageResource
 import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.design.util.stringRes
+import co.electriccoin.zcash.ui.screen.viewingkey.vkAvatar
 import co.electriccoin.zcash.viewingkey.R
 
 /**
@@ -20,7 +22,7 @@ import co.electriccoin.zcash.viewingkey.R
 data class ImportVKState(
     val title: StringResource,
     val subtitle: StringResource,
-    val avatar: ImageResource.ByDrawable,
+    val avatar: AccountAvatarState,
     val heading: StringResource,
     val message: StringResource,
     val fieldLabel: StringResource,
@@ -55,7 +57,7 @@ data class ImportVKState(
         ) = ImportVKState(
             title = stringRes(R.string.view_only_import_title),
             subtitle = stringRes(R.string.view_only_import_subtitle),
-            avatar = ImageResource.ByDrawable(R.drawable.view_only_ic_avatar),
+            avatar = vkAvatar(),
             heading = stringRes(R.string.view_only_paste_heading),
             message = stringRes(R.string.view_only_paste_message),
             fieldLabel = stringRes(R.string.view_only_paste_label),

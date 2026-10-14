@@ -22,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -39,6 +38,7 @@ import co.electriccoin.zcash.ui.design.newcomponent.PreviewScreens
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.design.theme.colors.ZashiColors
 import co.electriccoin.zcash.ui.design.theme.typography.ZashiTypography
+import co.electriccoin.zcash.ui.design.util.Compose
 import co.electriccoin.zcash.ui.design.util.ImageResource
 import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.design.util.getValue
@@ -134,17 +134,13 @@ private fun WalletAvatar(
     badgeBorderColor: Color,
 ) {
     Box(modifier = Modifier.size(40.dp)) {
-        if (icon is ImageResource.ByDrawable) {
-            Image(
-                modifier =
-                    Modifier
-                        .size(40.dp)
-                        .clip(CircleShape),
-                painter = painterResource(icon.resource),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-            )
-        }
+        icon.Compose(
+            modifier =
+                Modifier
+                    .size(40.dp)
+                    .clip(CircleShape),
+            surface = badgeBorderColor,
+        )
         if (isSelected) {
             Box(
                 modifier =

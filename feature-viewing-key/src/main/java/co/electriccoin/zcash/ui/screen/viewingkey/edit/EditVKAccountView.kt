@@ -103,3 +103,10 @@ private fun LimitPreview() =
     ZcashTheme {
         EditVKAccountView(EditVKAccountState.previewLimit)
     }
+
+@PreviewScreens
+@Composable
+private fun ColoredPreview() =
+    ZcashTheme {
+        EditVKAccountView(EditVKAccountState.previewColored)
+    }

@@ -1,11 +1,13 @@
 package co.electriccoin.zcash.ui.common.datasource
 
+import androidx.compose.ui.graphics.Color
 import cash.z.ecc.android.sdk.model.Zatoshi
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.common.model.SimpleSwapAsset
 import co.electriccoin.zcash.ui.common.model.SwapMode
 import co.electriccoin.zcash.ui.common.model.SwapMode.EXACT_INPUT
 import co.electriccoin.zcash.ui.common.model.SwapStatus
+import co.electriccoin.zcash.ui.common.model.metadata.AccountAppearanceMetadataV3
 import co.electriccoin.zcash.ui.common.model.metadata.AccountMetadataV3
 import co.electriccoin.zcash.ui.common.model.metadata.AnnotationMetadataV3
 import co.electriccoin.zcash.ui.common.model.metadata.BookmarkMetadataV3
@@ -21,12 +23,15 @@ import co.electriccoin.zcash.ui.common.serialization.UnknownEncryptionVersionExc
 import co.electriccoin.zcash.ui.common.serialization.metadata.DecryptionException
 import co.electriccoin.zcash.ui.common.serialization.metadata.MetadataKey
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -89,6 +94,9 @@ interface MetadataDataSource {
         key: MetadataKey
     ): Boolean
 
+    /** Stores [color] as the account's icon colour. */
+    suspend fun setAccountColor(color: Color, key: MetadataKey): Boolean
+
     suspend fun delete(key: MetadataKey)
 }
 
@@ -108,7 +116,10 @@ class MetadataDataSourceImpl(
 ) : MetadataDataSource {
     private val mutex = Mutex()
 
-    private val metadataUpdatePipeline = MutableSharedFlow<Pair<MetadataKey, MetadataV3?>>()
+    private val metadataUpdatePipeline = MutableSharedFlow<MetadataUpdate>()
+
+    /** The number of updates published to [metadataUpdatePipeline]; read and written only under [mutex]. */
+    private var updateVersion = 0L
 
     /**
      * Non-canonical and set-aside files that failed to decode, remembered for the process lifetime:
@@ -130,18 +141,22 @@ class MetadataDataSourceImpl(
 
     private val isFlushFailureLogged = AtomicBoolean(false)
 
-    override fun observe(key: MetadataKey) =
-        flow {
-            emit(null)
-            mutex.withLock { emit(getMetadataInternal(key)) }
-            metadataUpdatePipeline.collect { (newKey, newMetadata) ->
-                if (key.bytes.size == newKey.bytes.size &&
-                    key.bytes
-                        .mapIndexed { index, secretBytes -> secretBytes.equalsSecretBytes(newKey.bytes[index]) }
-                        .all { it }
-                ) {
-                    emit(newMetadata)
-                }
+    /**
+     * Null, then the file content, then every later update for [key]. The updates are subscribed to
+     * before the file is read, so a write landing right after the read is never lost; an update the
+     * read already includes is dropped, so the content never goes back to an older state.
+     */
+    override fun observe(key: MetadataKey): Flow<MetadataV3?> =
+        channelFlow {
+            val updates = Channel<MetadataUpdate>(Channel.UNLIMITED)
+            launch(start = CoroutineStart.UNDISPATCHED) {
+                metadataUpdatePipeline.collect { update -> if (update.key.isSameAs(key)) updates.send(update) }
+            }
+            send(null)
+            val (readVersion, initial) = mutex.withLock { updateVersion to getMetadataInternal(key) }
+            send(initial)
+            for (update in updates) {
+                if (update.version > readVersion) send(update.metadata)
             }
         }.distinctUntilChanged()
 
@@ -313,11 +328,18 @@ class MetadataDataSourceImpl(
         )
     }
 
+    override suspend fun setAccountColor(color: Color, key: MetadataKey) =
+        mutex.withLock {
+            updateMetadata(key) { metadata ->
+                metadata.copy(appearance = AccountAppearanceMetadataV3(color = color, lastUpdated = Instant.now()))
+            }
+        }
+
     override suspend fun delete(key: MetadataKey) =
         withContext(ioDispatcher) {
             mutex.withLock {
                 metadataStorageProvider.deleteStorageFiles(key)
-                metadataUpdatePipeline.emit(key to null)
+                publishUpdate(key, null)
             }
         }
 
@@ -651,12 +673,22 @@ class MetadataDataSourceImpl(
 
             val isWritten = writeToLocalStorage(updatedMetadata, key)
             if (isWritten) {
-                metadataUpdatePipeline.emit(key to updatedMetadata)
+                publishUpdate(key, updatedMetadata)
             } else {
                 Twig.error { "Skipping the metadata update, the write failed" }
             }
             isWritten
         }
+
+    /** Publishes [metadata] as [key]'s latest content; called only under [mutex]. */
+    private suspend fun publishUpdate(key: MetadataKey, metadata: MetadataV3?) {
+        updateVersion++
+        metadataUpdatePipeline.emit(MetadataUpdate(version = updateVersion, key = key, metadata = metadata))
+    }
+
+    private fun MetadataKey.isSameAs(other: MetadataKey): Boolean =
+        bytes.size == other.bytes.size &&
+            bytes.indices.all { index -> bytes[index].equalsSecretBytes(other.bytes[index]) }
 
     private fun List<MetadataV3>.mergeOrDefault(): MetadataV3 =
         if (isEmpty()) defaultMetadata() else reduce { merged, next -> merged.merge(next) }
@@ -684,6 +716,13 @@ private data class FileSignature(
     val size: Long,
     val lastModified: Long,
     val keyFingerprint: String
+)
+
+/** One published change of [key]'s metadata, numbered by [MetadataDataSourceImpl]'s update counter. */
+private class MetadataUpdate(
+    val version: Long,
+    val key: MetadataKey,
+    val metadata: MetadataV3?
 )
 
 /**
@@ -793,12 +832,17 @@ private fun MetadataV3.merge(other: MetadataV3): MetadataV3 =
             )
     )
 
+/**
+ * The appearance comes from the side whose own [AccountAppearanceMetadataV3.lastUpdated] is newer, a
+ * tie keeping this side; a side without one never removes the other's.
+ */
 private fun AccountMetadataV3.merge(other: AccountMetadataV3, otherIsNewer: Boolean): AccountMetadataV3 =
     AccountMetadataV3(
         bookmarked = bookmarked.mergeById(other.bookmarked, idOf = { it.txId }, lastUpdatedOf = { it.lastUpdated }),
         read = (read.toSet() + other.read).toList(),
         annotations = annotations.mergeById(other.annotations, idOf = { it.txId }, lastUpdatedOf = { it.lastUpdated }),
-        swaps = swaps.merge(other.swaps, otherIsNewer)
+        swaps = swaps.merge(other.swaps, otherIsNewer),
+        appearance = listOfNotNull(appearance, other.appearance).maxByOrNull { it.lastUpdated }
     )
 
 /**

@@ -1,31 +1,44 @@
 package co.electriccoin.zcash.ui.screen.viewingkey.name
 
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountNameLimit
 import co.electriccoin.zcash.ui.common.model.stateIn
 import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepository
+import co.electriccoin.zcash.ui.common.usecase.NavigateToColorPickerUseCase
 import co.electriccoin.zcash.ui.screen.connecthw.HWWalletEnrollment
 import co.electriccoin.zcash.ui.screen.connecthw.date.HWDateArgs
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 /**
  * Names the pending view-only account, then goes straight on to the shared birthday date screen:
  * a view-only import always asks when the account was created, never whether it is new. The name
  * is capped at [ViewOnlyAccountNameLimit.MAX_LENGTH] code points as it is typed. Without a pending key,
- * after process death, there is nothing to name and the flow returns to the root.
+ * after process death, there is nothing to name and the flow returns to the root. The avatar's pencil
+ * badge opens the colour picker; Continue keeps the picked colour with the pending import, in memory
+ * only, for the import to store with the new account.
  */
 class NameVKVM(
     private val pendingImportRepository: ViewOnlyPendingImportRepository,
     private val navigationRouter: NavigationRouter,
+    private val navigateToColorPicker: NavigateToColorPickerUseCase,
 ) : ViewModel() {
     private val name = MutableStateFlow(pendingImportRepository.get()?.name.orEmpty())
 
+    private val color = MutableStateFlow(pendingImportRepository.get()?.color)
+
+    private var colorPickerJob: Job? = null
+
     val state: StateFlow<NameVKState> =
-        name.map(::createState).stateIn(viewModel = this, initialValue = createState(name.value))
+        combine(name, color) { name, color -> createState(name, color) }
+            .stateIn(viewModel = this, initialValue = createState(name.value, color.value))
 
     init {
         if (pendingImportRepository.get() == null) {
@@ -33,13 +46,25 @@ class NameVKVM(
         }
     }
 
-    private fun createState(name: String) =
-        NameVKState.create(
-            name = name,
-            onValueChange = ::onValueChange,
-            onContinueClick = ::onContinueClick,
-            onBack = ::onBack,
-        )
+    private fun createState(
+        name: String,
+        color: Color?
+    ) = NameVKState.create(
+        name = name,
+        color = color,
+        onAvatarEditClick = ::onAvatarEditClick,
+        onValueChange = ::onValueChange,
+        onContinueClick = ::onContinueClick,
+        onBack = ::onBack,
+    )
+
+    private fun onAvatarEditClick() {
+        if (colorPickerJob?.isActive == true) return
+        colorPickerJob =
+            viewModelScope.launch {
+                navigateToColorPicker(color.value)?.let { picked -> color.update { picked } }
+            }
+    }
 
     private fun onValueChange(value: String) = name.update { ViewOnlyAccountNameLimit.cap(value) }
 
@@ -51,7 +76,7 @@ class NameVKVM(
             navigationRouter.backToRoot()
             return
         }
-        pendingImportRepository.set(pending.copy(name = trimmed))
+        pendingImportRepository.set(pending.copy(name = trimmed, color = color.value))
         navigationRouter.forward(HWDateArgs(HWWalletEnrollment.ViewOnly))
     }
 
@@ -60,6 +85,7 @@ class NameVKVM(
      * the key is submitted again.
      */
     private fun onBack() {
+        colorPickerJob?.cancel()
         pendingImportRepository.clear()
         navigationRouter.back()
     }

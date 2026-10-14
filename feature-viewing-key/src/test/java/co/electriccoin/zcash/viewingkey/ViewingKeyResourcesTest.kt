@@ -141,8 +141,11 @@ class ViewingKeyResourcesTest {
         const val UI_LIB_RES = "../ui-lib/src/main/res"
         const val UI_DESIGN_LIB_RES = "../ui-design-lib/src/main/res"
 
-        /** Icons drawn in the content colour of the button that shows them, so one variant serves both themes. */
-        val TINTED_ICONS = setOf("view_only_ic_plus.xml")
+        /**
+         * Icons tinted where they are drawn, so one variant serves both themes: the plus in its button's
+         * content colour, the avatar eye in white or black against the avatar's colour.
+         */
+        val TINTED_ICONS = setOf("view_only_ic_plus.xml", "view_only_ic_avatar_eye.xml")
 
         val STRING = Regex("""<string name="([^"]+)">([^<]*)</string>""")
         val NAME = Regex("""<[a-z-]+ name="([^"]+)"""")

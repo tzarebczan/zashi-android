@@ -1,14 +1,21 @@
 package co.electriccoin.zcash.ui.screen.viewingkey
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isSpecified
 import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountNameLimit
 import co.electriccoin.zcash.ui.common.repository.PendingViewOnlyImport
 import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepositoryImpl
+import co.electriccoin.zcash.ui.common.usecase.NavigateToColorPickerUseCase
+import co.electriccoin.zcash.ui.design.util.ImageResource
 import co.electriccoin.zcash.ui.design.util.StringResource
+import co.electriccoin.zcash.ui.screen.colorpicker.ColorPickerArgs
 import co.electriccoin.zcash.ui.screen.connecthw.HWWalletEnrollment
 import co.electriccoin.zcash.ui.screen.connecthw.date.HWDateArgs
 import co.electriccoin.zcash.ui.screen.connecthw.neworactive.HWNewOrActiveArgs
+import co.electriccoin.zcash.ui.screen.viewingkey.name.NameVKState
 import co.electriccoin.zcash.ui.screen.viewingkey.name.NameVKVM
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
@@ -26,17 +33,30 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
  * The name is capped at twelve characters as it is typed, the counter follows it, Continue needs a
  * name that is not blank and stores it trimmed before going straight to the birthday date, without
- * the new-or-active question, and back forgets the pending key.
+ * the new-or-active question, and back forgets the pending key. The avatar's pencil badge opens the
+ * colour picker; a picked colour shows on the avatar, and Continue keeps it with the pending import.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class NameVKVMTest {
     private val navigationRouter = mockk<NavigationRouter>(relaxed = true)
+
+    private val pickerRequests = mutableListOf<ColorPickerArgs>()
+
+    private val navigateToColorPicker =
+        NavigateToColorPickerUseCase(
+            mockk(relaxed = true) {
+                every { forward(*anyVararg()) } answers {
+                    (args[0] as Array<*>).filterIsInstance<ColorPickerArgs>().forEach { pickerRequests.add(it) }
+                }
+            }
+        )
 
     private val repository =
         ViewOnlyPendingImportRepositoryImpl().apply { set(PendingViewOnlyImport(ufvk = UFVK, name = "")) }
@@ -173,6 +193,77 @@ class NameVKVMTest {
             verify(exactly = 1) { navigationRouter.backToRoot() }
         }
 
+    @Test
+    fun aPickedColorShowsOnTheAvatarAndContinueKeepsItWithThePendingImport() =
+        runTest {
+            val vm = vm()
+            collect(vm)
+            assertNull(vm.state.value.avatarColor())
+
+            openPicker(vm)
+            val request = pickerRequests.single()
+            assertNull(request.initialArgb)
+            navigateToColorPicker.onSelected(Color(PICKED), request)
+            runCurrent()
+
+            assertEquals(Color(PICKED), vm.state.value.avatarColor())
+            assertEquals(PendingViewOnlyImport(ufvk = UFVK, name = ""), repository.get())
+
+            type(vm, "Savings")
+            vm.state.value.continueButton
+                .onClick()
+
+            assertEquals(PendingViewOnlyImport(ufvk = UFVK, name = "Savings", color = Color(PICKED)), repository.get())
+        }
+
+    @Test
+    fun theColorOfThePendingImportShowsWhenTheScreenOpensAgain() =
+        runTest {
+            repository.set(PendingViewOnlyImport(ufvk = UFVK, name = "Savings", color = Color(PICKED)))
+            val vm = vm()
+            collect(vm)
+
+            assertEquals(Color(PICKED), vm.state.value.avatarColor())
+        }
+
+    @Test
+    fun aDismissedPickerKeepsTheColorAndReopensWithIt() =
+        runTest {
+            val vm = vm()
+            collect(vm)
+            openPicker(vm)
+            navigateToColorPicker.onSelected(Color(PICKED), pickerRequests.last())
+            runCurrent()
+
+            openPicker(vm)
+            val second = pickerRequests.last()
+            assertEquals(Color(PICKED), Color(assertNotNull(second.initialArgb)))
+            navigateToColorPicker.onCancelled(second)
+            runCurrent()
+
+            assertEquals(Color(PICKED), vm.state.value.avatarColor())
+        }
+
+    @Test
+    fun aSecondTapWhileThePickerIsOpenOpensNothing() =
+        runTest {
+            val vm = vm()
+            collect(vm)
+
+            openPicker(vm)
+            openPicker(vm)
+
+            assertEquals(1, pickerRequests.size)
+        }
+
+    private fun NameVKState.avatarColor() =
+        (avatar.image as ImageResource.Layered).background.takeIf { it.isSpecified }
+
+    private fun TestScope.openPicker(vm: NameVKVM) {
+        assertNotNull(vm.state.value.avatar.editButton).onClick()
+        runCurrent()
+    }
+
     private fun TestScope.type(
         vm: NameVKVM,
         text: String,
@@ -182,7 +273,12 @@ class NameVKVMTest {
         runCurrent()
     }
 
-    private fun vm() = NameVKVM(pendingImportRepository = repository, navigationRouter = navigationRouter)
+    private fun vm() =
+        NameVKVM(
+            pendingImportRepository = repository,
+            navigationRouter = navigationRouter,
+            navigateToColorPicker = navigateToColorPicker
+        )
 
     private fun TestScope.collect(vm: NameVKVM) {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.state.collect { } }
@@ -195,6 +291,7 @@ class NameVKVMTest {
 
     private companion object {
         const val UFVK = "uview1namefixture"
+        const val PICKED = 0x80BE38F3
     }
 }
 

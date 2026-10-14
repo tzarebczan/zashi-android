@@ -21,7 +21,7 @@ import kotlin.test.assertTrue
  * Removing a view-only account authenticates first, cancels its migration work, deletes it and, when
  * it was selected after the authentication, selects the Zodl account. A failed or dismissed
  * authentication removes nothing, and an id that names the Zodl account or nothing at all removes
- * nothing without asking.
+ * nothing without asking. The account's metadata is never touched: the use case has no access to it.
  */
 class RemoveViewOnlyAccountUseCaseTest {
     private val zashi = ViewOnlyAccountFixtures.zashi(isSelected = false)

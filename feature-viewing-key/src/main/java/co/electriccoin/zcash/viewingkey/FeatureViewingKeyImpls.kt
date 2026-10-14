@@ -39,6 +39,8 @@ import co.electriccoin.zcash.ui.screen.viewingkey.scan.ScanVKScreen
 internal class ViewOnlyContentImpl : ViewOnlyContent {
     override val accountIcon: Int = R.drawable.view_only_ic_account
 
+    override val accountIconForeground: Int = R.drawable.view_only_ic_avatar_eye
+
     override val defaultAccountName = stringRes(R.string.view_only_account_default_name)
 
     override val topBarSubtitle = stringRes(R.string.view_only_top_bar_subtitle)

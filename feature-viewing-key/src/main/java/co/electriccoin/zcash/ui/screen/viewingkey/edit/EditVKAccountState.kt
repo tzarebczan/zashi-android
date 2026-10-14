@@ -1,25 +1,29 @@
 package co.electriccoin.zcash.ui.screen.viewingkey.edit
 
 import androidx.compose.runtime.Immutable
+import androidx.compose.ui.graphics.Color
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountNameLimit
+import co.electriccoin.zcash.ui.design.component.AccountAvatarState
 import co.electriccoin.zcash.ui.design.component.ButtonState
 import co.electriccoin.zcash.ui.design.component.ButtonStyle
 import co.electriccoin.zcash.ui.design.component.TextFieldState
 import co.electriccoin.zcash.ui.design.util.ImageResource
 import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.design.util.stringRes
+import co.electriccoin.zcash.ui.screen.viewingkey.vkAvatar
 import co.electriccoin.zcash.viewingkey.R
 
 /**
  * Renames a view-only account or starts removing it.
  *
+ * @param avatar the account avatar in its colour, whose pencil badge opens the colour picker.
  * @param counter how many of the allowed characters [field] uses, shown under it.
  * @param removeInfo the line above the buttons that says removing asks for a confirmation.
  */
 @Immutable
 data class EditVKAccountState(
     val title: StringResource,
-    val avatar: ImageResource.ByDrawable,
+    val avatar: AccountAvatarState,
     val heading: StringResource,
     val message: StringResource,
     val fieldLabel: StringResource,
@@ -39,21 +43,28 @@ data class EditVKAccountState(
 
         val previewLimit: EditVKAccountState = preview(name = "Zodl Savings")
 
+        val previewColored: EditVKAccountState =
+            preview(name = "Zodl Vault", color = Color(PREVIEW_COLOR), isColorChanged = true)
+
         /**
-         * The screen for [name] typed over the account's [currentName]. Save is enabled while the
-         * trimmed name is not blank, differs from [currentName] and no save is running.
+         * The screen for [name] typed over the account's [currentName], with the avatar in [color] or
+         * the default avatar without one. Save is enabled while no save is running and either the
+         * trimmed name is not blank and differs from [currentName], or [isColorChanged].
          */
         fun create(
             name: String,
             currentName: String,
             isSaving: Boolean,
+            color: Color?,
+            isColorChanged: Boolean,
+            onAvatarEditClick: () -> Unit,
             onValueChange: (String) -> Unit,
             onSaveClick: () -> Unit,
             onRemoveClick: () -> Unit,
             onBack: () -> Unit,
         ) = EditVKAccountState(
             title = stringRes(R.string.view_only_edit_title),
-            avatar = ImageResource.ByDrawable(R.drawable.view_only_ic_avatar),
+            avatar = vkAvatar(color = color, onEditClick = onAvatarEditClick),
             heading = stringRes(R.string.view_only_name_heading),
             message = stringRes(R.string.view_only_name_message),
             fieldLabel = stringRes(R.string.view_only_name_label),
@@ -78,7 +89,7 @@ data class EditVKAccountState(
                 ButtonState(
                     text = stringRes(R.string.view_only_edit_save),
                     style = ButtonStyle.PRIMARY,
-                    isEnabled = canSave(name, currentName) && !isSaving,
+                    isEnabled = (canSave(name, currentName) || isColorChanged) && !isSaving,
                     isLoading = isSaving,
                     onClick = onSaveClick,
                 ),
@@ -94,16 +105,24 @@ data class EditVKAccountState(
             return trimmed.isNotEmpty() && trimmed != currentName
         }
 
-        private fun preview(name: String) =
-            create(
-                name = name,
-                currentName = "Zodl Vault",
-                isSaving = false,
-                onValueChange = {},
-                onSaveClick = {},
-                onRemoveClick = {},
-                onBack = {},
-            )
+        private fun preview(
+            name: String,
+            color: Color? = null,
+            isColorChanged: Boolean = false,
+        ) = create(
+            name = name,
+            currentName = "Zodl Vault",
+            isSaving = false,
+            color = color,
+            isColorChanged = isColorChanged,
+            onAvatarEditClick = {},
+            onValueChange = {},
+            onSaveClick = {},
+            onRemoveClick = {},
+            onBack = {},
+        )
+
+        private const val PREVIEW_COLOR = 0xFFBE38F3
     }
 }
 

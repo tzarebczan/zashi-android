@@ -1,5 +1,6 @@
 package co.electriccoin.zcash.ui.common.usecase
 
+import androidx.compose.ui.graphics.Color
 import cash.z.ecc.android.sdk.model.Account
 import cash.z.ecc.android.sdk.model.BlockHeight
 import co.electriccoin.zcash.ui.NavigationRouter
@@ -8,6 +9,7 @@ import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountAlreadyExistsExcepti
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountImportException
 import co.electriccoin.zcash.ui.common.model.ViewOnlyPendingImportMissingException
 import co.electriccoin.zcash.ui.common.provider.SynchronizerProvider
+import co.electriccoin.zcash.ui.common.repository.MetadataRepository
 import co.electriccoin.zcash.ui.common.repository.PendingViewOnlyImport
 import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepositoryImpl
 import co.electriccoin.zcash.ui.screen.keepopen.KeepOpenArgs
@@ -17,11 +19,14 @@ import co.electriccoin.zcash.ui.screen.viewingkey.ImportedVKArgs
 import co.electriccoin.zcash.viewingkey.ViewOnlyAccountImporterImpl
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.coVerifyOrder
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -37,13 +42,14 @@ import kotlin.test.assertTrue
  * restarts the synchronizer, then shows the success screen, through the keep-open screen when there
  * is history to scan. A key the wallet already holds ends on the "already imported" sheet; nothing
  * pending fails without touching the wallet; an SDK failure keeps the key so the import can be
- * retried. A caller cancelled mid-import still gets the account selected, but no navigation. The
- * importer ui-lib calls delegates to it.
+ * retried. A caller cancelled mid-import still gets the account selected, but no navigation. A picked
+ * colour is stored for the new account once the wallet lists it. The importer ui-lib calls delegates
+ * to it.
  */
 class ImportViewOnlyAccountUseCaseTest {
     private val repository = ViewOnlyPendingImportRepositoryImpl()
 
-    private val created = mockk<Account>()
+    private val created = mockk<Account> { every { accountUuid } returns ViewOnlyAccountFixtures.viewOnlyUuid }
 
     private val accountDataSource =
         mockk<AccountDataSource>(relaxed = true) {
@@ -54,8 +60,16 @@ class ImportViewOnlyAccountUseCaseTest {
 
     private val navigationRouter = mockk<NavigationRouter>(relaxed = true)
 
+    private val metadataRepository = mockk<MetadataRepository>(relaxed = true)
+
     private val useCase =
-        ImportViewOnlyAccountUseCase(repository, accountDataSource, synchronizerProvider, navigationRouter)
+        ImportViewOnlyAccountUseCase(
+            repository,
+            accountDataSource,
+            synchronizerProvider,
+            navigationRouter,
+            metadataRepository
+        )
 
     @Test
     fun anAccountWithoutHistoryGoesStraightToTheSuccessScreen() =
@@ -69,6 +83,37 @@ class ImportViewOnlyAccountUseCaseTest {
             verify(exactly = 1) { synchronizerProvider.resetSynchronizer() }
             verify(exactly = 1) { navigationRouter.forward(ImportedVKArgs) }
             assertNull(repository.get())
+            coVerify(exactly = 0) { metadataRepository.setAccountColor(any(), any()) }
+        }
+
+    @Test
+    fun aPickedColorIsStoredForTheNewAccountBeforeTheSynchronizerRestarts() =
+        runTest {
+            val account = ViewOnlyAccountFixtures.viewOnly()
+            every { accountDataSource.allAccounts } returns MutableStateFlow(listOf(account))
+            repository.set(PendingViewOnlyImport(ufvk = UFVK, name = "Savings", color = Color(PICKED)))
+
+            useCase(birthday = null)
+
+            coVerifyOrder {
+                accountDataSource.selectAccount(created)
+                metadataRepository.setAccountColor(account, Color(PICKED))
+                synchronizerProvider.resetSynchronizer()
+            }
+            verify(exactly = 1) { navigationRouter.forward(ImportedVKArgs) }
+        }
+
+    @Test
+    fun aColorForAnAccountTheWalletNeverListsIsDroppedAndTheImportGoesOn() =
+        runTest {
+            every { accountDataSource.allAccounts } returns MutableStateFlow(emptyList())
+            repository.set(PendingViewOnlyImport(ufvk = UFVK, name = "Savings", color = Color(PICKED)))
+
+            useCase(birthday = null)
+
+            coVerify(exactly = 0) { metadataRepository.setAccountColor(any(), any()) }
+            verify(exactly = 1) { synchronizerProvider.resetSynchronizer() }
+            verify(exactly = 1) { navigationRouter.forward(ImportedVKArgs) }
         }
 
     @Test
@@ -201,5 +246,6 @@ class ImportViewOnlyAccountUseCaseTest {
 
     private companion object {
         const val UFVK = "uview1testkeythatmustneverbeprinted"
+        const val PICKED = 0x80BE38F3
     }
 }

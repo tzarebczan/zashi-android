@@ -9,6 +9,7 @@ import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
 import co.electriccoin.zcash.ui.design.component.NumberTextFieldInnerState
 import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.design.util.stringRes
+import co.electriccoin.zcash.ui.fixture.WalletFixture
 import co.electriccoin.zcash.ui.screen.connecthw.date.HWDateArgs
 import co.electriccoin.zcash.ui.screen.connecthw.date.HWDateVM
 import co.electriccoin.zcash.ui.screen.connecthw.estimation.HWEstimationArgs
@@ -35,6 +36,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.serialization.json.Json
+import java.time.YearMonth
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -234,6 +236,20 @@ class HWEnrollmentVMTest {
                 verify(exactly = 1) { navigationRouter.forward(HeightInfoArgs) }
             }
         }
+
+    @Test
+    fun theDateScreenStartsOnSaplingActivationForAHardwareWalletAndOnTheLatestMonthForAViewOnlyImport() {
+        hardwareEnrollments.forEach { enrollment ->
+            val selection = assertNotNull(dateVM(enrollment, readyUseCase()).state.value.content).selection
+
+            assertEquals(WalletFixture.SAPLING_ACTIVATION_YEAR_MONTH, selection)
+        }
+
+        val before = YearMonth.now()
+        val selection = assertNotNull(dateVM(HWWalletEnrollment.ViewOnly, readyUseCase()).state.value.content).selection
+
+        assertTrue(selection in before..YearMonth.now())
+    }
 
     @Test
     fun theEstimationScreenImportsAtTheEstimatedHeightForBothVendors() =

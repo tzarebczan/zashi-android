@@ -1597,4 +1597,17 @@ Your vote can no longer be submitted.</string>
     <string name="migrationHome_residueTitle">%1$s left in Orchard</string>
     <string name="migrationHome_residueSubtitle">Tap to decide what happens to it</string>
 
+    <string name="colorPicker_title">Colors</string>
+    <string name="colorPicker_grid">Grid</string>
+    <string name="colorPicker_spectrum">Spectrum</string>
+    <string name="colorPicker_sliders">Sliders</string>
+    <string name="colorPicker_opacity">Opacity</string>
+    <string name="colorPicker_percent">%1$d%%</string>
+    <string name="colorPicker_red">Red</string>
+    <string name="colorPicker_green">Green</string>
+    <string name="colorPicker_blue">Blue</string>
+    <string name="colorPicker_hex">Hex Color #</string>
+    <string name="colorPicker_done">Done</string>
+    <string name="colorPicker_edit">Change color</string>
+
 </resources>

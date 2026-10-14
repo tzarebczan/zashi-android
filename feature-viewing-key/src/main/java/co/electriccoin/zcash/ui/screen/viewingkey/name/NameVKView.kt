@@ -64,3 +64,10 @@ private fun LimitPreview() =
     ZcashTheme {
         NameVKView(NameVKState.previewLimit)
     }
+
+@PreviewScreens
+@Composable
+private fun ColoredPreview() =
+    ZcashTheme {
+        NameVKView(NameVKState.previewColored)
+    }

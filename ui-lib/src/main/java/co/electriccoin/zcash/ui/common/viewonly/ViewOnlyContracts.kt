@@ -66,6 +66,13 @@ interface ViewOnlyContent {
     @get:DrawableRes
     val accountIcon: Int
 
+    /**
+     * The eye of the account's coloured icon, padding built in, drawn over a circle in the account's
+     * colour or the default avatar circle.
+     */
+    @get:DrawableRes
+    val accountIconForeground: Int
+
     /** The account name used when the name stored with the account is blank. */
     val defaultAccountName: StringResource
 

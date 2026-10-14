@@ -18,6 +18,7 @@ import co.electriccoin.zcash.ui.design.component.IconButtonState
 import co.electriccoin.zcash.ui.design.util.stringRes
 import co.electriccoin.zcash.ui.fixture.WalletFixture
 import co.electriccoin.zcash.ui.screen.common.BirthdayPickerState
+import co.electriccoin.zcash.ui.screen.connecthw.HWWalletEnrollment
 import co.electriccoin.zcash.ui.screen.connecthw.brandingOf
 import co.electriccoin.zcash.ui.screen.connecthw.estimation.HWEstimationArgs
 import co.electriccoin.zcash.ui.screen.connecthw.height.HWHeightArgs
@@ -32,7 +33,8 @@ import kotlin.time.toKotlinInstant
 
 /**
  * Picks the month the enrolled account first transacted in, and estimates the birthday height from
- * it.
+ * it. A view-only import starts on the latest month the picker offers, the current one; a hardware
+ * wallet starts on Sapling activation.
  */
 class HWDateVM(
     private val args: HWDateArgs,
@@ -43,7 +45,14 @@ class HWDateVM(
     viewOnlyContent: ViewOnlyContent,
 ) : ViewModel() {
     private val branding = brandingOf(args.enrollment, viewOnlyContent)
-    private val selection = MutableStateFlow(WalletFixture.SAPLING_ACTIVATION_YEAR_MONTH)
+    private val selection =
+        MutableStateFlow(
+            if (args.enrollment == HWWalletEnrollment.ViewOnly) {
+                YearMonth.now()
+            } else {
+                WalletFixture.SAPLING_ACTIVATION_YEAR_MONTH
+            }
+        )
     private val estimateLce = mutableLce<Unit>()
 
     val state: StateFlow<LceState<BirthdayPickerState>> =

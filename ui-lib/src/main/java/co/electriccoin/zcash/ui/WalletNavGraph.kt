@@ -42,6 +42,8 @@ import co.electriccoin.zcash.ui.screen.choosehwwallet.ChooseHWWalletArgs
 import co.electriccoin.zcash.ui.screen.choosehwwallet.ChooseHWWalletScreen
 import co.electriccoin.zcash.ui.screen.chooseserver.ChooseServerArgs
 import co.electriccoin.zcash.ui.screen.chooseserver.ChooseServerScreen
+import co.electriccoin.zcash.ui.screen.colorpicker.ColorPickerArgs
+import co.electriccoin.zcash.ui.screen.colorpicker.ColorPickerScreen
 import co.electriccoin.zcash.ui.screen.connecthw.HWWalletEnrollmentNavType
 import co.electriccoin.zcash.ui.screen.connecthw.date.HWDateArgs
 import co.electriccoin.zcash.ui.screen.connecthw.date.HWFirstTransactionScreen
@@ -352,6 +354,7 @@ fun NavGraphBuilder.walletNavGraph(
         dialogComposable<CurrencyConversionPickerArgs> { CurrencyConversionPickerScreen(it.toRoute()) }
         composable<SwapArgs> { SwapScreen() }
         dialogComposable<SwapSlippageArgs> { SwapSlippageScreen(it.toRoute()) }
+        dialogComposable<ColorPickerArgs> { ColorPickerScreen(it.toRoute()) }
         dialogComposable<SwapRefundWarningArgs> { SwapRefundWarningScreen(it.toRoute()) }
         dialogComposable<SwapInfoArgs> { SwapInfoScreen() }
         dialogComposable<DepositSwapInfoArgs> { DepositSwapInfoScreen() }

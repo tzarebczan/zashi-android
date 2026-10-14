@@ -1,9 +1,10 @@
 package co.electriccoin.zcash.ui.common.appbar
 
-import androidx.annotation.DrawableRes
 import co.electriccoin.zcash.ui.design.R
 import co.electriccoin.zcash.ui.design.component.IconButtonState
+import co.electriccoin.zcash.ui.design.util.ImageResource
 import co.electriccoin.zcash.ui.design.util.StringResource
+import co.electriccoin.zcash.ui.design.util.imageRes
 import co.electriccoin.zcash.ui.design.util.stringRes
 
 data class ZashiMainTopAppBarState(
@@ -40,13 +41,13 @@ data class ZashiMainTopAppBarState(
         val previewLoading: ZashiMainTopAppBarState = preview.copy(accountSwitchState = null)
 
         private fun preview(
-            @DrawableRes icon: Int,
+            icon: Int,
             name: StringResource,
             subtitle: StringResource? = null,
         ) = ZashiMainTopAppBarState(
             accountSwitchState =
                 AccountSwitchState(
-                    icon = icon,
+                    icon = imageRes(icon),
                     name = name,
                     subtitle = subtitle,
                     onAccountTypeClick = {}
@@ -65,7 +66,7 @@ data class ZashiMainTopAppBarState(
  * @param subtitle A small label above [name], or null for an account that needs none.
  */
 data class AccountSwitchState(
-    @param:DrawableRes val icon: Int,
+    val icon: ImageResource,
     val name: StringResource,
     val subtitle: StringResource?,
     val onAccountTypeClick: (() -> Unit)?,

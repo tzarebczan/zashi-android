@@ -14,7 +14,8 @@ import kotlinx.coroutines.withContext
  * the user authenticates first, any migration work scheduled for the account is cancelled, the SDK
  * account is deleted (which also forgets its stored name), and when it was the selected account the
  * Zodl account is selected so the app never points at an account that is gone. The address book and
- * the account's metadata files stay, and the synchronizer is not restarted, as for a disconnect.
+ * the account's metadata files stay, only Reset Zodl deletes metadata, and the synchronizer is not
+ * restarted, as for a disconnect.
  *
  * Only a view-only account is ever removed here: the id is resolved again right before deleting,
  * and an id that names nothing, or names the Zodl account or a hardware wallet, removes nothing.

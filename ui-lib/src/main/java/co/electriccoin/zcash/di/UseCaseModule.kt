@@ -72,6 +72,7 @@ import co.electriccoin.zcash.ui.common.usecase.IsServerAutomaticUseCase
 import co.electriccoin.zcash.ui.common.usecase.IsTorEnabledUseCase
 import co.electriccoin.zcash.ui.common.usecase.MarkTxMemoAsReadUseCase
 import co.electriccoin.zcash.ui.common.usecase.NavigateToAddressBookUseCase
+import co.electriccoin.zcash.ui.common.usecase.NavigateToColorPickerUseCase
 import co.electriccoin.zcash.ui.common.usecase.NavigateToExportPrivateDataUseCase
 import co.electriccoin.zcash.ui.common.usecase.NavigateToNearPayUseCase
 import co.electriccoin.zcash.ui.common.usecase.NavigateToReceiveUseCase
@@ -95,6 +96,7 @@ import co.electriccoin.zcash.ui.common.usecase.NavigateToTaxExportUseCase
 import co.electriccoin.zcash.ui.common.usecase.NavigateToVotingUseCase
 import co.electriccoin.zcash.ui.common.usecase.NavigateToWalletBackupUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveABContactPickedUseCase
+import co.electriccoin.zcash.ui.common.usecase.ObserveAccountIconUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveClearSendUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveContactByAddressUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveFastestServersUseCase
@@ -198,6 +200,7 @@ val useCaseModule =
         factoryOf(::GetWalletAccountsUseCase)
         factoryOf(::SelectWalletAccountUseCase)
         factoryOf(::ObserveSelectedWalletAccountUseCase)
+        factoryOf(::ObserveAccountIconUseCase)
         factoryOf(::ObserveZashiAccountUseCase)
         factoryOf(::GetZashiAccountUseCase)
         factoryOf(::CreateHWWalletAccountUseCase)
@@ -284,6 +287,7 @@ val useCaseModule =
         singleOf(::NavigateToSelectABSwapRecipientUseCase)
         singleOf(::NavigateToSelectSwapBlockchainUseCase)
         singleOf(::NavigateToSlippageUseCase)
+        singleOf(::NavigateToColorPickerUseCase)
         singleOf(::NavigateToSwapRefundWarningUseCase)
         singleOf(::NavigateToSwapAssetPickerUseCase)
         singleOf(::NavigateToSelectFiatCurrencyUseCase)

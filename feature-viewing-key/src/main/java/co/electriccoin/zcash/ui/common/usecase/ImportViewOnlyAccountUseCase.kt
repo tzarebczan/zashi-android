@@ -1,5 +1,7 @@
 package co.electriccoin.zcash.ui.common.usecase
 
+import androidx.compose.ui.graphics.Color
+import cash.z.ecc.android.sdk.model.Account
 import cash.z.ecc.android.sdk.model.BlockHeight
 import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
@@ -7,6 +9,7 @@ import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountAlreadyExistsExcepti
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountImportException
 import co.electriccoin.zcash.ui.common.model.ViewOnlyPendingImportMissingException
 import co.electriccoin.zcash.ui.common.provider.SynchronizerProvider
+import co.electriccoin.zcash.ui.common.repository.MetadataRepository
 import co.electriccoin.zcash.ui.common.repository.PendingViewOnlyImport
 import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepository
 import co.electriccoin.zcash.ui.screen.keepopen.KeepOpenArgs
@@ -16,9 +19,13 @@ import co.electriccoin.zcash.ui.screen.viewingkey.ImportedVKArgs
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Imports the pending viewing key under its name at [invoke]'s birthday, selects the new account,
@@ -32,13 +39,15 @@ import kotlinx.coroutines.withContext
  * as a single, so every caller shares the one lock.
  *
  * Once the import starts it runs to the restarted synchronizer even if the caller is cancelled, so
- * an account is never left imported but unselected; only the navigation is skipped then.
+ * an account is never left imported but unselected; only the navigation is skipped then. A colour
+ * picked for the account is stored in its metadata on the way, best-effort.
  */
 internal class ImportViewOnlyAccountUseCase(
     private val pendingImportRepository: ViewOnlyPendingImportRepository,
     private val accountDataSource: AccountDataSource,
     private val synchronizerProvider: SynchronizerProvider,
     private val navigationRouter: NavigationRouter,
+    private val metadataRepository: MetadataRepository,
 ) {
     private val mutex = Mutex()
 
@@ -83,8 +92,31 @@ internal class ImportViewOnlyAccountUseCase(
                 return AlreadyImportedVKArgs
             }
         accountDataSource.selectAccount(created)
+        pending.color?.let { storeColor(created, it) }
         pendingImportRepository.clear()
         synchronizerProvider.resetSynchronizer()
         return if (birthday != null) KeepOpenArgs(KeepOpenFlow.VIEW_ONLY) else ImportedVKArgs
+    }
+
+    /**
+     * Stores [color] for [created] once the wallet lists it, waiting at most [COLOR_WAIT]; a failure
+     * to store it is only logged.
+     */
+    private suspend fun storeColor(
+        created: Account,
+        color: Color,
+    ) {
+        val account =
+            withTimeoutOrNull(COLOR_WAIT) {
+                accountDataSource.allAccounts
+                    .mapNotNull { accounts ->
+                        accounts?.firstOrNull { it.sdkAccount.accountUuid == created.accountUuid }
+                    }.first()
+            } ?: return
+        metadataRepository.setAccountColor(account, color)
+    }
+
+    private companion object {
+        val COLOR_WAIT = 5.seconds
     }
 }

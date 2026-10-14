@@ -1,18 +1,22 @@
 package co.electriccoin.zcash.ui.screen.viewingkey.name
 
 import androidx.compose.runtime.Immutable
+import androidx.compose.ui.graphics.Color
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountNameLimit
+import co.electriccoin.zcash.ui.design.component.AccountAvatarState
 import co.electriccoin.zcash.ui.design.component.ButtonState
 import co.electriccoin.zcash.ui.design.component.ButtonStyle
 import co.electriccoin.zcash.ui.design.component.TextFieldState
-import co.electriccoin.zcash.ui.design.util.ImageResource
 import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.design.util.stringRes
+import co.electriccoin.zcash.ui.screen.viewingkey.vkAvatar
 import co.electriccoin.zcash.viewingkey.R
 
 /**
  * Names the account being imported.
  *
+ * @param avatar the account avatar, whose pencil badge opens the colour picker. The picked colour is
+ *        only shown, not yet stored with the account.
  * @param counter how many of the allowed characters [field] uses, counted in code points, shown
  *        under it.
  */
@@ -20,7 +24,7 @@ import co.electriccoin.zcash.viewingkey.R
 data class NameVKState(
     val title: StringResource,
     val subtitle: StringResource,
-    val avatar: ImageResource.ByDrawable,
+    val avatar: AccountAvatarState,
     val heading: StringResource,
     val message: StringResource,
     val fieldLabel: StringResource,
@@ -35,20 +39,25 @@ data class NameVKState(
 
         val previewFilled: NameVKState = preview(name = "Zodl Vault")
 
+        val previewColored: NameVKState = preview(name = "Zodl Vault", color = Color(PREVIEW_COLOR))
+
         val previewLimit: NameVKState = preview(name = "Zodl Savings")
 
         /**
-         * The screen for [name]. Continue is enabled while the name is not blank.
+         * The screen for [name] with the avatar in [color], or the default avatar without one.
+         * Continue is enabled while the name is not blank.
          */
         fun create(
             name: String,
+            color: Color?,
+            onAvatarEditClick: () -> Unit,
             onValueChange: (String) -> Unit,
             onContinueClick: () -> Unit,
             onBack: () -> Unit,
         ) = NameVKState(
             title = stringRes(R.string.view_only_import_title),
             subtitle = stringRes(R.string.view_only_import_subtitle),
-            avatar = ImageResource.ByDrawable(R.drawable.view_only_ic_avatar),
+            avatar = vkAvatar(color = color, onEditClick = onAvatarEditClick),
             heading = stringRes(R.string.view_only_name_heading),
             message = stringRes(R.string.view_only_name_message),
             fieldLabel = stringRes(R.string.view_only_name_label),
@@ -70,13 +79,19 @@ data class NameVKState(
             onBack = onBack,
         )
 
-        private fun preview(name: String) =
-            create(
-                name = name,
-                onValueChange = {},
-                onContinueClick = {},
-                onBack = {},
-            )
+        private fun preview(
+            name: String,
+            color: Color? = null
+        ) = create(
+            name = name,
+            color = color,
+            onAvatarEditClick = {},
+            onValueChange = {},
+            onContinueClick = {},
+            onBack = {},
+        )
+
+        private const val PREVIEW_COLOR = 0xFFBE38F3
     }
 }
 

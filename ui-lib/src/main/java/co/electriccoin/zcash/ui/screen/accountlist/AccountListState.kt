@@ -190,7 +190,7 @@ data class AccountListState(
         private fun AccountListEntry.toItemState(viewOnlyLabel: StringResource): WalletListItemState {
             val formattedBalance = balance?.let { stringRes(it).asPrivacySensitive() }
             return WalletListItemState(
-                icon = imageRes(icon),
+                icon = icon,
                 title = name,
                 subtitle =
                     if (kind == AccountListKind.VIEW_ONLY) {
@@ -239,7 +239,7 @@ data class AccountListState(
             balance: Zatoshi? = Zatoshi(PREVIEW_ZODL_BALANCE)
         ) = AccountListEntry(
             kind = AccountListKind.ZODL,
-            icon = R.drawable.ic_item_zashi,
+            icon = imageRes(R.drawable.ic_item_zashi),
             name = stringRes("Zodl"),
             balance = balance,
             isSelected = isSelected,
@@ -250,7 +250,7 @@ data class AccountListState(
         private fun previewKeystone(isSelected: Boolean) =
             AccountListEntry(
                 kind = AccountListKind.KEYSTONE,
-                icon = R.drawable.ic_item_keystone,
+                icon = imageRes(R.drawable.ic_item_keystone),
                 name = stringRes("Keystone"),
                 balance = Zatoshi(PREVIEW_KEYSTONE_BALANCE),
                 isSelected = isSelected,
@@ -261,7 +261,7 @@ data class AccountListState(
         private fun previewLedger(isSelected: Boolean) =
             AccountListEntry(
                 kind = AccountListKind.LEDGER,
-                icon = R.drawable.ic_item_ledger,
+                icon = imageRes(R.drawable.ic_item_ledger),
                 name = stringRes("Ledger"),
                 balance = Zatoshi(PREVIEW_LEDGER_BALANCE),
                 isSelected = isSelected,
@@ -274,7 +274,7 @@ data class AccountListState(
             isSelected: Boolean
         ) = AccountListEntry(
             kind = AccountListKind.VIEW_ONLY,
-            icon = R.drawable.ic_item_zashi,
+            icon = imageRes(R.drawable.ic_item_zashi),
             name = stringRes(name),
             balance = Zatoshi(PREVIEW_VIEW_ONLY_BALANCE),
             isSelected = isSelected,
@@ -332,7 +332,7 @@ enum class AccountListKind {
  */
 data class AccountListEntry(
     val kind: AccountListKind,
-    @param:DrawableRes val icon: Int,
+    val icon: ImageResource,
     val name: StringResource,
     val balance: Zatoshi?,
     val isSelected: Boolean,

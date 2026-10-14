@@ -1,8 +1,10 @@
 package co.electriccoin.zcash.ui.common.appbar
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import cash.z.ecc.android.sdk.model.AccountUuid
 import cash.z.ecc.sdk.ANDROID_STATE_FLOW_TIMEOUT
 import co.electriccoin.zcash.preference.StandardPreferenceProvider
 import co.electriccoin.zcash.preference.model.entry.BooleanPreferenceDefault
@@ -18,6 +20,7 @@ import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.provider.GetVersionInfoProvider
 import co.electriccoin.zcash.ui.common.repository.ConfigurationRepository
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
+import co.electriccoin.zcash.ui.common.usecase.ObserveAccountIconUseCase
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
 import co.electriccoin.zcash.ui.design.R
 import co.electriccoin.zcash.ui.design.component.IconButtonState
@@ -45,6 +48,7 @@ class ZashiTopAppBarVM(
     private val getVersionInfo: GetVersionInfoProvider,
     private val configurationRepository: ConfigurationRepository,
     private val viewOnlyContent: ViewOnlyContent,
+    private val observeAccountIcon: ObserveAccountIconUseCase,
 ) : ViewModel() {
     private val isHideBalances: StateFlow<Boolean?> = booleanStateFlow(StandardPreferenceKeys.IS_HIDE_BALANCES)
 
@@ -52,25 +56,31 @@ class ZashiTopAppBarVM(
         combine(
             getWalletAccountsUseCase.observe(),
             isHideBalances,
-        ) { accounts, isHideBalances ->
-            createState(accounts, isHideBalances)
+            observeAccountIcon.observeAll(),
+        ) { accounts, isHideBalances, colors ->
+            createState(accounts, isHideBalances, colors)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(ANDROID_STATE_FLOW_TIMEOUT),
             initialValue =
                 createState(
                     accounts = getWalletAccountsUseCase.observe().value,
-                    isHideBalances = isHideBalances.value
+                    isHideBalances = isHideBalances.value,
+                    colors = emptyMap()
                 )
         )
 
-    private fun createState(accounts: List<WalletAccount>?, isHideBalances: Boolean?): ZashiMainTopAppBarState {
+    private fun createState(
+        accounts: List<WalletAccount>?,
+        isHideBalances: Boolean?,
+        colors: Map<AccountUuid, Color>,
+    ): ZashiMainTopAppBarState {
         val current = accounts?.firstOrNull { it.isSelected }
         return ZashiMainTopAppBarState(
             accountSwitchState =
                 current?.let { account ->
                     AccountSwitchState(
-                        icon = account.icon,
+                        icon = observeAccountIcon.iconOf(colors, account),
                         name = account.name,
                         subtitle = subtitleOf(account),
                         onAccountTypeClick = ::onAccountTypeClicked,

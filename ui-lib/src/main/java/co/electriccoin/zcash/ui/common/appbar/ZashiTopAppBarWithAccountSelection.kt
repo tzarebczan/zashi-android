@@ -40,6 +40,7 @@ import co.electriccoin.zcash.ui.design.newcomponent.PreviewScreens
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.design.theme.colors.ZashiColors
 import co.electriccoin.zcash.ui.design.theme.typography.ZashiTypography
+import co.electriccoin.zcash.ui.design.util.Compose
 import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.design.util.getValue
 import com.valentinilk.shimmer.shimmer
@@ -95,10 +96,11 @@ private fun AccountSwitch(state: AccountSwitchState?) {
                 then clickModifier then Modifier.padding(start = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        ShimmerableImage(
-            modifier = Modifier.size(32.dp),
-            painter = state?.let { painterResource(it.icon) }
-        )
+        if (state == null) {
+            ShimmerableImage(modifier = Modifier.size(32.dp), painter = null)
+        } else {
+            state.icon.Compose(modifier = Modifier.size(32.dp))
+        }
         Spacer(8.dp)
         val subtitle = state?.subtitle
         if (subtitle == null) {

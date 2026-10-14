@@ -12,10 +12,12 @@ import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.provider.GetVersionInfoProvider
 import co.electriccoin.zcash.ui.common.repository.ConfigurationRepository
+import co.electriccoin.zcash.ui.common.usecase.AccountIconFixtures
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
 import co.electriccoin.zcash.ui.design.R
 import co.electriccoin.zcash.ui.design.util.StringResource
+import co.electriccoin.zcash.ui.design.util.imageRes
 import co.electriccoin.zcash.ui.design.util.stringRes
 import co.electriccoin.zcash.ui.fixture.VersionInfoFixture
 import co.electriccoin.zcash.ui.screen.integrations.IntegrationsArgs
@@ -63,7 +65,7 @@ class ZashiTopAppBarVMTest {
         listOf(zashi(isSelected = true), keystone(isSelected = true), ledger(isSelected = true)).forEach { account ->
             val switch = assertNotNull(vm(listOf(account)).state.value.accountSwitchState)
 
-            assertEquals(account.icon, switch.icon)
+            assertEquals(imageRes(account.icon), switch.icon)
             assertEquals(account.name, switch.name)
             assertNull(switch.subtitle)
         }
@@ -72,7 +74,7 @@ class ZashiTopAppBarVMTest {
     @Test
     fun theVendorAvatarsAreTheOnesTheBarAlwaysShowed() {
         assertEquals(
-            listOf(R.drawable.ic_item_zashi, R.drawable.ic_item_keystone, R.drawable.ic_item_ledger),
+            listOf(R.drawable.ic_item_zashi, R.drawable.ic_item_keystone, R.drawable.ic_item_ledger).map(::imageRes),
             listOf(zashi(isSelected = true), keystone(isSelected = true), ledger(isSelected = true)).map {
                 assertNotNull(vm(listOf(it)).state.value.accountSwitchState).icon
             }
@@ -84,7 +86,7 @@ class ZashiTopAppBarVMTest {
         val viewOnly = viewOnly(isSelected = true)
         val switch = assertNotNull(vm(listOf(zashi(isSelected = false), viewOnly)).state.value.accountSwitchState)
 
-        assertEquals(VIEW_ONLY_ICON, switch.icon)
+        assertEquals(AccountIconFixtures.viewOnlyIcon(), switch.icon)
         assertEquals(stringRes("Savings"), switch.name)
         assertEquals(VIEW_ONLY_LABEL, switch.subtitle)
     }
@@ -151,6 +153,7 @@ class ZashiTopAppBarVMTest {
             mockk<ViewOnlyContent> {
                 every { topBarSubtitle } returns VIEW_ONLY_LABEL
             },
+        observeAccountIcon = AccountIconFixtures.useCase(),
     )
 
     private fun zashi(isSelected: Boolean) =

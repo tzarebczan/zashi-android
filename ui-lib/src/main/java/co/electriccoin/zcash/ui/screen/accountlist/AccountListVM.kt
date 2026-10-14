@@ -1,5 +1,6 @@
 package co.electriccoin.zcash.ui.screen.accountlist
 
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cash.z.ecc.android.sdk.model.AccountUuid
@@ -12,13 +13,15 @@ import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.model.stateIn
 import co.electriccoin.zcash.ui.common.model.toStorageKeyId
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
+import co.electriccoin.zcash.ui.common.usecase.ObserveAccountIconUseCase
 import co.electriccoin.zcash.ui.common.usecase.SelectWalletAccountUseCase
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyNavigator
+import co.electriccoin.zcash.ui.design.util.ImageResource
 import co.electriccoin.zcash.ui.screen.ExternalUrl
 import co.electriccoin.zcash.ui.screen.accountlist.options.WalletOptionsArgs
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 class AccountListVM(
@@ -27,6 +30,7 @@ class AccountListVM(
     private val navigationRouter: NavigationRouter,
     private val viewOnlyNavigator: ViewOnlyNavigator,
     private val viewOnlyContent: ViewOnlyContent,
+    private val observeAccountIcon: ObserveAccountIconUseCase,
 ) : ViewModel() {
     /**
      * One row callback per account, kept across emissions so an unchanged row's state stays equal
@@ -38,15 +42,16 @@ class AccountListVM(
     private val onOptionsClicks = mutableMapOf<AccountUuid, () -> Unit>()
 
     val state: StateFlow<AccountListState> =
-        getWalletAccounts
-            .observe()
-            .map(::createState)
-            .stateIn(viewModel = this, initialValue = createState(null))
+        combine(getWalletAccounts.observe(), observeAccountIcon.observeAll(), ::createState)
+            .stateIn(viewModel = this, initialValue = createState(null, emptyMap()))
 
-    private fun createState(accounts: List<WalletAccount>?): AccountListState {
+    private fun createState(
+        accounts: List<WalletAccount>?,
+        colors: Map<AccountUuid, Color>,
+    ): AccountListState {
         accounts?.let(::forgetRemovedAccounts)
         return AccountListState.create(
-            entries = accounts?.map(::toEntry),
+            entries = accounts?.map { toEntry(it, observeAccountIcon.iconOf(colors, it)) },
             viewOnlySection = viewOnlyContent.accountListSection,
             viewOnlySectionPlural = viewOnlyContent.accountListSectionPlural,
             viewOnlyLabel = viewOnlyContent.topBarSubtitle,
@@ -64,7 +69,10 @@ class AccountListVM(
         onOptionsClicks.keys.retainAll(current)
     }
 
-    private fun toEntry(account: WalletAccount) =
+    private fun toEntry(
+        account: WalletAccount,
+        icon: ImageResource,
+    ) =
         AccountListEntry(
             kind =
                 when (account) {
@@ -73,7 +81,7 @@ class AccountListVM(
                     is LedgerAccount -> AccountListKind.LEDGER
                     is ViewOnlyAccount -> AccountListKind.VIEW_ONLY
                 },
-            icon = account.icon,
+            icon = icon,
             name = account.name,
             balance = account.totalBalance,
             isSelected = account.isSelected,
