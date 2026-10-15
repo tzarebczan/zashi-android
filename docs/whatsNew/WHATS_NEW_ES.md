@@ -14,6 +14,12 @@ directly impact users rather than highlighting other key architectural updates.*
 
 ## [Unreleased]
 
+## [3.17.1 (3155)] - 2026-10-14
+
+### Cambiado:
+
+- Aceleramos la criptografía detrás de las transacciones protegidas y la sincronización en dispositivos de 64 bits.
+
 ## [3.17.0 (3149)] - 2026-10-10
 
 ### Añadido:
