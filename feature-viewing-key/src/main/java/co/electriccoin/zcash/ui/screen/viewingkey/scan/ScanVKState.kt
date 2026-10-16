@@ -18,7 +18,7 @@ import co.electriccoin.zcash.ui.R as UiR
  * @param openSettingsFailed shown when the system settings for the camera permission cannot open.
  */
 @Immutable
-data class ScanVKState(
+internal data class ScanVKState(
     val validation: ScanValidationState,
     val invalidQrText: StringResource,
     val infoText: StringResource,
@@ -44,7 +44,7 @@ data class ScanVKState(
 /**
  * The sheet over the scanner when a scanned code is not an importable viewing key.
  */
-object InvalidVKQrSheet {
+internal object InvalidVKQrSheet {
     val preview: ZashiConfirmationState = create(onPasteClick = {}, onScanAgainClick = {})
 
     fun create(

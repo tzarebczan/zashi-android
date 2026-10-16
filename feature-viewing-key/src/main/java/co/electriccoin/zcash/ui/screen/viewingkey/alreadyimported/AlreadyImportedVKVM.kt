@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 /**
  * Closing the sheet ends the import flow: the account it would add is already in the wallet.
  */
-class AlreadyImportedVKVM(
+internal class AlreadyImportedVKVM(
     private val navigationRouter: NavigationRouter,
 ) : ViewModel() {
     val state: StateFlow<AlreadyImportedVKState> =

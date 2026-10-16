@@ -82,9 +82,9 @@ class RequestVMTest {
     @Test
     fun theZodlAccountKeepsTheZecIconEvenWithAColor() =
         runTest {
-            allMetadata.value = mapOf(EditAccountFixtures.zashiUuid to AccountIconFixtures.metadata(Color(PICKED)))
+            allMetadata.value = mapOf(EditAccountFixtures.zodlUuid to AccountIconFixtures.metadata(Color(PICKED)))
 
-            assertEquals(imageRes(R.drawable.ic_zec_round_full), memoIcon(EditAccountFixtures.zashi()))
+            assertEquals(imageRes(R.drawable.ic_zec_round_full), memoIcon(EditAccountFixtures.zodl()))
         }
 
     /** The icon of [account]'s memo stage, reached from the amount stage of a shielded request. */

@@ -6,7 +6,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 /** The WCAG 2 contrast ratio of two opaque colours, from 1 to 21. */
-fun contrastRatio(
+internal fun contrastRatio(
     first: Color,
     second: Color
 ): Float {
@@ -19,7 +19,7 @@ fun contrastRatio(
  * White when it reaches WCAG's 3:1 minimum for graphics against the opaque [background], otherwise
  * black.
  */
-fun contrastingContentColor(background: Color): Color =
+internal fun contrastingContentColor(background: Color): Color =
     if (contrastRatio(Color.White, background) >= MIN_GRAPHICS_CONTRAST) Color.White else Color.Black
 
 private const val LUMINANCE_OFFSET = 0.05f

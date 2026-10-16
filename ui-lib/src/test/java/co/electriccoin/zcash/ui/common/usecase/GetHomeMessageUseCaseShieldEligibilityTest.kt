@@ -4,7 +4,7 @@ import cash.z.ecc.android.sdk.model.Account
 import cash.z.ecc.android.sdk.model.AccountUuid
 import cash.z.ecc.android.sdk.model.Zatoshi
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.design.util.stringRes
 import kotlin.test.Test
 import kotlin.test.assertFalse
@@ -19,12 +19,12 @@ class GetHomeMessageUseCaseShieldEligibilityTest {
 
     @Test
     fun aSpendableAccountWithEnoughTransparentFundsIsOfferedShielding() {
-        assertTrue(isShieldFundsMessageEligible(zashi(SHIELDABLE)))
+        assertTrue(isShieldFundsMessageEligible(zodl(SHIELDABLE)))
     }
 
     @Test
     fun aSpendableAccountWithTooLittleTransparentFundsIsNotOfferedShielding() {
-        assertFalse(isShieldFundsMessageEligible(zashi(DUST)))
+        assertFalse(isShieldFundsMessageEligible(zodl(DUST)))
     }
 
     @Test
@@ -33,8 +33,8 @@ class GetHomeMessageUseCaseShieldEligibilityTest {
         assertFalse(isShieldFundsMessageEligible(viewOnly(DUST)))
     }
 
-    private fun zashi(transparent: Zatoshi) =
-        ZashiAccount(
+    private fun zodl(transparent: Zatoshi) =
+        ZodlAccount(
             sdkAccount = sdkAccount,
             unifiedAddress = "u",
             transparentAddress = "t",

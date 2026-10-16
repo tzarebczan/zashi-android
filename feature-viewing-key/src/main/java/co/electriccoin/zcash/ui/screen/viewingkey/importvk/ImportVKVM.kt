@@ -14,9 +14,9 @@ import co.electriccoin.zcash.ui.common.usecase.ViewOnlyKeyCheckException
 import co.electriccoin.zcash.ui.design.component.ZashiConfirmationState
 import co.electriccoin.zcash.ui.screen.error.ErrorArgs
 import co.electriccoin.zcash.ui.screen.error.NavigateToErrorUseCase
-import co.electriccoin.zcash.ui.screen.viewingkey.AlreadyImportedVKArgs
-import co.electriccoin.zcash.ui.screen.viewingkey.NameVKArgs
-import co.electriccoin.zcash.ui.screen.viewingkey.ScanVKArgs
+import co.electriccoin.zcash.ui.screen.viewingkey.alreadyimported.AlreadyImportedVKArgs
+import co.electriccoin.zcash.ui.screen.viewingkey.name.NameVKArgs
+import co.electriccoin.zcash.ui.screen.viewingkey.scan.ScanVKArgs
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -9,7 +9,7 @@ import co.electriccoin.zcash.preference.model.entry.PreferenceKey
 import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.model.toStorageKeyId
 import io.mockk.coEvery
 import io.mockk.every
@@ -191,13 +191,13 @@ private class FakeAccountDataSource(
 ) : AccountDataSource {
     override val allAccounts: StateFlow<List<WalletAccount>?> = MutableStateFlow(null)
     override val selectedAccount: Flow<WalletAccount?> = selected
-    override val zashiAccount: Flow<ZashiAccount?> = flowOf(null)
+    override val zashiAccount: Flow<ZodlAccount?> = flowOf(null)
 
     override suspend fun getAllAccounts(): List<WalletAccount> = listOfNotNull(selected.value)
 
     override suspend fun getSelectedAccount(): WalletAccount = selected.value!!
 
-    override suspend fun getZashiAccount(): ZashiAccount = error("unsupported")
+    override suspend fun getZashiAccount(): ZodlAccount = error("unsupported")
 
     override suspend fun selectAccount(account: cash.z.ecc.android.sdk.model.Account) = error("unsupported")
 

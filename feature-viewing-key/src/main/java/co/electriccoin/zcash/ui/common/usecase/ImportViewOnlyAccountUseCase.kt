@@ -15,8 +15,8 @@ import co.electriccoin.zcash.ui.common.repository.PendingViewOnlyImport
 import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepository
 import co.electriccoin.zcash.ui.screen.keepopen.KeepOpenArgs
 import co.electriccoin.zcash.ui.screen.keepopen.KeepOpenFlow
-import co.electriccoin.zcash.ui.screen.viewingkey.AlreadyImportedVKArgs
-import co.electriccoin.zcash.ui.screen.viewingkey.ImportedVKArgs
+import co.electriccoin.zcash.ui.screen.viewingkey.alreadyimported.AlreadyImportedVKArgs
+import co.electriccoin.zcash.ui.screen.viewingkey.imported.ImportedVKArgs
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive

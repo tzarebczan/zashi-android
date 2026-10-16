@@ -24,14 +24,14 @@ import co.electriccoin.zcash.ui.design.theme.typography.ZashiTypography
  */
 @Suppress("LongParameterList")
 @Composable
-fun ZashiViewingKeyTextField(
+fun ZodlViewingKeyTextField(
     state: TextFieldState,
     modifier: Modifier = Modifier,
     innerModifier: Modifier = ZashiTextFieldDefaults.innerModifier,
     textStyle: TextStyle = ZashiTypography.textSm.copy(fontWeight = FontWeight.Normal),
     placeholder: @Composable (() -> Unit)? = null,
     suffix: @Composable (() -> Unit)? = null,
-    keyboardOptions: KeyboardOptions = ZashiViewingKeyTextFieldDefaults.keyboardOptions,
+    keyboardOptions: KeyboardOptions = ZodlViewingKeyTextFieldDefaults.keyboardOptions,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     shape: Shape = ZashiTextFieldDefaults.shape,
@@ -54,7 +54,7 @@ fun ZashiViewingKeyTextField(
     )
 }
 
-object ZashiViewingKeyTextFieldDefaults {
+object ZodlViewingKeyTextFieldDefaults {
     val keyboardOptions: KeyboardOptions
         get() =
             KeyboardOptions(

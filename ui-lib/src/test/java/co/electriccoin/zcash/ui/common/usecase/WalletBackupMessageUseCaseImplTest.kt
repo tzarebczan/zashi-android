@@ -3,7 +3,7 @@ package co.electriccoin.zcash.ui.common.usecase
 import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.provider.WalletBackupFlagStorageProvider
 import co.electriccoin.zcash.ui.common.provider.WalletBackupRemindMeCountStorageProvider
 import co.electriccoin.zcash.ui.common.provider.WalletBackupRemindMeTimestampStorageProvider
@@ -127,7 +127,7 @@ class WalletBackupMessageUseCaseImplTest {
         transactions: List<Transaction>?,
         remindMeCount: Int = 0,
         remindMeTimestamp: Instant? = null,
-        account: WalletAccount? = mockk<ZashiAccount>()
+        account: WalletAccount? = mockk<ZodlAccount>()
     ) = WalletBackupMessageUseCaseImpl(
         walletBackupFlagStorageProvider =
             mockk<WalletBackupFlagStorageProvider> { every { observe() } returns MutableStateFlow(isBackedUp) },

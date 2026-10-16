@@ -12,7 +12,7 @@ import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccountBindingData
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.provider.LedgerAccountBindingProvider
 import co.electriccoin.zcash.ui.common.provider.PersistableWalletProvider
 import co.electriccoin.zcash.ui.common.provider.SelectedAccountUUIDProvider
@@ -100,7 +100,6 @@ class AccountDataSourceImplTest {
             selectedAccountUUIDProvider = selectedAccountUUIDProvider,
             persistableWalletProvider = persistableWalletProvider,
             ledgerAccountBindingProvider = ledgerAccountBindingProvider,
-            selectedAccountSpendableStorageProvider = mockk(relaxed = true),
             viewOnlyContent = viewOnlyContent,
             context = mockk(relaxed = true),
         )
@@ -115,7 +114,7 @@ class AccountDataSourceImplTest {
             val accounts = withTimeout(5_000) { dataSource.allAccounts.filterNotNull().first() }
 
             assertEquals(1, accounts.size)
-            val zashiAccount = accounts.single() as ZashiAccount
+            val zashiAccount = accounts.single() as ZodlAccount
             assertNull(zashiAccount.unifiedBalance)
             assertNull(zashiAccount.transparentBalance)
             assertNull(zashiAccount.saplingBalance)
@@ -143,7 +142,7 @@ class AccountDataSourceImplTest {
             val accounts = withTimeout(5_000) { dataSource.allAccounts.filterNotNull().first() }
 
             assertEquals(1, accounts.size)
-            val zashiAccount = accounts.single() as ZashiAccount
+            val zashiAccount = accounts.single() as ZodlAccount
             val unifiedBalance = zashiAccount.unifiedBalance
             assertNotNull(unifiedBalance)
             assertEquals(Zatoshi(500_000L), unifiedBalance.available)
@@ -215,7 +214,7 @@ class AccountDataSourceImplTest {
     @Test
     fun accountsSortDescendingAsZodlThenKeystoneThenLedger() {
         val zashi =
-            ZashiAccount(
+            ZodlAccount(
                 sdkAccount = account,
                 unifiedAddress = "u",
                 transparentAddress = "t",
@@ -465,7 +464,7 @@ class AccountDataSourceImplTest {
                     every { observe(any()) } returns MutableStateFlow(null)
                 }
             val zashi =
-                ZashiAccount(
+                ZodlAccount(
                     sdkAccount = account,
                     unifiedAddress = "u",
                     transparentAddress = "t",
@@ -516,7 +515,6 @@ class AccountDataSourceImplTest {
                     every { persistableWallet } returns MutableStateFlow(mockk(relaxed = true))
                 },
             ledgerAccountBindingProvider = ledgerAccountBindingProvider,
-            selectedAccountSpendableStorageProvider = mockk(relaxed = true),
             viewOnlyContent = viewOnlyContent,
             context = mockk(relaxed = true),
         )

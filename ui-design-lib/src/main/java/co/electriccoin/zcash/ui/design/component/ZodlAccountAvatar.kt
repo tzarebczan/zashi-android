@@ -28,7 +28,7 @@ import co.electriccoin.zcash.ui.design.util.stringRes
 
 /** Draws [state] at [size]. */
 @Composable
-fun ZashiAccountAvatar(
+fun ZodlAccountAvatar(
     state: AccountAvatarState,
     modifier: Modifier = Modifier,
     size: Dp = DEFAULT_SIZE,
@@ -54,7 +54,7 @@ private fun AvatarEditBadge(
     state: IconButtonState,
     modifier: Modifier = Modifier,
 ) {
-    ZashiCircleTapTarget(
+    ZodlCircleTapTarget(
         onClick = state.onClick,
         modifier = modifier,
         isEnabled = state.isEnabled,
@@ -122,7 +122,7 @@ private val BADGE_OFFSET = BADGE_INSET + TAP_TARGET_SIZE / 2
 private fun DefaultPreview() =
     ZcashTheme {
         BlankSurface {
-            ZashiAccountAvatar(
+            ZodlAccountAvatar(
                 state =
                     AccountAvatarState(
                         image = imageRes(R.drawable.ic_item_keystone),
@@ -137,7 +137,7 @@ private fun DefaultPreview() =
 private fun ColoredPreview() =
     ZcashTheme {
         BlankSurface {
-            ZashiAccountAvatar(
+            ZodlAccountAvatar(
                 state =
                     AccountAvatarState(
                         image =

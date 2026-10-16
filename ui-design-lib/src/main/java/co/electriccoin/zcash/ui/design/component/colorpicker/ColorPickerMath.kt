@@ -10,13 +10,13 @@ import kotlin.math.roundToInt
 enum class ColorChannel { RED, GREEN, BLUE }
 
 /** A colour as hue (0-360), saturation and value (both 0-1). */
-data class Hsv(
+internal data class Hsv(
     val hue: Float,
     val saturation: Float,
     val value: Float,
 )
 
-fun Color.toHsv(): Hsv {
+internal fun Color.toHsv(): Hsv {
     val maxChannel = max(red, max(green, blue))
     val minChannel = min(red, min(green, blue))
     val delta = maxChannel - minChannel
@@ -34,7 +34,7 @@ fun Color.toHsv(): Hsv {
     )
 }
 
-fun Hsv.toColor(): Color =
+internal fun Hsv.toColor(): Color =
     Color.hsv(
         hue = hue.coerceIn(0f, MAX_HUE),
         saturation = saturation.coerceIn(0f, 1f),

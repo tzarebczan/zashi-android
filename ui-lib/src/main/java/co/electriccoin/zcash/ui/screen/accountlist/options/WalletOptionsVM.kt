@@ -26,7 +26,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * leaves no hidden destination on the back stack; back from the disconnect screen returns to the
  * Wallets & Hardware screen.
  */
-class WalletOptionsVM(
+internal class WalletOptionsVM(
     private val args: WalletOptionsArgs,
     getWalletAccounts: GetWalletAccountsUseCase,
     private val navigationRouter: NavigationRouter,

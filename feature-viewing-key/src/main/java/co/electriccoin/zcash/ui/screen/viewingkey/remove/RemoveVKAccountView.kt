@@ -27,7 +27,7 @@ import co.electriccoin.zcash.ui.screen.viewingkey.VKSheetContent
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RemoveVKAccountView(state: RemoveVKAccountState?) {
+internal fun RemoveVKAccountView(state: RemoveVKAccountState?) {
     val isDismissable by rememberUpdatedState(state?.isDismissable != false)
     ZashiScreenModalBottomSheet(
         state = state,

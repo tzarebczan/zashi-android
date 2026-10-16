@@ -16,7 +16,7 @@ import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.provider.GetVersionInfoProvider
 import co.electriccoin.zcash.ui.common.repository.ConfigurationRepository
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
@@ -117,7 +117,7 @@ class ZashiTopAppBarVM(
         when (account) {
             is KeystoneAccount,
             is LedgerAccount,
-            is ZashiAccount -> null
+            is ZodlAccount -> null
 
             is ViewOnlyAccount -> viewOnlyContent.topBarSubtitle
         }

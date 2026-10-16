@@ -75,6 +75,6 @@ data class WalletOptionState(
     val onClick: () -> Unit,
 )
 
-object WalletOptionsTag {
+private object WalletOptionsTag {
     const val DISCONNECT = "wallet_options_disconnect"
 }

@@ -65,13 +65,13 @@ import co.electriccoin.zcash.ui.common.usecase.GetWalletSeedBytesUseCase
 import co.electriccoin.zcash.ui.common.usecase.GetZashiAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.HandleExternalLinkUseCase
 import co.electriccoin.zcash.ui.common.usecase.IsABContactHintVisibleUseCase
+import co.electriccoin.zcash.ui.common.usecase.IsAccountNameTakenUseCase
 import co.electriccoin.zcash.ui.common.usecase.IsEphemeralAddressLockedUseCase
 import co.electriccoin.zcash.ui.common.usecase.IsRestoreSuccessDialogVisibleUseCase
 import co.electriccoin.zcash.ui.common.usecase.IsScreenTimeoutDisabledDuringRestoreUseCase
 import co.electriccoin.zcash.ui.common.usecase.IsServerAutomaticUseCase
 import co.electriccoin.zcash.ui.common.usecase.IsTorEnabledUseCase
 import co.electriccoin.zcash.ui.common.usecase.MarkTxMemoAsReadUseCase
-import co.electriccoin.zcash.ui.common.usecase.MigrateStoredAccountNamesUseCase
 import co.electriccoin.zcash.ui.common.usecase.NavigateToAddressBookUseCase
 import co.electriccoin.zcash.ui.common.usecase.NavigateToColorPickerUseCase
 import co.electriccoin.zcash.ui.common.usecase.NavigateToExportPrivateDataUseCase
@@ -98,7 +98,6 @@ import co.electriccoin.zcash.ui.common.usecase.NavigateToVotingUseCase
 import co.electriccoin.zcash.ui.common.usecase.NavigateToWalletBackupUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveABContactPickedUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveAccountIconUseCase
-import co.electriccoin.zcash.ui.common.usecase.ObserveAccountNamesUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveClearSendUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveContactByAddressUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveFastestServersUseCase
@@ -122,6 +121,7 @@ import co.electriccoin.zcash.ui.common.usecase.ProcessSwapTransactionUseCase
 import co.electriccoin.zcash.ui.common.usecase.ReadClipboardTextUseCase
 import co.electriccoin.zcash.ui.common.usecase.RecoverFromSeedMismatchUseCase
 import co.electriccoin.zcash.ui.common.usecase.RefreshFastestServersUseCase
+import co.electriccoin.zcash.ui.common.usecase.RejectIfSelectedAccountCannotSpendUseCase
 import co.electriccoin.zcash.ui.common.usecase.RemindWalletBackupLaterUseCase
 import co.electriccoin.zcash.ui.common.usecase.RenameViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.RequestSwapQuoteUseCase
@@ -204,9 +204,8 @@ val useCaseModule =
         factoryOf(::SelectWalletAccountUseCase)
         factoryOf(::ObserveSelectedWalletAccountUseCase)
         factoryOf(::ObserveAccountIconUseCase)
-        factoryOf(::ObserveAccountNamesUseCase)
+        factoryOf(::IsAccountNameTakenUseCase)
         factoryOf(::RenameViewOnlyAccountUseCase)
-        factoryOf(::MigrateStoredAccountNamesUseCase)
         factoryOf(::ObserveZashiAccountUseCase)
         factoryOf(::GetZashiAccountUseCase)
         factoryOf(::CreateHWWalletAccountUseCase)
@@ -272,6 +271,7 @@ val useCaseModule =
         factoryOf(::NavigateToRequestShieldedUseCase)
         factoryOf(::NavigateToRequestZecUseCase)
         factoryOf(::NavigateToSendUseCase)
+        factoryOf(::RejectIfSelectedAccountCannotSpendUseCase)
         factoryOf(::IsTorEnabledUseCase)
         factoryOf(::OptInExchangeRateUseCase)
         factoryOf(::OptInExchangeRateAndTorUseCase)

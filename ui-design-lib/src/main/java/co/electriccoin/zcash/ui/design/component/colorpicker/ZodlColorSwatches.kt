@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import co.electriccoin.zcash.ui.design.component.BlankSurface
 import co.electriccoin.zcash.ui.design.component.TAP_TARGET_SIZE
-import co.electriccoin.zcash.ui.design.component.ZashiCircleTapTarget
+import co.electriccoin.zcash.ui.design.component.ZodlCircleTapTarget
 import co.electriccoin.zcash.ui.design.newcomponent.PreviewScreens
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 
@@ -34,7 +34,7 @@ import co.electriccoin.zcash.ui.design.theme.ZcashTheme
  * five to a row at a 45 dp row pitch, the picked one ringed in white.
  */
 @Composable
-fun ZashiColorSwatches(
+fun ZodlColorSwatches(
     current: Color,
     swatches: List<ColorSwatchState>,
     modifier: Modifier = Modifier,
@@ -69,7 +69,7 @@ fun ZashiColorSwatches(
 @Composable
 private fun SwatchDot(state: ColorSwatchState) {
     val haptic = LocalHapticFeedback.current
-    ZashiCircleTapTarget(
+    ZodlCircleTapTarget(
         onClick = {
             if (!state.isSelected) {
                 runCatching { haptic.performHapticFeedback(HapticFeedbackType.SegmentTick) }
@@ -144,7 +144,7 @@ private val RING_STROKE = 2.dp
 private fun Preview() =
     ZcashTheme {
         BlankSurface {
-            ZashiColorSwatches(
+            ZodlColorSwatches(
                 current = Color(0xFFAF52DE),
                 swatches =
                     ColorPickerPalette.presets.mapIndexed { index, color ->

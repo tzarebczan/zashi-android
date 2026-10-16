@@ -14,10 +14,11 @@ import co.electriccoin.zcash.ui.design.util.getValue
 import co.electriccoin.zcash.ui.screen.scan.ScanView
 import co.electriccoin.zcash.ui.util.SettingsUtil
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun ScanVKScreen() {
+internal fun ScanVKScreen() {
     SecureScreen()
     val vm = koinViewModel<ScanVKVM>()
     val state by vm.state.collectAsStateWithLifecycle()
@@ -48,3 +49,7 @@ fun ScanVKScreen() {
     )
     ZashiConfirmationBottomSheet(invalidQrSheet)
 }
+
+/** The camera scanner for a full viewing key QR code. */
+@Serializable
+internal data object ScanVKArgs

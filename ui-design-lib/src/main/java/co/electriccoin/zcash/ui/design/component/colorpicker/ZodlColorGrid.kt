@@ -33,7 +33,7 @@ import co.electriccoin.zcash.ui.design.theme.ZcashTheme
  * Accessibility services read it as one image whose state names [selected] in hex.
  */
 @Composable
-fun ZashiColorGrid(
+fun ZodlColorGrid(
     selected: Color,
     onSelect: (Color) -> Unit,
     modifier: Modifier = Modifier,
@@ -109,6 +109,6 @@ private const val RGB_MASK = 0xFFFFFF
 private fun Preview() =
     ZcashTheme {
         BlankSurface {
-            ZashiColorGrid(selected = Color(0xFFBE38F3), onSelect = {})
+            ZodlColorGrid(selected = Color(0xFFBE38F3), onSelect = {})
         }
     }

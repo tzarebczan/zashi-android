@@ -36,7 +36,7 @@ import co.electriccoin.zcash.ui.design.theme.typography.ZashiTypography
  * accessibility services announce with [label]; without it, plain text.
  */
 @Composable
-fun ZashiColorValueField(
+fun ZodlColorValueField(
     value: String,
     modifier: Modifier = Modifier,
     onValueChange: ((String) -> Unit)? = null,
@@ -109,6 +109,6 @@ private val TOUCH_HEIGHT = 48.dp
 private fun Preview() =
     ZcashTheme {
         BlankSurface {
-            ZashiColorValueField(value = "100%")
+            ZodlColorValueField(value = "100%")
         }
     }

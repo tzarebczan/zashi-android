@@ -12,7 +12,7 @@ import co.electriccoin.zcash.viewingkey.R
  * The "Add Account" options sheet, drawn by the Wallet Options sheet's view: connecting a hardware
  * wallet while a vendor is still unconnected, and importing a full viewing key.
  */
-fun WalletOptionsState.Companion.addAccount(
+internal fun WalletOptionsState.Companion.addAccount(
     canConnectHardwareWallet: Boolean,
     onConnectHardwareWalletClick: () -> Unit,
     onImportClick: () -> Unit,
@@ -45,10 +45,10 @@ fun WalletOptionsState.Companion.addAccount(
     onBack = onBack,
 )
 
-val WalletOptionsState.Companion.previewAddAccount: WalletOptionsState
+internal val WalletOptionsState.Companion.previewAddAccount: WalletOptionsState
     get() = addAccountPreview(canConnectHardwareWallet = true)
 
-val WalletOptionsState.Companion.previewAddAccountHardwareWalletsConnected: WalletOptionsState
+internal val WalletOptionsState.Companion.previewAddAccountHardwareWalletsConnected: WalletOptionsState
     get() = addAccountPreview(canConnectHardwareWallet = false)
 
 private fun WalletOptionsState.Companion.addAccountPreview(canConnectHardwareWallet: Boolean) =
@@ -59,7 +59,7 @@ private fun WalletOptionsState.Companion.addAccountPreview(canConnectHardwareWal
         onBack = {},
     )
 
-object AddVKAccountTag {
+internal object AddVKAccountTag {
     const val CONNECT_HARDWARE_WALLET = "view_only_add_account_connect_hardware_wallet"
     const val IMPORT_VIEWING_KEY = "view_only_add_account_import_viewing_key"
 }

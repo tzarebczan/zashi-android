@@ -13,7 +13,7 @@ import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.repository.EnhancedABContact
 import co.electriccoin.zcash.ui.common.usecase.CancelProposalFlowUseCase
 import co.electriccoin.zcash.ui.common.usecase.GetExchangeRateUseCase
@@ -160,7 +160,7 @@ class ReviewTransactionVM(
                 is KeystoneAccount -> stringRes(R.string.send_review)
                 is LedgerAccount -> stringRes(R.string.send_review)
                 is ViewOnlyAccount -> stringRes(R.string.send_review)
-                is ZashiAccount -> stringRes(R.string.send_confirmationTitle)
+                is ZodlAccount -> stringRes(R.string.send_confirmationTitle)
             },
         items =
             listOfNotNull(
@@ -209,7 +209,7 @@ class ReviewTransactionVM(
                         is KeystoneAccount -> stringRes(R.string.keystone_confirm)
                         is LedgerAccount -> stringRes(R.string.ledger_confirm)
                         is ViewOnlyAccount -> stringRes(R.string.tabs_send)
-                        is ZashiAccount -> stringRes(R.string.tabs_send)
+                        is ZodlAccount -> stringRes(R.string.tabs_send)
                     },
                 style = orchardPrivacyWarningButtonStyle(transactionProposal.proposal.usesOrchardInputs()),
                 onClick = ::onConfirmClick
@@ -284,7 +284,7 @@ class ReviewTransactionVM(
                         is KeystoneAccount -> stringRes(R.string.keystone_confirm)
                         is LedgerAccount -> stringRes(R.string.ledger_confirm)
                         is ViewOnlyAccount -> stringRes(R.string.tabs_send)
-                        is ZashiAccount -> stringRes(R.string.tabs_send)
+                        is ZodlAccount -> stringRes(R.string.tabs_send)
                     },
                 onClick = ::onConfirmClick
             ),

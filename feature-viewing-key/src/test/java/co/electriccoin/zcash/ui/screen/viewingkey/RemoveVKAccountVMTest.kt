@@ -10,6 +10,7 @@ import co.electriccoin.zcash.ui.common.usecase.ViewOnlyAccountFixtures
 import co.electriccoin.zcash.ui.screen.accountlist.AccountListArgs
 import co.electriccoin.zcash.ui.screen.error.ErrorArgs
 import co.electriccoin.zcash.ui.screen.error.NavigateToErrorUseCase
+import co.electriccoin.zcash.ui.screen.viewingkey.remove.RemoveVKAccountArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.remove.RemoveVKAccountVM
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -55,7 +56,7 @@ class RemoveVKAccountVMTest {
 
     private val accounts =
         MutableStateFlow<List<WalletAccount>?>(
-            listOf(ViewOnlyAccountFixtures.zashi(), ViewOnlyAccountFixtures.viewOnly(isSelected = true))
+            listOf(ViewOnlyAccountFixtures.zodl(), ViewOnlyAccountFixtures.viewOnly(isSelected = true))
         )
 
     @BeforeTest
@@ -194,7 +195,7 @@ class RemoveVKAccountVMTest {
     @Test
     fun aMissingAccountGoesBack() =
         runTest {
-            accounts.value = listOf(ViewOnlyAccountFixtures.zashi())
+            accounts.value = listOf(ViewOnlyAccountFixtures.zodl())
 
             collect(vm())
 
@@ -204,7 +205,7 @@ class RemoveVKAccountVMTest {
     @Test
     fun theZodlAccountIsNeverOfferedForRemoval() =
         runTest {
-            collect(vm(accountKeyId = ViewOnlyAccountFixtures.zashiKeyId))
+            collect(vm(accountKeyId = ViewOnlyAccountFixtures.zodlKeyId))
 
             verify(exactly = 1) { navigationRouter.back() }
         }

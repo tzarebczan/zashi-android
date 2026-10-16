@@ -24,37 +24,32 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import co.electriccoin.zcash.ui.design.component.AccountAvatarState
 import co.electriccoin.zcash.ui.design.component.BlankBgScaffold
-import co.electriccoin.zcash.ui.design.component.TextFieldState
-import co.electriccoin.zcash.ui.design.component.ZashiAccountAvatar
 import co.electriccoin.zcash.ui.design.component.ZashiSmallTopAppBar
 import co.electriccoin.zcash.ui.design.component.ZashiTextField
 import co.electriccoin.zcash.ui.design.component.ZashiTextFieldPlaceholder
 import co.electriccoin.zcash.ui.design.component.ZashiTopAppBarBackNavigation
+import co.electriccoin.zcash.ui.design.component.ZodlAccountAvatar
 import co.electriccoin.zcash.ui.design.component.rememberZashiFrostState
 import co.electriccoin.zcash.ui.design.component.zashiFrostSource
 import co.electriccoin.zcash.ui.design.component.zashiFrostedHeader
+import co.electriccoin.zcash.ui.design.newcomponent.PreviewScreens
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.design.theme.colors.ZashiColors
 import co.electriccoin.zcash.ui.design.theme.typography.ZashiTypography
-import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.design.util.getValue
 import co.electriccoin.zcash.ui.design.util.scaffoldPadding
 
 /**
  * The full-screen layout of the account forms (the view-only import and naming screens, the Edit
- * Account screen): a frosted top app bar with back, the [title] and an optional [subtitle], over a
- * scrolling column that opens with [AccountFormHeader] and continues with [content].
+ * Account screen): a frosted top app bar with the title and an optional subtitle of [state] and a back
+ * arrow that runs [onBack], over a scrolling column that opens with [AccountFormHeader] and continues
+ * with [content].
  */
 @Composable
-fun AccountFormScreen(
-    title: StringResource,
-    subtitle: StringResource?,
+fun AccountFormView(
+    state: AccountFormState,
     onBack: () -> Unit,
-    avatar: AccountAvatarState,
-    heading: StringResource,
-    message: StringResource,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val hazeState = rememberZashiFrostState()
@@ -65,8 +60,8 @@ fun AccountFormScreen(
                     Modifier
                         .fillMaxWidth()
                         .zashiFrostedHeader(hazeState),
-                title = title.getValue(),
-                subtitle = subtitle?.getValue(),
+                title = state.title.getValue(),
+                subtitle = state.subtitle?.getValue(),
                 navigationAction = { ZashiTopAppBarBackNavigation(onBack = onBack) },
                 colors = ZcashTheme.colors.topAppBarColors.copyColors(containerColor = Color.Transparent),
                 subtitleAllCaps = false,
@@ -87,7 +82,7 @@ fun AccountFormScreen(
                         .scaffoldPadding(paddingValues)
             ) {
                 Spacer(Modifier.height(4.dp))
-                AccountFormHeader(avatar = avatar, heading = heading, message = message)
+                AccountFormHeader(state = state.header)
                 Spacer(Modifier.height(32.dp))
                 content()
             }
@@ -95,15 +90,10 @@ fun AccountFormScreen(
     }
 }
 
-/**
- * The account avatar over a heading and a message. The avatar carries the pencil badge when
- * [avatar] has an edit button. The heading is Text XL unless [headingStyle] says otherwise.
- */
+/** Draws [state]. The heading is Text XL unless [headingStyle] says otherwise. */
 @Composable
 fun AccountFormHeader(
-    avatar: AccountAvatarState,
-    heading: StringResource,
-    message: StringResource,
+    state: AccountFormHeaderState,
     modifier: Modifier = Modifier,
     headingStyle: TextStyle = ZashiTypography.textXl,
 ) {
@@ -111,10 +101,10 @@ fun AccountFormHeader(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        ZashiAccountAvatar(state = avatar, size = AVATAR_SIZE)
+        ZodlAccountAvatar(state = state.avatar, size = AVATAR_SIZE)
         Spacer(Modifier.height(20.dp))
         Text(
-            text = heading.getValue(),
+            text = state.heading.getValue(),
             style = headingStyle,
             fontWeight = FontWeight.SemiBold,
             color = ZashiColors.Text.textPrimary,
@@ -122,7 +112,7 @@ fun AccountFormHeader(
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            text = message.getValue(),
+            text = state.message.getValue(),
             style = ZashiTypography.textSm,
             color = ZashiColors.Text.textTertiary,
             textAlign = TextAlign.Center,
@@ -130,53 +120,44 @@ fun AccountFormHeader(
     }
 }
 
-/**
- * The account name field: its label, the field capped by the caller, and the live character
- * [counter] under it when there is one. The keyboard's Done key runs [onDone].
- */
+/** Draws [state], the field tagged [AccountNameFieldTag.FIELD] and its counter [AccountNameFieldTag.COUNTER]. */
 @Composable
 fun AccountNameField(
-    label: StringResource,
-    field: TextFieldState,
-    placeholder: StringResource,
-    counter: StringResource?,
-    onDone: () -> Unit,
-    fieldTestTag: String,
-    counterTestTag: String,
+    state: AccountNameFieldState,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = label.getValue(),
+            text = state.label.getValue(),
             style = ZashiTypography.textSm,
             fontWeight = FontWeight.Medium,
             color = ZashiColors.Inputs.Default.label
         )
         Spacer(Modifier.height(6.dp))
         ZashiTextField(
-            state = field,
+            state = state.field,
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .testTag(fieldTestTag),
+                    .testTag(AccountNameFieldTag.FIELD),
             singleLine = true,
             shape = RoundedCornerShape(10.dp),
-            placeholder = { ZashiTextFieldPlaceholder(placeholder) },
+            placeholder = { ZashiTextFieldPlaceholder(state.placeholder) },
             keyboardOptions =
                 KeyboardOptions(
                     capitalization = KeyboardCapitalization.Words,
                     imeAction = ImeAction.Done,
                 ),
-            keyboardActions = KeyboardActions(onDone = { onDone() }),
+            keyboardActions = KeyboardActions(onDone = { state.onDone() }),
         )
-        counter?.let {
+        state.counter?.let {
             Spacer(Modifier.height(6.dp))
             Text(
                 text = it.getValue(),
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .testTag(counterTestTag),
+                        .testTag(AccountNameFieldTag.COUNTER),
                 style = ZashiTypography.textSm,
                 color = ZashiColors.Text.textTertiary,
                 textAlign = TextAlign.End,
@@ -185,4 +166,19 @@ fun AccountNameField(
     }
 }
 
+/** The test tags of [AccountNameField]. */
+object AccountNameFieldTag {
+    const val FIELD = "account_name_field"
+    const val COUNTER = "account_name_counter"
+}
+
 private val AVATAR_SIZE = 90.dp
+
+@PreviewScreens
+@Composable
+private fun AccountFormPreview() =
+    ZcashTheme {
+        AccountFormView(state = AccountFormState.preview, onBack = {}) {
+            AccountNameField(state = AccountNameFieldState.preview)
+        }
+    }

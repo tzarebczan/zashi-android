@@ -17,7 +17,7 @@ import co.electriccoin.zcash.ui.design.util.pressMorph
 
 /** A 48 dp circular tap target centring [content], with the design system's press-morph and ripple. */
 @Composable
-internal fun ZashiCircleTapTarget(
+internal fun ZodlCircleTapTarget(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     isEnabled: Boolean = true,

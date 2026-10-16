@@ -3,7 +3,6 @@ package co.electriccoin.zcash.ui.common.usecase
 import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
 import co.electriccoin.zcash.ui.common.migration.MigrationAppHooks
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.provider.AccountNameProvider
 import co.electriccoin.zcash.ui.common.repository.BiometricRepository
 import co.electriccoin.zcash.ui.common.repository.BiometricsCancelledException
 import co.electriccoin.zcash.ui.common.repository.BiometricsFailureException
@@ -23,61 +22,33 @@ import kotlin.test.assertTrue
  * it was selected after the authentication, selects the Zodl account. A failed or dismissed
  * authentication removes nothing, and an id that names the Zodl account or nothing at all removes
  * nothing without asking. The account's metadata is never touched: the use case has no access to it.
- * The name an earlier build stored for the account is cleared after the deletion, best-effort.
  */
 class RemoveViewOnlyAccountUseCaseTest {
-    private val zashi = ViewOnlyAccountFixtures.zashi(isSelected = false)
+    private val zodl = ViewOnlyAccountFixtures.zodl(isSelected = false)
 
     private val accountDataSource =
         mockk<AccountDataSource>(relaxed = true) {
-            coEvery { getZashiAccount() } returns zashi
+            coEvery { getZashiAccount() } returns zodl
         }
 
     private val biometricRepository = mockk<BiometricRepository>(relaxed = true)
 
     private val migrationAppHooks = mockk<MigrationAppHooks>(relaxed = true)
 
-    private val accountNameProvider = mockk<AccountNameProvider>(relaxed = true)
-
     @Test
     fun aSelectedAccountIsRemovedAfterAuthenticationAndTheZodlAccountIsSelected() =
         runTest {
             val viewOnly = ViewOnlyAccountFixtures.viewOnly(isSelected = true)
 
-            val removed = useCase(listOf(zashi, viewOnly))(ViewOnlyAccountFixtures.viewOnlyKeyId)
+            val removed = useCase(listOf(zodl, viewOnly))(ViewOnlyAccountFixtures.viewOnlyKeyId)
 
             assertTrue(removed)
             coVerifyOrder {
                 biometricRepository.requestBiometrics(any())
                 migrationAppHooks.cancelMigrationWork(ViewOnlyAccountFixtures.viewOnlyKeyId)
                 accountDataSource.deleteAccount(viewOnly)
-                accountDataSource.selectAccount(zashi)
+                accountDataSource.selectAccount(zodl)
             }
-        }
-
-    @Test
-    fun theStoredNameIsClearedAfterTheAccountIsDeleted() =
-        runTest {
-            val viewOnly = ViewOnlyAccountFixtures.viewOnly()
-
-            useCase(listOf(zashi, viewOnly))(ViewOnlyAccountFixtures.viewOnlyKeyId)
-
-            coVerifyOrder {
-                accountDataSource.deleteAccount(viewOnly)
-                accountNameProvider.clear(ViewOnlyAccountFixtures.viewOnlyUuid)
-            }
-        }
-
-    @Test
-    fun aFailedDeletionLeavesTheStoredNameAlone() =
-        runTest {
-            coEvery { accountDataSource.deleteAccount(any()) } throws IllegalStateException("database locked")
-
-            assertFailsWith<IllegalStateException> {
-                useCase(listOf(zashi, ViewOnlyAccountFixtures.viewOnly()))(ViewOnlyAccountFixtures.viewOnlyKeyId)
-            }
-
-            coVerify(exactly = 0) { accountNameProvider.clear(any()) }
         }
 
     @Test
@@ -85,7 +56,7 @@ class RemoveViewOnlyAccountUseCaseTest {
         runTest {
             val viewOnly = ViewOnlyAccountFixtures.viewOnly(isSelected = false)
 
-            useCase(listOf(ViewOnlyAccountFixtures.zashi(isSelected = true), viewOnly))(
+            useCase(listOf(ViewOnlyAccountFixtures.zodl(isSelected = true), viewOnly))(
                 ViewOnlyAccountFixtures.viewOnlyKeyId
             )
 
@@ -99,14 +70,14 @@ class RemoveViewOnlyAccountUseCaseTest {
             val snapshot = ViewOnlyAccountFixtures.viewOnly(isSelected = false)
 
             useCase(
-                accounts = listOf(ViewOnlyAccountFixtures.zashi(isSelected = true), snapshot),
-                current = listOf(zashi, ViewOnlyAccountFixtures.viewOnly(isSelected = true)),
+                accounts = listOf(ViewOnlyAccountFixtures.zodl(isSelected = true), snapshot),
+                current = listOf(zodl, ViewOnlyAccountFixtures.viewOnly(isSelected = true)),
             )(ViewOnlyAccountFixtures.viewOnlyKeyId)
 
             coVerifyOrder {
                 accountDataSource.getAllAccounts()
                 accountDataSource.deleteAccount(snapshot)
-                accountDataSource.selectAccount(zashi)
+                accountDataSource.selectAccount(zodl)
             }
         }
 
@@ -116,8 +87,8 @@ class RemoveViewOnlyAccountUseCaseTest {
             val snapshot = ViewOnlyAccountFixtures.viewOnly(isSelected = true)
 
             useCase(
-                accounts = listOf(zashi, snapshot),
-                current = listOf(ViewOnlyAccountFixtures.zashi(isSelected = true), ViewOnlyAccountFixtures.viewOnly()),
+                accounts = listOf(zodl, snapshot),
+                current = listOf(ViewOnlyAccountFixtures.zodl(isSelected = true), ViewOnlyAccountFixtures.viewOnly()),
             )(ViewOnlyAccountFixtures.viewOnlyKeyId)
 
             coVerify(exactly = 1) { accountDataSource.deleteAccount(snapshot) }
@@ -130,12 +101,11 @@ class RemoveViewOnlyAccountUseCaseTest {
             coEvery { biometricRepository.requestBiometrics(any()) } throws BiometricsCancelledException()
 
             assertFailsWith<BiometricsCancelledException> {
-                useCase(listOf(zashi, ViewOnlyAccountFixtures.viewOnly()))(ViewOnlyAccountFixtures.viewOnlyKeyId)
+                useCase(listOf(zodl, ViewOnlyAccountFixtures.viewOnly()))(ViewOnlyAccountFixtures.viewOnlyKeyId)
             }
 
             coVerify(exactly = 0) { accountDataSource.deleteAccount(any()) }
             coVerify(exactly = 0) { migrationAppHooks.cancelMigrationWork(any()) }
-            coVerify(exactly = 0) { accountNameProvider.clear(any()) }
         }
 
     @Test
@@ -144,7 +114,7 @@ class RemoveViewOnlyAccountUseCaseTest {
             coEvery { biometricRepository.requestBiometrics(any()) } throws BiometricsFailureException()
 
             assertFailsWith<BiometricsFailureException> {
-                useCase(listOf(zashi, ViewOnlyAccountFixtures.viewOnly()))(ViewOnlyAccountFixtures.viewOnlyKeyId)
+                useCase(listOf(zodl, ViewOnlyAccountFixtures.viewOnly()))(ViewOnlyAccountFixtures.viewOnlyKeyId)
             }
 
             coVerify(exactly = 0) { accountDataSource.deleteAccount(any()) }
@@ -153,7 +123,7 @@ class RemoveViewOnlyAccountUseCaseTest {
     @Test
     fun theZodlAccountIsNeverRemoved() =
         runTest {
-            val removed = useCase(listOf(zashi, ViewOnlyAccountFixtures.viewOnly()))(ViewOnlyAccountFixtures.zashiKeyId)
+            val removed = useCase(listOf(zodl, ViewOnlyAccountFixtures.viewOnly()))(ViewOnlyAccountFixtures.zodlKeyId)
 
             assertFalse(removed)
             coVerify(exactly = 0) { biometricRepository.requestBiometrics(any()) }
@@ -163,7 +133,7 @@ class RemoveViewOnlyAccountUseCaseTest {
     @Test
     fun aMissingAccountRemovesNothing() =
         runTest {
-            val removed = useCase(listOf(zashi))(ViewOnlyAccountFixtures.viewOnlyKeyId)
+            val removed = useCase(listOf(zodl))(ViewOnlyAccountFixtures.viewOnlyKeyId)
 
             assertFalse(removed)
             coVerify(exactly = 0) { biometricRepository.requestBiometrics(any()) }
@@ -185,7 +155,6 @@ class RemoveViewOnlyAccountUseCaseTest {
             accountDataSource = accountDataSource,
             biometricRepository = biometricRepository,
             migrationAppHooks = migrationAppHooks,
-            accountNameProvider = accountNameProvider,
         )
     }
 }

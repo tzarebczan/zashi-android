@@ -32,7 +32,7 @@ import co.electriccoin.zcash.ui.design.theme.ZcashTheme
  * Accessibility services read it as one image whose state names [color] in hex.
  */
 @Composable
-fun ZashiColorSpectrum(
+fun ZodlColorSpectrum(
     position: Offset,
     color: Color,
     onPick: (Offset) -> Unit,
@@ -92,7 +92,7 @@ private val RING_STROKE = 3.dp
 private fun Preview() =
     ZcashTheme {
         BlankSurface {
-            ZashiColorSpectrum(
+            ZodlColorSpectrum(
                 position = Offset(0.8f, 0.4f),
                 color = spectrumColor(Offset(0.8f, 0.4f)),
                 onPick = {}

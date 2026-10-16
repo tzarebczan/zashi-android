@@ -14,7 +14,10 @@ import co.electriccoin.zcash.ui.common.usecase.ValidateUfvkUseCase
 import co.electriccoin.zcash.ui.common.usecase.ViewOnlyKeyCheckException
 import co.electriccoin.zcash.ui.screen.error.ErrorArgs
 import co.electriccoin.zcash.ui.screen.error.NavigateToErrorUseCase
+import co.electriccoin.zcash.ui.screen.viewingkey.alreadyimported.AlreadyImportedVKArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.importvk.ImportVKVM
+import co.electriccoin.zcash.ui.screen.viewingkey.name.NameVKArgs
+import co.electriccoin.zcash.ui.screen.viewingkey.scan.ScanVKArgs
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk

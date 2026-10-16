@@ -76,7 +76,7 @@ internal class SubmitViewOnlyKeyUseCase(
     }
 }
 
-enum class SubmitViewOnlyKeyResult {
+internal enum class SubmitViewOnlyKeyResult {
     Accepted,
     Invalid,
     AlreadyImported,

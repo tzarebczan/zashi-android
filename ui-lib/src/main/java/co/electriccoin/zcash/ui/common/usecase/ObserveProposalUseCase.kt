@@ -6,7 +6,7 @@ import co.electriccoin.zcash.ui.common.ledger.LedgerProposalPipeline
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.repository.KeystoneProposalRepository
 import co.electriccoin.zcash.ui.common.repository.ZashiProposalRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -30,7 +30,7 @@ class ObserveProposalUseCase(
                     is KeystoneAccount -> keystoneProposalRepository.transactionProposal
                     is LedgerAccount -> ledgerProposalPipeline.transactionProposal
                     is ViewOnlyAccount -> flowOf(null)
-                    is ZashiAccount -> zashiProposalRepository.transactionProposal
+                    is ZodlAccount -> zashiProposalRepository.transactionProposal
                 }
             }.filterNotNull()
 
@@ -45,7 +45,7 @@ class ObserveProposalUseCase(
                     is KeystoneAccount -> keystoneProposalRepository.transactionProposal
                     is LedgerAccount -> ledgerProposalPipeline.transactionProposal
                     is ViewOnlyAccount -> flowOf(null)
-                    is ZashiAccount -> zashiProposalRepository.transactionProposal
+                    is ZodlAccount -> zashiProposalRepository.transactionProposal
                 }
             }
 }

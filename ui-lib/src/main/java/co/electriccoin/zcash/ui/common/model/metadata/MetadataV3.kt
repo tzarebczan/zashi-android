@@ -8,7 +8,6 @@ import co.electriccoin.zcash.ui.common.model.SwapStatus
 import co.electriccoin.zcash.ui.common.serialization.BigDecimalSerializer
 import co.electriccoin.zcash.ui.common.serialization.ColorSerializer
 import co.electriccoin.zcash.ui.common.serialization.InstantSerializer
-import co.electriccoin.zcash.ui.common.serialization.LenientAccountAppearanceSerializer
 import co.electriccoin.zcash.ui.common.serialization.METADATA_SERIALIZATION_V3
 import co.electriccoin.zcash.ui.common.serialization.SwapStatusSerializer
 import co.electriccoin.zcash.ui.common.serialization.ZatoshiSerializer
@@ -47,7 +46,6 @@ data class AccountMetadataV3(
     @SerialName("swaps")
     val swaps: SwapsMetadataV3 = SwapsMetadataV3(swapIds = emptyList(), lastUsedAssetHistory = emptySet()),
     @SerialName("appearance")
-    @Serializable(LenientAccountAppearanceSerializer::class)
     val appearance: AccountAppearanceMetadataV3? = null,
 )
 

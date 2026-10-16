@@ -1,7 +1,8 @@
 package co.electriccoin.zcash.ui.screen.viewingkey.importvk
 
 import androidx.compose.runtime.Immutable
-import co.electriccoin.zcash.ui.design.component.AccountAvatarState
+import co.electriccoin.zcash.ui.common.compose.AccountFormHeaderState
+import co.electriccoin.zcash.ui.common.compose.AccountFormState
 import co.electriccoin.zcash.ui.design.component.ButtonState
 import co.electriccoin.zcash.ui.design.component.ButtonStyle
 import co.electriccoin.zcash.ui.design.component.IconButtonState
@@ -19,12 +20,8 @@ import co.electriccoin.zcash.viewingkey.R
  * @param scanButton opens the QR scanner; it sits at the end of [field].
  */
 @Immutable
-data class ImportVKState(
-    val title: StringResource,
-    val subtitle: StringResource,
-    val avatar: AccountAvatarState,
-    val heading: StringResource,
-    val message: StringResource,
+internal data class ImportVKState(
+    val form: AccountFormState,
     val fieldLabel: StringResource,
     val field: TextFieldState,
     val placeholder: StringResource,
@@ -55,11 +52,17 @@ data class ImportVKState(
             onContinueClick: () -> Unit,
             onBack: () -> Unit,
         ) = ImportVKState(
-            title = stringRes(R.string.view_only_import_title),
-            subtitle = stringRes(R.string.view_only_import_subtitle),
-            avatar = vkAvatar(),
-            heading = stringRes(R.string.view_only_paste_heading),
-            message = stringRes(R.string.view_only_paste_message),
+            form =
+                AccountFormState(
+                    title = stringRes(R.string.view_only_import_title),
+                    subtitle = stringRes(R.string.view_only_import_subtitle),
+                    header =
+                        AccountFormHeaderState(
+                            avatar = vkAvatar(),
+                            heading = stringRes(R.string.view_only_paste_heading),
+                            message = stringRes(R.string.view_only_paste_message),
+                        ),
+                ),
             fieldLabel = stringRes(R.string.view_only_paste_label),
             field =
                 TextFieldState(
@@ -102,7 +105,7 @@ data class ImportVKState(
     }
 }
 
-object ImportVKTag {
+internal object ImportVKTag {
     const val FIELD = "view_only_paste_field"
     const val SCAN_BUTTON = "view_only_paste_scan_button"
     const val CONTINUE_BUTTON = "view_only_paste_continue_button"

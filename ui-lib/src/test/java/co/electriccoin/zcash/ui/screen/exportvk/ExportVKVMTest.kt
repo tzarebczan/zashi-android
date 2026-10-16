@@ -10,7 +10,7 @@ import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.VKType
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.usecase.AccountIconFixtures
 import co.electriccoin.zcash.ui.common.usecase.GetVKUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveSelectedWalletAccountUseCase
@@ -188,7 +188,7 @@ class ExportVKVMTest {
         )
 
     private fun zashiAccount() =
-        ZashiAccount(
+        ZodlAccount(
             sdkAccount = mockk<Account>(relaxed = true),
             unifiedAddress = "unified",
             transparentAddress = "transparent",

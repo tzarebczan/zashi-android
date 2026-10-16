@@ -9,7 +9,7 @@ import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.model.metadata.MetadataV3
 import co.electriccoin.zcash.ui.common.provider.GetVersionInfoProvider
 import co.electriccoin.zcash.ui.common.repository.ConfigurationRepository
@@ -68,7 +68,7 @@ class ZashiTopAppBarVMTest {
 
     @Test
     fun spendableAccountsShowTheirOwnAvatarAndNameWithoutALabel() {
-        listOf(zashi(isSelected = true), keystone(isSelected = true), ledger(isSelected = true)).forEach { account ->
+        listOf(zodl(isSelected = true), keystone(isSelected = true), ledger(isSelected = true)).forEach { account ->
             val switch = assertNotNull(vm(listOf(account)).state.value.accountSwitchState)
 
             assertEquals(imageRes(account.icon), switch.icon)
@@ -81,7 +81,7 @@ class ZashiTopAppBarVMTest {
     fun theVendorAvatarsAreTheOnesTheBarAlwaysShowed() {
         assertEquals(
             listOf(R.drawable.ic_item_zashi, R.drawable.ic_item_keystone, R.drawable.ic_item_ledger).map(::imageRes),
-            listOf(zashi(isSelected = true), keystone(isSelected = true), ledger(isSelected = true)).map {
+            listOf(zodl(isSelected = true), keystone(isSelected = true), ledger(isSelected = true)).map {
                 assertNotNull(vm(listOf(it)).state.value.accountSwitchState).icon
             }
         )
@@ -90,7 +90,7 @@ class ZashiTopAppBarVMTest {
     @Test
     fun aViewOnlyAccountShowsItsAvatarAndNameUnderTheViewOnlyLabel() {
         val viewOnly = viewOnly(isSelected = true)
-        val switch = assertNotNull(vm(listOf(zashi(isSelected = false), viewOnly)).state.value.accountSwitchState)
+        val switch = assertNotNull(vm(listOf(zodl(isSelected = false), viewOnly)).state.value.accountSwitchState)
 
         assertEquals(AccountIconFixtures.viewOnlyIcon(), switch.icon)
         assertEquals(stringRes("Savings"), switch.name)
@@ -100,7 +100,7 @@ class ZashiTopAppBarVMTest {
     @Test
     fun theSwitchShimmersUntilAnAccountIsSelected() {
         assertNull(vm(accounts = null).state.value.accountSwitchState)
-        assertNull(vm(listOf(zashi(isSelected = false))).state.value.accountSwitchState)
+        assertNull(vm(listOf(zodl(isSelected = false))).state.value.accountSwitchState)
     }
 
     @Test
@@ -109,7 +109,7 @@ class ZashiTopAppBarVMTest {
             val navigationRouter = mockk<NavigationRouter>(relaxed = true)
             val vm =
                 vm(
-                    listOf(zashi(isSelected = false), viewOnly(isSelected = true)),
+                    listOf(zodl(isSelected = false), viewOnly(isSelected = true)),
                     navigationRouter = navigationRouter,
                 )
 
@@ -126,7 +126,7 @@ class ZashiTopAppBarVMTest {
             val navigationRouter = mockk<NavigationRouter>(relaxed = true)
             val vm =
                 vm(
-                    listOf(zashi(isSelected = false), keystone(isSelected = true)),
+                    listOf(zodl(isSelected = false), keystone(isSelected = true)),
                     navigationRouter = navigationRouter,
                 )
 
@@ -141,7 +141,7 @@ class ZashiTopAppBarVMTest {
         runTest {
             val viewOnly = viewOnly(isSelected = true)
             allMetadata.value = mapOf(viewOnly.sdkAccount.accountUuid to AccountIconFixtures.metadata(Color(PICKED)))
-            val vm = vm(listOf(zashi(isSelected = false), viewOnly))
+            val vm = vm(listOf(zodl(isSelected = false), viewOnly))
             collect(vm)
 
             assertEquals(
@@ -153,9 +153,9 @@ class ZashiTopAppBarVMTest {
     @Test
     fun aColoredZodlAccountShowsItsMarkOnTheBar() =
         runTest {
-            val zashi = zashi(isSelected = true)
-            allMetadata.value = mapOf(zashi.sdkAccount.accountUuid to AccountIconFixtures.metadata(Color(PICKED)))
-            val vm = vm(listOf(zashi))
+            val zodl = zodl(isSelected = true)
+            allMetadata.value = mapOf(zodl.sdkAccount.accountUuid to AccountIconFixtures.metadata(Color(PICKED)))
+            val vm = vm(listOf(zodl))
             collect(vm)
 
             assertEquals(
@@ -171,7 +171,7 @@ class ZashiTopAppBarVMTest {
     fun aColorChangeReachesTheBarLive() =
         runTest {
             val viewOnly = viewOnly(isSelected = true)
-            val vm = vm(listOf(zashi(isSelected = false), viewOnly))
+            val vm = vm(listOf(zodl(isSelected = false), viewOnly))
             collect(vm)
             assertEquals(AccountIconFixtures.viewOnlyIcon(), assertNotNull(vm.state.value.accountSwitchState).icon)
 
@@ -218,12 +218,12 @@ class ZashiTopAppBarVMTest {
         observeAccountIcon = AccountIconFixtures.useCase(allMetadata),
     )
 
-    private fun zashi(isSelected: Boolean) =
-        ZashiAccount(
+    private fun zodl(isSelected: Boolean) =
+        ZodlAccount(
             sdkAccount = EditAccountFixtures.sdkAccount(0),
-            unifiedAddress = "u-zashi",
-            transparentAddress = "t-zashi",
-            saplingAddress = "s-zashi",
+            unifiedAddress = "u-zodl",
+            transparentAddress = "t-zodl",
+            saplingAddress = "s-zodl",
             orchardBalance = null,
             saplingBalance = null,
             ironwoodBalance = null,

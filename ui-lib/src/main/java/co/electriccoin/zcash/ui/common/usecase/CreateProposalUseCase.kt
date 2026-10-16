@@ -11,7 +11,7 @@ import co.electriccoin.zcash.ui.common.model.AccountOperationUnsupportedExceptio
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.repository.KeystoneProposalRepository
 import co.electriccoin.zcash.ui.common.repository.ZashiProposalRepository
 import co.electriccoin.zcash.ui.screen.insufficientfunds.InsufficientFundsArgs
@@ -44,7 +44,7 @@ class CreateProposalUseCase(
                     throw AccountOperationUnsupportedException.viewOnly()
                 }
 
-                is ZashiAccount -> {
+                is ZodlAccount -> {
                     zashiProposalRepository.createProposal(normalized)
                 }
             }

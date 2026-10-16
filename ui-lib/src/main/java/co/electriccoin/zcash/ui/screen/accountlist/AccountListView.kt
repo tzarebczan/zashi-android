@@ -41,7 +41,7 @@ import co.electriccoin.zcash.ui.design.component.ZashiHorizontalDivider
 import co.electriccoin.zcash.ui.design.component.ZashiSmallTopAppBar
 import co.electriccoin.zcash.ui.design.component.ZashiTopAppBarCloseNavigation
 import co.electriccoin.zcash.ui.design.component.listitem.BaseListItem
-import co.electriccoin.zcash.ui.design.component.listitem.ZashiWalletListItem
+import co.electriccoin.zcash.ui.design.component.listitem.ZodlWalletListItem
 import co.electriccoin.zcash.ui.design.component.rememberZashiFrostState
 import co.electriccoin.zcash.ui.design.component.rememberZashiShimmer
 import co.electriccoin.zcash.ui.design.component.zashiFrostSource
@@ -174,7 +174,7 @@ private fun Section(state: AccountListSectionState) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             state.items.forEach { item ->
-                ZashiWalletListItem(
+                ZodlWalletListItem(
                     state = item,
                     modifier = Modifier.fillMaxWidth(),
                 )

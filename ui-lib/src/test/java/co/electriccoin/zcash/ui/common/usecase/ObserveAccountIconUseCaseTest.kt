@@ -4,7 +4,7 @@ import androidx.compose.ui.graphics.Color
 import cash.z.ecc.android.sdk.model.Account
 import cash.z.ecc.android.sdk.model.AccountUuid
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.model.metadata.MetadataV3
 import co.electriccoin.zcash.ui.common.usecase.AccountIconFixtures.PICKED
 import co.electriccoin.zcash.ui.design.R
@@ -42,7 +42,7 @@ class ObserveAccountIconUseCaseTest {
             metadata.value =
                 mapOf(
                     VIEW_ONLY_UUID to AccountIconFixtures.metadata(Color(PICKED)),
-                    ZASHI_UUID to AccountIconFixtures.metadata(null)
+                    ZODL_UUID to AccountIconFixtures.metadata(null)
                 )
             metadata.value = mapOf(VIEW_ONLY_UUID to AccountIconFixtures.metadata(Color(OTHER)))
 
@@ -67,14 +67,14 @@ class ObserveAccountIconUseCaseTest {
                 background = Color(PICKED),
                 foreground = ImageResource.ByDrawable(R.drawable.ic_item_zodl_glyph)
             ),
-            useCase.iconOf(mapOf(ZASHI_UUID to Color(PICKED)), zashi())
+            useCase.iconOf(mapOf(ZODL_UUID to Color(PICKED)), zodl())
         )
     }
 
     @Test
     fun iconOfFallsBackToTheDefaultIcon() {
         assertEquals(AccountIconFixtures.viewOnlyIcon(), useCase.iconOf(emptyMap(), viewOnly()))
-        assertEquals(imageRes(R.drawable.ic_item_zashi), useCase.iconOf(emptyMap(), zashi()))
+        assertEquals(imageRes(R.drawable.ic_item_zashi), useCase.iconOf(emptyMap(), zodl()))
     }
 
     @Test
@@ -93,7 +93,7 @@ class ObserveAccountIconUseCaseTest {
         val colors = mapOf(OTHER_UUID to Color(PICKED))
 
         assertEquals(AccountIconFixtures.viewOnlyIcon(), useCase.iconOf(colors, viewOnly()))
-        assertEquals(imageRes(R.drawable.ic_item_zashi), useCase.iconOf(colors, zashi()))
+        assertEquals(imageRes(R.drawable.ic_item_zashi), useCase.iconOf(colors, zodl()))
     }
 
     @Test
@@ -108,15 +108,15 @@ class ObserveAccountIconUseCaseTest {
                 mapOf(
                     VIEW_ONLY_UUID to
                         colored.copy(accountMetadata = colored.accountMetadata.copy(read = listOf("tx1"))),
-                    ZASHI_UUID to AccountIconFixtures.metadata(null)
+                    ZODL_UUID to AccountIconFixtures.metadata(null)
                 )
 
             assertEquals(listOf(emptyMap(), mapOf(VIEW_ONLY_UUID to Color(PICKED))), emitted)
         }
 
-    private fun zashi() =
-        ZashiAccount(
-            sdkAccount = Account.new(ZASHI_UUID),
+    private fun zodl() =
+        ZodlAccount(
+            sdkAccount = Account.new(ZODL_UUID),
             unifiedAddress = "u",
             transparentAddress = "t",
             saplingAddress = "s",
@@ -143,7 +143,7 @@ class ObserveAccountIconUseCaseTest {
         )
 
     private companion object {
-        val ZASHI_UUID: AccountUuid = AccountUuid.new(ByteArray(16) { it.toByte() })
+        val ZODL_UUID: AccountUuid = AccountUuid.new(ByteArray(16) { it.toByte() })
         val VIEW_ONLY_UUID: AccountUuid = AccountUuid.new(ByteArray(16) { (it + 1).toByte() })
         val OTHER_UUID: AccountUuid = AccountUuid.new(ByteArray(16) { (it + 3).toByte() })
         const val OTHER = 0xFF0088FF

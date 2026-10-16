@@ -57,7 +57,7 @@ import co.electriccoin.zcash.ui.screen.restore.height.RestoreHeightTags
 import co.electriccoin.zcash.ui.screen.restore.seed.RestoreSeedTag
 import co.electriccoin.zcash.ui.screen.restore.tor.RestoreTorTags
 import co.electriccoin.zcash.ui.screen.send.SendTag
-import co.electriccoin.zcash.ui.screen.viewingkey.ImportVKArgs
+import co.electriccoin.zcash.ui.screen.viewingkey.importvk.ImportVKArgs
 import co.electriccoin.zcash.ui.screen.walletbackup.WalletBackup
 import co.electriccoin.zcash.ui.util.CURRENCY_TICKER
 import kotlinx.coroutines.Dispatchers

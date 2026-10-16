@@ -8,7 +8,7 @@ import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.model.toStorageKeyId
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
 import co.electriccoin.zcash.ui.design.util.stringRes
@@ -42,7 +42,7 @@ import kotlin.test.assertNull
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class WalletOptionsVMTest {
-    private val zashi = zashi()
+    private val zodl = zodl()
     private val keystone = keystone()
     private val ledger = ledger()
 
@@ -123,7 +123,7 @@ class WalletOptionsVMTest {
     fun anAccountThatIsNotAHardwareWalletGoesBack() =
         runTest {
             val navigationRouter = mockk<NavigationRouter>(relaxed = true)
-            val vm = vm(zashi, navigationRouter = navigationRouter)
+            val vm = vm(zodl, navigationRouter = navigationRouter)
             collect(vm)
             runCurrent()
 
@@ -135,7 +135,7 @@ class WalletOptionsVMTest {
         target: WalletAccount,
         navigationRouter: NavigationRouter = mockk(relaxed = true),
     ): WalletOptionsVM {
-        val accounts = MutableStateFlow<List<WalletAccount>?>(listOf(zashi, keystone, ledger))
+        val accounts = MutableStateFlow<List<WalletAccount>?>(listOf(zodl, keystone, ledger))
         return WalletOptionsVM(
             args = WalletOptionsArgs(accountKeyId = target.sdkAccount.accountUuid.toStorageKeyId()),
             getWalletAccounts =
@@ -149,8 +149,8 @@ class WalletOptionsVMTest {
 
     private fun sdkAccount(id: Int) = Account.new(AccountUuid.new(ByteArray(16) { (it + id * 16).toByte() }))
 
-    private fun zashi() =
-        ZashiAccount(
+    private fun zodl() =
+        ZodlAccount(
             sdkAccount = sdkAccount(1),
             unifiedAddress = "u",
             transparentAddress = "t",

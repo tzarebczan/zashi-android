@@ -10,7 +10,6 @@ import co.electriccoin.zcash.ui.common.ledger.LedgerProposalPipeline
 import co.electriccoin.zcash.ui.common.model.AccountOperationUnsupportedException
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.requireSpendable
-import co.electriccoin.zcash.ui.common.provider.SelectedAccountSpendableStorageProvider
 import co.electriccoin.zcash.ui.common.provider.SynchronizerProvider
 import co.electriccoin.zcash.ui.common.repository.BiometricRepository
 import co.electriccoin.zcash.ui.common.repository.EphemeralAddressRepository
@@ -81,7 +80,6 @@ class ViewOnlySpendGuardTest {
     private val ledgerProposalPipeline = mockk<LedgerProposalPipeline>(relaxed = true)
     private val navigationRouter = mockk<NavigationRouter>(relaxed = true)
     private val navigateToError = mockk<NavigateToErrorUseCase>(relaxed = true)
-    private val spendableHint = mockk<SelectedAccountSpendableStorageProvider> { coEvery { get() } returns true }
     private val biometricRepository = mockk<BiometricRepository>(relaxed = true)
 
     @BeforeTest
@@ -309,16 +307,12 @@ class ViewOnlySpendGuardTest {
             NavigateToSendUseCase(
                 navigationRouter,
                 mockk(relaxed = true),
-                accountDataSource,
-                navigateToError,
-                spendableHint
+                RejectIfSelectedAccountCannotSpendUseCase(accountDataSource, navigateToError)
             )()
             NavigateToNearPayUseCase(
                 swapRepository,
                 navigationRouter,
-                accountDataSource,
-                navigateToError,
-                spendableHint
+                RejectIfSelectedAccountCannotSpendUseCase(accountDataSource, navigateToError)
             )()
 
             verify(exactly = 2) { navigateToError(match { it.isViewOnlyError() }, any()) }
@@ -342,7 +336,11 @@ class ViewOnlySpendGuardTest {
         runTest {
             val prefillSend = mockk<PrefillSendUseCase>(relaxed = true)
 
-            OnAddressScannedUseCase(navigationRouter, prefillSend, accountDataSource, navigateToError, spendableHint)(
+            OnAddressScannedUseCase(
+                navigationRouter,
+                prefillSend,
+                RejectIfSelectedAccountCannotSpendUseCase(accountDataSource, navigateToError)
+            )(
                 address = "t1address",
                 addressType = AddressType.Transparent,
                 scanArgs = ScanArgs(ScanFlow.HOMEPAGE),
@@ -350,9 +348,7 @@ class ViewOnlySpendGuardTest {
             SendTransactionAgainUseCase(
                 prefillSend,
                 navigationRouter,
-                accountDataSource,
-                navigateToError,
-                spendableHint
+                RejectIfSelectedAccountCannotSpendUseCase(accountDataSource, navigateToError)
             )(mockk())
 
             verify(exactly = 2) { navigateToError(match { it.isViewOnlyError() }, any()) }
@@ -403,11 +399,11 @@ class ViewOnlySpendGuardTest {
 
     @Test
     fun requireSpendableReturnsEverySpendableAccountUnchanged() {
-        val zashi = EditAccountFixtures.zashi()
+        val zodl = EditAccountFixtures.zodl()
         val keystone = EditAccountFixtures.keystone()
         val ledger = EditAccountFixtures.ledger()
 
-        assertSame(zashi, zashi.requireSpendable())
+        assertSame(zodl, zodl.requireSpendable())
         assertSame(keystone, keystone.requireSpendable())
         assertSame(ledger, ledger.requireSpendable())
     }

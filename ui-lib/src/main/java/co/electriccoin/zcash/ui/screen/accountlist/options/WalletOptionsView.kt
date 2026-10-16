@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.dp
 import co.electriccoin.zcash.ui.design.component.ZashiButton
 import co.electriccoin.zcash.ui.design.component.ZashiButtonDefaults
 import co.electriccoin.zcash.ui.design.component.ZashiScreenModalBottomSheet
-import co.electriccoin.zcash.ui.design.component.listitem.ZashiSheetListItem
+import co.electriccoin.zcash.ui.design.component.listitem.ZodlSheetListItem
 import co.electriccoin.zcash.ui.design.newcomponent.PreviewScreens
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.design.theme.colors.ZashiColors
@@ -58,7 +58,7 @@ private fun Content(
         Spacer(Modifier.height(16.dp))
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             state.options.forEach { option ->
-                ZashiSheetListItem(
+                ZodlSheetListItem(
                     modifier = Modifier.testTag(option.testTag),
                     icon = option.icon,
                     title = option.title,

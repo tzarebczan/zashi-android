@@ -22,7 +22,7 @@ import kotlin.test.Test
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-class ZashiViewingKeyTextFieldTest {
+class ZodlViewingKeyTextFieldTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -45,7 +45,7 @@ class ZashiViewingKeyTextFieldTest {
     private fun setContent() {
         composeTestRule.setContent {
             ZcashTheme {
-                ZashiViewingKeyTextField(
+                ZodlViewingKeyTextField(
                     state = TextFieldState(value = stringRes(KEY), onValueChange = {}),
                     modifier = Modifier.testTag(FIELD_TAG),
                 )

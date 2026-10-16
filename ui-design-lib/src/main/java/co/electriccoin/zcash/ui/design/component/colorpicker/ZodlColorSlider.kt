@@ -32,7 +32,7 @@ import co.electriccoin.zcash.ui.design.theme.ZcashTheme
  * in its 48 dp tall touch area moves the knob.
  */
 @Composable
-fun ZashiColorSlider(
+fun ZodlColorSlider(
     value: Float,
     trackColors: List<Color>,
     knobColor: Color,
@@ -96,7 +96,7 @@ private val KNOB_RING = 3.dp
 private fun Preview() =
     ZcashTheme {
         BlankSurface {
-            ZashiColorSlider(
+            ZodlColorSlider(
                 value = 1f,
                 trackColors = listOf(Color.Black, Color(0xFFAF52DE)),
                 knobColor = Color(0xFFAF52DE),

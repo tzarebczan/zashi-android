@@ -10,7 +10,7 @@ import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.model.metadata.MetadataV3
 import co.electriccoin.zcash.ui.common.model.toStorageKeyId
 import co.electriccoin.zcash.ui.common.usecase.AccountIconFixtures
@@ -85,7 +85,7 @@ class AccountListVMTest {
                     listOf(
                         viewOnly(id = 4, isSelected = false),
                         ledger(id = 3, isSelected = false),
-                        zashi(id = 1, isSelected = true),
+                        zodl(id = 1, isSelected = true),
                         keystone(id = 2, isSelected = false),
                     )
                 )
@@ -112,7 +112,7 @@ class AccountListVMTest {
     @Test
     fun emptySectionsAreLeftOut() =
         runTest {
-            val vm = vm(listOf(zashi(id = 1, isSelected = true), viewOnly(id = 2, isSelected = false)))
+            val vm = vm(listOf(zodl(id = 1, isSelected = true), viewOnly(id = 2, isSelected = false)))
             collect(vm)
 
             assertEquals(
@@ -127,7 +127,7 @@ class AccountListVMTest {
             val vm =
                 vm(
                     listOf(
-                        zashi(id = 1, isSelected = true),
+                        zodl(id = 1, isSelected = true),
                         viewOnly(id = 2, isSelected = false),
                         viewOnly(id = 3, isSelected = false),
                         viewOnly(id = 4, isSelected = false),
@@ -147,7 +147,7 @@ class AccountListVMTest {
             val vm =
                 vm(
                     listOf(
-                        zashi(id = 1, isSelected = false),
+                        zodl(id = 1, isSelected = false),
                         keystone(id = 2, isSelected = false),
                         ledger(id = 3, isSelected = true),
                     )
@@ -163,7 +163,7 @@ class AccountListVMTest {
         runTest {
             val accounts =
                 listOf(
-                    zashi(id = 1, isSelected = true),
+                    zodl(id = 1, isSelected = true),
                     keystone(id = 2, isSelected = false),
                     ledger(id = 3, isSelected = false),
                     viewOnly(id = 4, isSelected = false),
@@ -183,7 +183,7 @@ class AccountListVMTest {
             val vm =
                 vm(
                     listOf(
-                        zashi(id = 1, isSelected = false),
+                        zodl(id = 1, isSelected = false),
                         keystone(id = 2, isSelected = true),
                         ledger(id = 3, isSelected = false),
                         viewOnly(id = 4, isSelected = false),
@@ -204,7 +204,7 @@ class AccountListVMTest {
             val vm =
                 vm(
                     listOf(
-                        zashi(id = 1, isSelected = true, balance = Zatoshi(100)),
+                        zodl(id = 1, isSelected = true, balance = Zatoshi(100)),
                         keystone(id = 2, isSelected = false, balance = Zatoshi(10)),
                     )
                 )
@@ -218,7 +218,7 @@ class AccountListVMTest {
     @Test
     fun aViewOnlyRowAppendsTheViewOnlyLabelToItsBalance() =
         runTest {
-            val vm = vm(listOf(zashi(id = 1, isSelected = true), viewOnly(id = 2, isSelected = false, Zatoshi(5))))
+            val vm = vm(listOf(zodl(id = 1, isSelected = true), viewOnly(id = 2, isSelected = false, Zatoshi(5))))
             collect(vm)
 
             val row = assertNotNull(vm.state.value.sections).last().items.single()
@@ -231,7 +231,7 @@ class AccountListVMTest {
             val vm =
                 vm(
                     listOf(
-                        zashi(id = 1, isSelected = true, balance = null),
+                        zodl(id = 1, isSelected = true, balance = null),
                         viewOnly(id = 2, isSelected = false, balance = null),
                     )
                 )
@@ -246,7 +246,7 @@ class AccountListVMTest {
         runTest {
             val selectWalletAccount = mockk<SelectWalletAccountUseCase>(relaxed = true)
             val ledger = ledger(id = 2, isSelected = false)
-            val vm = vm(listOf(zashi(id = 1, isSelected = true), ledger), selectWalletAccount = selectWalletAccount)
+            val vm = vm(listOf(zodl(id = 1, isSelected = true), ledger), selectWalletAccount = selectWalletAccount)
             collect(vm)
 
             assertNotNull(vm.state.value.sections)[1].items.single().onClick()
@@ -258,15 +258,15 @@ class AccountListVMTest {
     @Test
     fun anUnchangedAccountKeepsAnEqualRowAcrossEmissions() =
         runTest {
-            val zashi = zashi(id = 1, isSelected = true)
+            val zodl = zodl(id = 1, isSelected = true)
             val keystone = keystone(id = 2, isSelected = false)
             val viewOnly = viewOnly(id = 3, isSelected = false)
-            val accounts = MutableStateFlow<List<WalletAccount>?>(listOf(zashi, keystone, viewOnly))
+            val accounts = MutableStateFlow<List<WalletAccount>?>(listOf(zodl, keystone, viewOnly))
             val vm = vm(accounts)
             collect(vm)
             val before = assertNotNull(vm.state.value.sections).flatMap { it.items }
 
-            accounts.value = listOf(zashi.copy(), keystone.copy(transparentBalance = Zatoshi(2)), viewOnly.copy())
+            accounts.value = listOf(zodl.copy(), keystone.copy(transparentBalance = Zatoshi(2)), viewOnly.copy())
             runCurrent()
 
             val after = assertNotNull(vm.state.value.sections).flatMap { it.items }
@@ -280,16 +280,16 @@ class AccountListVMTest {
     @Test
     fun theCallbacksOfARemovedAccountAreDropped() =
         runTest {
-            val zashi = zashi(id = 1, isSelected = true)
+            val zodl = zodl(id = 1, isSelected = true)
             val keystone = keystone(id = 2, isSelected = false)
-            val accounts = MutableStateFlow<List<WalletAccount>?>(listOf(zashi, keystone))
+            val accounts = MutableStateFlow<List<WalletAccount>?>(listOf(zodl, keystone))
             val vm = vm(accounts)
             collect(vm)
             val before = assertNotNull(vm.state.value.sections).flatMap { it.items }[1]
 
-            accounts.value = listOf(zashi)
+            accounts.value = listOf(zodl)
             runCurrent()
-            accounts.value = listOf(zashi, keystone)
+            accounts.value = listOf(zodl, keystone)
             runCurrent()
 
             val after = assertNotNull(vm.state.value.sections).flatMap { it.items }[1]
@@ -302,13 +302,13 @@ class AccountListVMTest {
         runTest {
             val selectWalletAccount = mockk<SelectWalletAccountUseCase>(relaxed = true)
             val ledger = ledger(id = 2, isSelected = false)
-            val accounts = MutableStateFlow<List<WalletAccount>?>(listOf(zashi(id = 1, isSelected = true), ledger))
+            val accounts = MutableStateFlow<List<WalletAccount>?>(listOf(zodl(id = 1, isSelected = true), ledger))
             val vm = vm(accounts, selectWalletAccount = selectWalletAccount)
             collect(vm)
             val onClick = assertNotNull(vm.state.value.sections)[1].items.single().onClick
             val updated = ledger.copy(transparentBalance = Zatoshi(7))
 
-            accounts.value = listOf(zashi(id = 1, isSelected = true), updated)
+            accounts.value = listOf(zodl(id = 1, isSelected = true), updated)
             runCurrent()
             onClick()
             runCurrent()
@@ -319,7 +319,7 @@ class AccountListVMTest {
     @Test
     fun theOptionsButtonNamesItsWallet() =
         runTest {
-            val vm = vm(listOf(zashi(id = 1, isSelected = true), viewOnly(id = 2, isSelected = false)))
+            val vm = vm(listOf(zodl(id = 1, isSelected = true), viewOnly(id = 2, isSelected = false)))
             collect(vm)
 
             val sections = assertNotNull(vm.state.value.sections)
@@ -338,10 +338,10 @@ class AccountListVMTest {
         runTest {
             val selectWalletAccount = mockk<SelectWalletAccountUseCase>(relaxed = true)
             val navigationRouter = mockk<NavigationRouter>(relaxed = true)
-            val zashi = zashi(id = 1, isSelected = false)
+            val zodl = zodl(id = 1, isSelected = false)
             val vm =
                 vm(
-                    listOf(zashi, keystone(id = 2, isSelected = true)),
+                    listOf(zodl, keystone(id = 2, isSelected = true)),
                     selectWalletAccount = selectWalletAccount,
                     navigationRouter = navigationRouter,
                 )
@@ -351,7 +351,7 @@ class AccountListVMTest {
             runCurrent()
 
             verify(exactly = 1) {
-                navigationRouter.forward(EditAccountArgs(zashi.sdkAccount.accountUuid.toStorageKeyId()))
+                navigationRouter.forward(EditAccountArgs(zodl.sdkAccount.accountUuid.toStorageKeyId()))
             }
             coVerify(exactly = 0) { selectWalletAccount.invoke(any(), any()) }
         }
@@ -360,14 +360,14 @@ class AccountListVMTest {
     fun tappingTheZodlRowStillSelectsItAndCloses() =
         runTest {
             val selectWalletAccount = mockk<SelectWalletAccountUseCase>(relaxed = true)
-            val zashi = zashi(id = 1, isSelected = false)
-            val vm = vm(listOf(zashi, keystone(id = 2, isSelected = true)), selectWalletAccount = selectWalletAccount)
+            val zodl = zodl(id = 1, isSelected = false)
+            val vm = vm(listOf(zodl, keystone(id = 2, isSelected = true)), selectWalletAccount = selectWalletAccount)
             collect(vm)
 
             assertNotNull(vm.state.value.sections)[0].items.single().onClick()
             runCurrent()
 
-            coVerify(exactly = 1) { selectWalletAccount.invoke(zashi, true) }
+            coVerify(exactly = 1) { selectWalletAccount.invoke(zodl, true) }
         }
 
     @Test
@@ -379,7 +379,7 @@ class AccountListVMTest {
             val ledger = ledger(id = 3, isSelected = false)
             val vm =
                 vm(
-                    listOf(zashi(id = 1, isSelected = true), keystone, ledger),
+                    listOf(zodl(id = 1, isSelected = true), keystone, ledger),
                     selectWalletAccount = selectWalletAccount,
                     navigationRouter = navigationRouter,
                 )
@@ -407,7 +407,7 @@ class AccountListVMTest {
             val viewOnly = viewOnly(id = 2, isSelected = false)
             val vm =
                 vm(
-                    listOf(zashi(id = 1, isSelected = true), viewOnly),
+                    listOf(zodl(id = 1, isSelected = true), viewOnly),
                     selectWalletAccount = selectWalletAccount,
                     navigationRouter = navigationRouter,
                 )
@@ -426,9 +426,9 @@ class AccountListVMTest {
     fun thePromoShowsUntilAKeystoneIsConnected() =
         runTest {
             listOf(
-                listOf(zashi(id = 1, isSelected = true)),
-                listOf(zashi(id = 1, isSelected = true), ledger(id = 2, isSelected = false)),
-                listOf(zashi(id = 1, isSelected = true), viewOnly(id = 2, isSelected = false)),
+                listOf(zodl(id = 1, isSelected = true)),
+                listOf(zodl(id = 1, isSelected = true), ledger(id = 2, isSelected = false)),
+                listOf(zodl(id = 1, isSelected = true), viewOnly(id = 2, isSelected = false)),
             ).forEach { accounts ->
                 val vm = vm(accounts)
                 collect(vm)
@@ -436,9 +436,9 @@ class AccountListVMTest {
             }
 
             listOf(
-                listOf(zashi(id = 1, isSelected = true), keystone(id = 2, isSelected = false)),
+                listOf(zodl(id = 1, isSelected = true), keystone(id = 2, isSelected = false)),
                 listOf(
-                    zashi(id = 1, isSelected = true),
+                    zodl(id = 1, isSelected = true),
                     keystone(id = 2, isSelected = false),
                     ledger(id = 3, isSelected = false)
                 ),
@@ -453,7 +453,7 @@ class AccountListVMTest {
     fun thePromoOpensTheKeystoneShopInTheBrowserOnTopOfThisScreen() =
         runTest {
             val navigationRouter = mockk<NavigationRouter>(relaxed = true)
-            val vm = vm(listOf(zashi(id = 1, isSelected = true)), navigationRouter = navigationRouter)
+            val vm = vm(listOf(zodl(id = 1, isSelected = true)), navigationRouter = navigationRouter)
             collect(vm)
 
             val promo = assertNotNull(vm.state.value.keystonePromo)
@@ -470,14 +470,14 @@ class AccountListVMTest {
     fun theCallToActionShowsOnceTheAccountsAreLoadedWhateverIsConnected() =
         runTest {
             listOf(
-                listOf(zashi(id = 1, isSelected = true)),
-                listOf(zashi(id = 1, isSelected = true), keystone(id = 2, isSelected = false)),
+                listOf(zodl(id = 1, isSelected = true)),
+                listOf(zodl(id = 1, isSelected = true), keystone(id = 2, isSelected = false)),
                 listOf(
-                    zashi(id = 1, isSelected = true),
+                    zodl(id = 1, isSelected = true),
                     keystone(id = 2, isSelected = false),
                     ledger(id = 3, isSelected = false)
                 ),
-                listOf(zashi(id = 1, isSelected = false), viewOnly(id = 2, isSelected = true)),
+                listOf(zodl(id = 1, isSelected = false), viewOnly(id = 2, isSelected = true)),
             ).forEach { accounts ->
                 val vm = vm(accounts)
                 collect(vm)
@@ -506,7 +506,7 @@ class AccountListVMTest {
             val viewOnlyNavigator = mockk<ViewOnlyNavigator>(relaxed = true)
             val vm =
                 vm(
-                    listOf(zashi(id = 1, isSelected = true)),
+                    listOf(zodl(id = 1, isSelected = true)),
                     navigationRouter = navigationRouter,
                     viewOnlyNavigator = viewOnlyNavigator,
                 )
@@ -526,7 +526,7 @@ class AccountListVMTest {
     fun backClosesTheScreen() =
         runTest {
             val navigationRouter = mockk<NavigationRouter>(relaxed = true)
-            val vm = vm(listOf(zashi(id = 1, isSelected = true)), navigationRouter = navigationRouter)
+            val vm = vm(listOf(zodl(id = 1, isSelected = true)), navigationRouter = navigationRouter)
             collect(vm)
 
             vm.state.value.onBack()
@@ -537,17 +537,17 @@ class AccountListVMTest {
     @Test
     fun everyRowCarriesItsAccountsColoredIcon() =
         runTest {
-            val zashi = zashi(id = 1, isSelected = true)
+            val zodl = zodl(id = 1, isSelected = true)
             val keystone = keystone(id = 2, isSelected = false)
             val colored = viewOnly(id = 3, isSelected = false)
             val plain = viewOnly(id = 4, isSelected = false)
             allMetadata.value =
                 mapOf(
-                    zashi.sdkAccount.accountUuid to AccountIconFixtures.metadata(Color(ZODL_COLOR)),
+                    zodl.sdkAccount.accountUuid to AccountIconFixtures.metadata(Color(ZODL_COLOR)),
                     keystone.sdkAccount.accountUuid to AccountIconFixtures.metadata(Color(PICKED)),
                     colored.sdkAccount.accountUuid to AccountIconFixtures.metadata(Color(PICKED)),
                 )
-            val vm = vm(listOf(zashi, keystone, colored, plain))
+            val vm = vm(listOf(zodl, keystone, colored, plain))
             collect(vm)
 
             assertEquals(
@@ -567,11 +567,11 @@ class AccountListVMTest {
     @Test
     fun aColorChangeRedrawsOnlyThatRow() =
         runTest {
-            val zashi = zashi(id = 1, isSelected = true)
+            val zodl = zodl(id = 1, isSelected = true)
             val first = viewOnly(id = 2, isSelected = false)
             val second = viewOnly(id = 3, isSelected = false)
             allMetadata.value = mapOf(first.sdkAccount.accountUuid to AccountIconFixtures.metadata(Color(PICKED)))
-            val vm = vm(listOf(zashi, first, second))
+            val vm = vm(listOf(zodl, first, second))
             collect(vm)
             val before = assertNotNull(vm.state.value.sections).flatMap { it.items }
 
@@ -627,15 +627,15 @@ class AccountListVMTest {
      */
     private fun balance(amount: Zatoshi?) = amount?.let { WalletBalance(it, Zatoshi(0), Zatoshi(0)) }
 
-    private fun zashi(
+    private fun zodl(
         id: Int,
         isSelected: Boolean,
         balance: Zatoshi? = Zatoshi(1),
-    ) = ZashiAccount(
+    ) = ZodlAccount(
         sdkAccount = EditAccountFixtures.sdkAccount(id),
-        unifiedAddress = "u-zashi",
-        transparentAddress = "t-zashi",
-        saplingAddress = "s-zashi",
+        unifiedAddress = "u-zodl",
+        transparentAddress = "t-zodl",
+        saplingAddress = "s-zodl",
         orchardBalance = balance(balance),
         saplingBalance = balance(balance),
         ironwoodBalance = balance(balance),

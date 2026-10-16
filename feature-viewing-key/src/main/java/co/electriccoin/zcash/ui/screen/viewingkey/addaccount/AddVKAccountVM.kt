@@ -8,7 +8,7 @@ import co.electriccoin.zcash.ui.common.model.stateIn
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
 import co.electriccoin.zcash.ui.screen.accountlist.options.WalletOptionsState
 import co.electriccoin.zcash.ui.screen.choosehwwallet.ChooseHWWalletArgs
-import co.electriccoin.zcash.ui.screen.viewingkey.ImportVKArgs
+import co.electriccoin.zcash.ui.screen.viewingkey.importvk.ImportVKArgs
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +25,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * instead of vanishing under the next screen and leaves no hidden destination behind on the back
  * stack.
  */
-class AddVKAccountVM(
+internal class AddVKAccountVM(
     getWalletAccounts: GetWalletAccountsUseCase,
     private val navigationRouter: NavigationRouter,
 ) : ViewModel() {

@@ -7,7 +7,7 @@ import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
 import co.electriccoin.zcash.ui.common.datasource.MetadataDataSource
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.model.metadata.AccountAppearanceMetadataV3
 import co.electriccoin.zcash.ui.common.model.metadata.AccountMetadataV3
 import co.electriccoin.zcash.ui.common.model.metadata.MetadataV3
@@ -43,7 +43,7 @@ import kotlin.test.assertTrue
 class MetadataRepositoryAccountColorTest {
     private val selectedKey = mockk<MetadataKey>()
     private val viewOnlyKey = mockk<MetadataKey>()
-    private val selected = account<ZashiAccount>(SELECTED_UUID)
+    private val selected = account<ZodlAccount>(SELECTED_UUID)
     private val viewOnly = account<ViewOnlyAccount>(VIEW_ONLY_UUID)
     private val metadataDataSource = mockk<MetadataDataSource>(relaxed = true)
     private val accounts = MutableStateFlow<List<WalletAccount>?>(listOf(selected, viewOnly))
@@ -131,7 +131,7 @@ class MetadataRepositoryAccountColorTest {
                     every { accountUuid } returns SELECTED_UUID
                     every { ufvk } returns VIEW_ONLY_UFVK
                 }
-            val zodl = mockk<ZashiAccount> { every { this@mockk.sdkAccount } returns sdkAccount }
+            val zodl = mockk<ZodlAccount> { every { this@mockk.sdkAccount } returns sdkAccount }
 
             assertEquals(listOf<String?>(null), derivedUfvks(zodl))
         }

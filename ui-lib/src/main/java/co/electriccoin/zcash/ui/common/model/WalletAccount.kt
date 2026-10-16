@@ -200,7 +200,7 @@ sealed interface SaplingBalanceAccount : WalletAccount {
         }
 }
 
-data class ZashiAccount(
+data class ZodlAccount(
     override val sdkAccount: Account,
     override val unifiedAddress: String,
     override val transparentAddress: String,
@@ -227,7 +227,7 @@ data class ZashiAccount(
             is KeystoneAccount -> 1
             is LedgerAccount -> 1
             is ViewOnlyAccount -> 1
-            is ZashiAccount -> 0
+            is ZodlAccount -> 0
         }
 }
 
@@ -284,7 +284,7 @@ data class KeystoneAccount(
             is KeystoneAccount -> 0
             is LedgerAccount -> 1
             is ViewOnlyAccount -> 1
-            is ZashiAccount -> -1
+            is ZodlAccount -> -1
         }
 }
 
@@ -362,7 +362,7 @@ data class LedgerAccount(
             is KeystoneAccount -> -1
             is LedgerAccount -> 0
             is ViewOnlyAccount -> 1
-            is ZashiAccount -> -1
+            is ZodlAccount -> -1
         }
 
     /**
@@ -381,7 +381,7 @@ data class LedgerAccount(
  * It is deliberately not a [HWWalletAccount], so it never counts as a connected hardware vendor.
  * Like the hardware accounts it has no Sapling address of its own, so it receives on Orchard only,
  * but a key exported from a full Zodl account carries a Sapling component that the SDK scans, so
- * [saplingBalance] counts toward every total just as it does for [ZashiAccount]. Its SDK-side
+ * [saplingBalance] counts toward every total just as it does for [ZodlAccount]. Its SDK-side
  * [Account.hdAccountIndex] is null, so [hdAccountIndex] is null too.
  *
  * @param name The name the account shows: [customName], or the default view-only name when the
@@ -412,7 +412,7 @@ data class ViewOnlyAccount(
             is KeystoneAccount -> -1
             is LedgerAccount -> -1
             is ViewOnlyAccount -> 0
-            is ZashiAccount -> -1
+            is ZodlAccount -> -1
         }
 
     /**
@@ -448,13 +448,13 @@ fun WalletAccount?.canSpend(amount: Zatoshi): Boolean? = if (this == null) false
  * Whether a Keystone wallet can still be connected: the wallet holds at most one account per
  * hardware vendor.
  */
-fun List<WalletAccount>?.canConnectKeystone(): Boolean = orEmpty().none { it is KeystoneAccount }
+internal fun List<WalletAccount>?.canConnectKeystone(): Boolean = orEmpty().none { it is KeystoneAccount }
 
 /**
  * Whether a Ledger wallet can still be connected: the wallet holds at most one account per hardware
  * vendor.
  */
-fun List<WalletAccount>?.canConnectLedger(): Boolean = orEmpty().none { it is LedgerAccount }
+internal fun List<WalletAccount>?.canConnectLedger(): Boolean = orEmpty().none { it is LedgerAccount }
 
 /**
  * Whether any hardware vendor is still left to connect. A view-only account is not a hardware wallet

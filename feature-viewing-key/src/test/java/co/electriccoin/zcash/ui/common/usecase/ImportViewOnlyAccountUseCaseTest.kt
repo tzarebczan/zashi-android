@@ -14,8 +14,8 @@ import co.electriccoin.zcash.ui.common.repository.PendingViewOnlyImport
 import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepositoryImpl
 import co.electriccoin.zcash.ui.screen.keepopen.KeepOpenArgs
 import co.electriccoin.zcash.ui.screen.keepopen.KeepOpenFlow
-import co.electriccoin.zcash.ui.screen.viewingkey.AlreadyImportedVKArgs
-import co.electriccoin.zcash.ui.screen.viewingkey.ImportedVKArgs
+import co.electriccoin.zcash.ui.screen.viewingkey.alreadyimported.AlreadyImportedVKArgs
+import co.electriccoin.zcash.ui.screen.viewingkey.imported.ImportedVKArgs
 import co.electriccoin.zcash.viewingkey.ViewOnlyAccountImporterImpl
 import io.mockk.coEvery
 import io.mockk.coVerify

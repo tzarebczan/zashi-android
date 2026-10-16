@@ -8,7 +8,7 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 @Composable
-fun WalletOptionsScreen(args: WalletOptionsArgs) {
+internal fun WalletOptionsScreen(args: WalletOptionsArgs) {
     val vm = koinViewModel<WalletOptionsVM> { parametersOf(args) }
     val state by vm.state.collectAsStateWithLifecycle()
     WalletOptionsView(state)
@@ -18,6 +18,6 @@ fun WalletOptionsScreen(args: WalletOptionsArgs) {
  * @param accountKeyId The hardware wallet account's `AccountUuid.toStorageKeyId()`.
  */
 @Serializable
-data class WalletOptionsArgs(
+internal data class WalletOptionsArgs(
     val accountKeyId: String
 )

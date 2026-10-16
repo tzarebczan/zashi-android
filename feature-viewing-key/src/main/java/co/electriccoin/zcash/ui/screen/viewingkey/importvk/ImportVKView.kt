@@ -17,14 +17,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import co.electriccoin.zcash.ui.common.compose.AccountFormScreen
-import co.electriccoin.zcash.ui.common.compose.WithoutPersonalizedLearning
+import co.electriccoin.zcash.ui.common.compose.AccountFormView
 import co.electriccoin.zcash.ui.design.component.ZashiButton
 import co.electriccoin.zcash.ui.design.component.ZashiConfirmationBottomSheet
 import co.electriccoin.zcash.ui.design.component.ZashiImageButton
 import co.electriccoin.zcash.ui.design.component.ZashiTextFieldPlaceholder
-import co.electriccoin.zcash.ui.design.component.ZashiViewingKeyTextField
-import co.electriccoin.zcash.ui.design.component.ZashiViewingKeyTextFieldDefaults
+import co.electriccoin.zcash.ui.design.component.ZodlViewingKeyTextField
+import co.electriccoin.zcash.ui.design.component.ZodlViewingKeyTextFieldDefaults
 import co.electriccoin.zcash.ui.design.newcomponent.PreviewScreens
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.design.theme.colors.ZashiColors
@@ -33,15 +32,8 @@ import co.electriccoin.zcash.ui.design.util.Compose
 import co.electriccoin.zcash.ui.design.util.getValue
 
 @Composable
-fun ImportVKView(state: ImportVKState) {
-    AccountFormScreen(
-        title = state.title,
-        subtitle = state.subtitle,
-        onBack = state.onBack,
-        avatar = state.avatar,
-        heading = state.heading,
-        message = state.message,
-    ) {
+internal fun ImportVKView(state: ImportVKState) {
+    AccountFormView(state = state.form, onBack = state.onBack) {
         KeyField(state)
         Spacer(Modifier.weight(1f))
         Spacer(Modifier.height(24.dp))
@@ -67,30 +59,28 @@ private fun KeyField(state: ImportVKState) {
             color = ZashiColors.Inputs.Default.label
         )
         Spacer(Modifier.height(6.dp))
-        WithoutPersonalizedLearning {
-            ZashiViewingKeyTextField(
-                state = state.field,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .testTag(ImportVKTag.FIELD),
-                placeholder = { ZashiTextFieldPlaceholder(state.placeholder) },
-                keyboardOptions = ZashiViewingKeyTextFieldDefaults.keyboardOptions.copy(imeAction = ImeAction.Done),
-                keyboardActions =
-                    KeyboardActions(
-                        onDone = { if (state.continueButton.isEnabled) state.continueButton.onClick() }
-                    ),
-                suffix = {
-                    ZashiImageButton(
-                        state = state.scanButton,
-                        modifier =
-                            Modifier
-                                .size(SCAN_BUTTON_SIZE)
-                                .testTag(ImportVKTag.SCAN_BUTTON),
-                    )
-                },
-            )
-        }
+        ZodlViewingKeyTextField(
+            state = state.field,
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .testTag(ImportVKTag.FIELD),
+            placeholder = { ZashiTextFieldPlaceholder(state.placeholder) },
+            keyboardOptions = ZodlViewingKeyTextFieldDefaults.keyboardOptions.copy(imeAction = ImeAction.Done),
+            keyboardActions =
+                KeyboardActions(
+                    onDone = { if (state.continueButton.isEnabled) state.continueButton.onClick() }
+                ),
+            suffix = {
+                ZashiImageButton(
+                    state = state.scanButton,
+                    modifier =
+                        Modifier
+                            .size(SCAN_BUTTON_SIZE)
+                            .testTag(ImportVKTag.SCAN_BUTTON),
+                )
+            },
+        )
     }
 }
 

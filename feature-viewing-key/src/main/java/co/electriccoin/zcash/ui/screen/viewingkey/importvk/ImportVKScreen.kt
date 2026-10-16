@@ -6,10 +6,11 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.electriccoin.zcash.ui.common.compose.SecureScreen
 import co.electriccoin.zcash.ui.design.component.ZashiConfirmationBottomSheet
+import kotlinx.serialization.Serializable
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun ImportVKScreen() {
+internal fun ImportVKScreen() {
     SecureScreen()
     val vm = koinViewModel<ImportVKVM>()
     val state by vm.state.collectAsStateWithLifecycle()
@@ -18,3 +19,11 @@ fun ImportVKScreen() {
     ImportVKView(state)
     ZashiConfirmationBottomSheet(invalidKeySheet)
 }
+
+/**
+ * The screen that takes the full viewing key to import, pasted or typed. Like every route of the
+ * flow it carries no key: routes are saved into the instance state, so the key lives only in
+ * [co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepository] and the view models.
+ */
+@Serializable
+data object ImportVKArgs

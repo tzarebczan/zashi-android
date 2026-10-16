@@ -1,4 +1,4 @@
-package co.electriccoin.zcash.ui.common.compose
+package co.electriccoin.zcash.ui.design.component
 
 import android.view.inputmethod.EditorInfo
 import androidx.compose.runtime.Composable
@@ -10,7 +10,7 @@ import androidx.compose.ui.platform.PlatformTextInputMethodRequest
 
 /**
  * Asks the keyboard not to learn from or personalise on what is typed into [content], for fields
- * that take secrets or private keys. Compose's keyboard options cannot set
+ * that take secrets, keys, addresses, amounts or memos. Compose's keyboard options cannot set
  * [EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING], so it is added to the editor info of every input
  * connection started below.
  */

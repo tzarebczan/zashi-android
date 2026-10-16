@@ -33,7 +33,7 @@ import kotlin.test.assertEquals
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-class ZashiWalletListItemTouchTargetTest {
+class ZodlWalletListItemTouchTargetTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -82,7 +82,7 @@ class ZashiWalletListItemTouchTargetTest {
     private fun setContent() {
         composeTestRule.setContent {
             ZcashTheme {
-                ZashiWalletListItem(
+                ZodlWalletListItem(
                     modifier = Modifier.width(360.dp).testTag(ROW_TAG),
                     state =
                         WalletListItemState(

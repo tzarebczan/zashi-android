@@ -9,7 +9,7 @@ import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.model.stateIn
 import co.electriccoin.zcash.ui.common.model.toStorageKeyId
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
@@ -77,7 +77,7 @@ class AccountListVM(
         AccountListEntry(
             kind =
                 when (account) {
-                    is ZashiAccount -> AccountListKind.ZODL
+                    is ZodlAccount -> AccountListKind.ZODL
                     is KeystoneAccount -> AccountListKind.KEYSTONE
                     is LedgerAccount -> AccountListKind.LEDGER
                     is ViewOnlyAccount -> AccountListKind.VIEW_ONLY
@@ -97,7 +97,7 @@ class AccountListVM(
                             onHardwareWalletOptionsClick(account.sdkAccount.accountUuid)
                         }
 
-                        is ZashiAccount, is ViewOnlyAccount -> {
+                        is ZodlAccount, is ViewOnlyAccount -> {
                             onEditClick(account.sdkAccount.accountUuid)
                         }
                     }

@@ -10,7 +10,7 @@ import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.WalletRestoringState
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.usecase.GetFlexaStatusUseCase
 import co.electriccoin.zcash.ui.common.usecase.GetSelectedWalletAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.GetWalletRestoringStateUseCase
@@ -90,7 +90,7 @@ class IntegrationsVM(
                 ListItemState(
                     // Set the wallet currency by app build is more future-proof, although we hide it from
                     // the UI in the Testnet build
-                    isEnabled = isRestoring.not() && selectedAccount is ZashiAccount,
+                    isEnabled = isRestoring.not() && selectedAccount is ZodlAccount,
                     bigIcon =
                         imageRes(
                             when (flexaStatus) {

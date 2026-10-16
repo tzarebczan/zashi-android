@@ -33,7 +33,7 @@ import kotlin.test.assertEquals
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-class ZashiAccountAvatarTest {
+class ZodlAccountAvatarTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -42,7 +42,7 @@ class ZashiAccountAvatarTest {
         var edits = 0
         composeTestRule.setContent {
             ZcashTheme {
-                ZashiAccountAvatar(
+                ZodlAccountAvatar(
                     state =
                         AccountAvatarState.create(
                             image = imageRes(R.drawable.ic_item_zashi),

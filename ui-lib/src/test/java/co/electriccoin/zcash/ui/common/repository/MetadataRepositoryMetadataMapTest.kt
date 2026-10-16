@@ -7,7 +7,7 @@ import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
 import co.electriccoin.zcash.ui.common.datasource.MetadataDataSource
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.model.metadata.AccountAppearanceMetadataV3
 import co.electriccoin.zcash.ui.common.model.metadata.AccountMetadataV3
 import co.electriccoin.zcash.ui.common.model.metadata.MetadataV3
@@ -53,7 +53,7 @@ import kotlin.time.Duration.Companion.seconds
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class MetadataRepositoryMetadataMapTest {
-    private val first = account<ZashiAccount>(FIRST_UUID)
+    private val first = account<ZodlAccount>(FIRST_UUID)
     private val second = account<ViewOnlyAccount>(SECOND_UUID)
     private val third = account<ViewOnlyAccount>(THIRD_UUID)
     private val keys = mapOf(FIRST_UUID to mockk<MetadataKey>(), SECOND_UUID to mockk(), THIRD_UUID to mockk())

@@ -28,7 +28,7 @@ import kotlin.test.Test
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-class ZashiSheetListItemSemanticsTest {
+class ZodlSheetListItemSemanticsTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -36,7 +36,7 @@ class ZashiSheetListItemSemanticsTest {
     fun theRowIsOneButtonNamedOnceByItsTitle() {
         composeTestRule.setContent {
             ZcashTheme {
-                ZashiSheetListItem(
+                ZodlSheetListItem(
                     icon = imageRes(R.drawable.ic_item_keystone),
                     title = stringRes(TITLE),
                     subtitle = stringRes(SUBTITLE).withStyle(),

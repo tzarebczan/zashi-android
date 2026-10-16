@@ -24,7 +24,7 @@ import co.electriccoin.zcash.ui.design.theme.typography.ZashiTypography
 import co.electriccoin.zcash.ui.design.util.scaffoldPadding
 
 @Composable
-fun ImportedVKView(state: ImportedVKState) {
+internal fun ImportedVKView(state: ImportedVKState) {
     BlankBgScaffold { paddingValues ->
         Box(
             modifier =
@@ -40,9 +40,7 @@ fun ImportedVKView(state: ImportedVKState) {
             ) {
                 Spacer(Modifier.height(TopAppBarDefaults.TopAppBarExpandedHeight + HEADER_TOP_SPACING))
                 AccountFormHeader(
-                    avatar = state.avatar,
-                    heading = state.heading,
-                    message = state.message,
+                    state = state.header,
                     headingStyle = ZashiTypography.header6,
                     modifier = Modifier.padding(horizontal = 8.dp),
                 )

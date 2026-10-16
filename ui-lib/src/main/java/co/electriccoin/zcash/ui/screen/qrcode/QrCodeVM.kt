@@ -10,7 +10,7 @@ import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.usecase.CopyToClipboardUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveSelectedWalletAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.ShareQRUseCase
@@ -88,7 +88,7 @@ class QrCodeVM(
                     is KeystoneAccount -> stringRes(R.string.qr_code_wallet_address_shielded_keystone)
                     is LedgerAccount -> stringRes(R.string.accounts_ledger_shieldedAddress)
                     is ViewOnlyAccount -> viewOnlyContent.receiveShieldedTitle
-                    is ZashiAccount -> stringRes(R.string.accounts_zashi_shieldedAddress)
+                    is ZodlAccount -> stringRes(R.string.accounts_zashi_shieldedAddress)
                 }
             }
 
@@ -98,7 +98,7 @@ class QrCodeVM(
 
                     is LedgerAccount,
                     is ViewOnlyAccount,
-                    is ZashiAccount -> stringRes(R.string.receive_saplingAddress)
+                    is ZodlAccount -> stringRes(R.string.receive_saplingAddress)
                 }
             }
 
@@ -108,7 +108,7 @@ class QrCodeVM(
 
                     is KeystoneAccount,
                     is LedgerAccount,
-                    is ZashiAccount -> stringRes(R.string.accounts_zashi_transparentAddress)
+                    is ZodlAccount -> stringRes(R.string.accounts_zashi_transparentAddress)
                 }
             }
 

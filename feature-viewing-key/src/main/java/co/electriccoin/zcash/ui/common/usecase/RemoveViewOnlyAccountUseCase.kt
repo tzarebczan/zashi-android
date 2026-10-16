@@ -2,7 +2,6 @@ package co.electriccoin.zcash.ui.common.usecase
 
 import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
 import co.electriccoin.zcash.ui.common.migration.MigrationAppHooks
-import co.electriccoin.zcash.ui.common.provider.AccountNameProvider
 import co.electriccoin.zcash.ui.common.repository.BiometricRepository
 import co.electriccoin.zcash.ui.common.repository.BiometricRequest
 import co.electriccoin.zcash.ui.design.util.stringRes
@@ -13,10 +12,9 @@ import kotlinx.coroutines.withContext
 /**
  * Removes a view-only account from this device, shaped like DisconnectUseCase for a hardware wallet:
  * the user authenticates first, any migration work scheduled for the account is cancelled, the SDK
- * account is deleted (which also forgets its name), the name an earlier build stored in preferences is
- * cleared best-effort, and when it was the selected account the Zodl account is selected so the app
- * never points at an account that is gone. The address book and
- * the account's metadata files stay, only Reset Zodl deletes metadata, and the synchronizer is not
+ * account is deleted (which also forgets its name), and when it was the selected account the Zodl
+ * account is selected so the app never points at an account that is gone. The address book and the
+ * account's metadata files stay, only Reset Zodl deletes metadata, and the synchronizer is not
  * restarted, as for a disconnect.
  *
  * Only a view-only account is ever removed here: the id is resolved again right before deleting,
@@ -29,7 +27,6 @@ internal class RemoveViewOnlyAccountUseCase(
     private val accountDataSource: AccountDataSource,
     private val biometricRepository: BiometricRepository,
     private val migrationAppHooks: MigrationAppHooks,
-    private val accountNameProvider: AccountNameProvider,
 ) {
     /**
      * @return false when there was no view-only account to remove.
@@ -56,7 +53,6 @@ internal class RemoveViewOnlyAccountUseCase(
                     ?: account.isSelected
 
             accountDataSource.deleteAccount(account)
-            accountNameProvider.clear(account.sdkAccount.accountUuid)
 
             if (wasSelected) {
                 accountDataSource.selectAccount(accountDataSource.getZashiAccount())

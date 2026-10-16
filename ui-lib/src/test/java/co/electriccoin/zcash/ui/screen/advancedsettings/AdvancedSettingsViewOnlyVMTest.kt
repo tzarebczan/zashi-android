@@ -8,7 +8,7 @@ import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.WalletRestoringState
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.provider.GetVersionInfoProvider
 import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.design.util.stringRes
@@ -53,7 +53,7 @@ class AdvancedSettingsViewOnlyVMTest {
     @Test
     fun aSelectedViewOnlyAccountHidesExportPrivateDataAndKeepsExportViewingKey() =
         runTest {
-            val vm = vm(listOf(zashi(isSelected = false), viewOnly(isSelected = true)))
+            val vm = vm(listOf(zodl(isSelected = false), viewOnly(isSelected = true)))
             collect(vm)
 
             val titles = titles(vm)
@@ -66,8 +66,8 @@ class AdvancedSettingsViewOnlyVMTest {
     fun spendableAccountsKeepExportPrivateData() =
         runTest {
             listOf(
-                listOf(zashi(isSelected = true), viewOnly(isSelected = false)),
-                listOf(zashi(isSelected = false), keystone(isSelected = true)),
+                listOf(zodl(isSelected = true), viewOnly(isSelected = false)),
+                listOf(zodl(isSelected = false), keystone(isSelected = true)),
             ).forEach { accounts ->
                 val vm = vm(accounts)
                 collect(vm)
@@ -106,8 +106,8 @@ class AdvancedSettingsViewOnlyVMTest {
             migrationNavigator = mockk(relaxed = true),
         )
 
-    private fun zashi(isSelected: Boolean) =
-        ZashiAccount(
+    private fun zodl(isSelected: Boolean) =
+        ZodlAccount(
             sdkAccount = sdkAccount,
             unifiedAddress = "u",
             transparentAddress = "t",

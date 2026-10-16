@@ -8,7 +8,7 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 @Composable
-fun EditAccountScreen(args: EditAccountArgs) {
+internal fun EditAccountScreen(args: EditAccountArgs) {
     val vm = koinViewModel<EditAccountVM> { parametersOf(args) }
     val state by vm.state.collectAsStateWithLifecycle()
     BackHandler(state != null) { state?.onBack?.invoke() }

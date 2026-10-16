@@ -20,7 +20,7 @@ import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.MutableLce
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.model.migration.MigrationMode
 import co.electriccoin.zcash.ui.common.provider.SynchronizerProvider
 import co.electriccoin.zcash.ui.common.repository.BiometricRepository
@@ -415,8 +415,8 @@ class MigrationReviewVMTest {
         router: NavigationRouter,
         getSelectedWalletAccount: GetSelectedWalletAccountUseCase =
             mockk {
-                coEvery { this@mockk() } returns spendable<ZashiAccount>()
-                every { observe() } returns flowOf(spendable<ZashiAccount>())
+                coEvery { this@mockk() } returns spendable<ZodlAccount>()
+                every { observe() } returns flowOf(spendable<ZodlAccount>())
             },
         zashiSpendingKeyDataSource: ZashiSpendingKeyDataSource =
             mockk {

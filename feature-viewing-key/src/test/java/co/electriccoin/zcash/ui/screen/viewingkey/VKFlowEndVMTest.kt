@@ -92,7 +92,7 @@ class VKFlowEndVMTest {
             navigationRouter = navigationRouter,
         )
 
-    private fun ImportedVKVM.avatarBackground() = (state.value.avatar.image as ImageResource.Layered).background
+    private fun ImportedVKVM.avatarBackground() = (state.value.header.avatar.image as ImageResource.Layered).background
 
     private companion object {
         const val PICKED = 0xFF0088FF

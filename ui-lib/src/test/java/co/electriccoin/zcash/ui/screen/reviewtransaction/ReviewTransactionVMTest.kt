@@ -44,9 +44,9 @@ import kotlin.test.assertNotNull
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ReviewTransactionVMTest {
-    private val zashi = EditAccountFixtures.zashi()
+    private val zodl = EditAccountFixtures.zodl()
 
-    private val accounts = MutableStateFlow<List<WalletAccount>?>(listOf(zashi, EditAccountFixtures.viewOnly()))
+    private val accounts = MutableStateFlow<List<WalletAccount>?>(listOf(zodl, EditAccountFixtures.viewOnly()))
 
     @BeforeTest
     fun setUp() {
@@ -61,7 +61,7 @@ class ReviewTransactionVMTest {
     @Test
     fun aColoredZodlAccountSendsWithItsMarkOnItsColor() =
         runTest {
-            val vm = vm(metadata = mapOf(zashi.sdkAccount.accountUuid to AccountIconFixtures.metadata(Color(COLOR))))
+            val vm = vm(metadata = mapOf(zodl.sdkAccount.accountUuid to AccountIconFixtures.metadata(Color(COLOR))))
             collect(vm)
 
             assertEquals(
@@ -79,7 +79,7 @@ class ReviewTransactionVMTest {
             val vm = vm(metadata = emptyMap())
             collect(vm)
 
-            assertEquals(imageRes(zashi.icon), sender(vm).icon)
+            assertEquals(imageRes(zodl.icon), sender(vm).icon)
         }
 
     private fun sender(vm: ReviewTransactionVM) =
@@ -92,7 +92,7 @@ class ReviewTransactionVMTest {
             observeContactByAddress =
                 mockk<ObserveContactByAddressUseCase> { every { this@mockk(any()) } returns flowOf(null) },
             observeSelectedWalletAccount =
-                mockk<ObserveSelectedWalletAccountUseCase> { every { require() } returns flowOf(zashi) },
+                mockk<ObserveSelectedWalletAccountUseCase> { every { require() } returns flowOf(zodl) },
             observeProposal =
                 mockk<ObserveProposalUseCase> { every { filterSend() } returns MutableStateFlow(proposal) },
             observeAccountIcon = AccountIconFixtures.useCase(MutableStateFlow(metadata)),

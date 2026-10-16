@@ -11,7 +11,7 @@ import co.electriccoin.zcash.viewingkey.R
  * The sheet over the paste screen when the text is not an importable viewing key. Its message names
  * [keyPrefix], the prefix of a key for the wallet's network.
  */
-object InvalidVKSheet {
+internal object InvalidVKSheet {
     val preview: ZashiConfirmationState = create(keyPrefix = "uview1", onScanClick = {}, onEditClick = {})
 
     fun create(

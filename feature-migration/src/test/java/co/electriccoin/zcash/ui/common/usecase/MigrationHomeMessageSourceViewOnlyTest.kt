@@ -5,7 +5,7 @@ import cash.z.ecc.android.sdk.model.AccountUuid
 import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.repository.MigrationHomeMessage
 import co.electriccoin.zcash.ui.design.util.stringRes
 import io.mockk.every
@@ -43,7 +43,7 @@ class MigrationHomeMessageSourceViewOnlyTest {
     @Test
     fun aSpendableAccountStillHasItsMigrationStateRead() =
         runTest {
-            collectEmissions(source(zashi()))
+            collectEmissions(source(zodl()))
 
             verify(exactly = 1) { observeMigrationLiveReadout(any()) }
         }
@@ -71,8 +71,8 @@ class MigrationHomeMessageSourceViewOnlyTest {
             navigationRouter = mockk(relaxed = true),
         )
 
-    private fun zashi() =
-        ZashiAccount(
+    private fun zodl() =
+        ZodlAccount(
             sdkAccount = sdkAccount,
             unifiedAddress = "u",
             transparentAddress = "t",

@@ -7,7 +7,7 @@ import co.electriccoin.zcash.ui.common.model.AccountOperationUnsupportedExceptio
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.repository.KeystoneProposalRepository
 import co.electriccoin.zcash.ui.common.repository.ZashiProposalRepository
 
@@ -22,6 +22,6 @@ class GetProposalUseCase(
             is KeystoneAccount -> keystoneProposalRepository.getTransactionProposal()
             is LedgerAccount -> ledgerProposalPipeline.getTransactionProposal()
             is ViewOnlyAccount -> throw AccountOperationUnsupportedException.viewOnly()
-            is ZashiAccount -> zashiProposalRepository.getTransactionProposal()
+            is ZodlAccount -> zashiProposalRepository.getTransactionProposal()
         }
 }

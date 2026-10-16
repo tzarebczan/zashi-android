@@ -39,7 +39,7 @@ class AccountOperationUnsupportedException(
 /**
  * The title and message every error surface shows for an [AccountOperationUnsupportedException].
  */
-data class UnsupportedOperationCopy(
+internal data class UnsupportedOperationCopy(
     val title: StringResource,
     val message: StringResource,
 )
@@ -48,7 +48,7 @@ data class UnsupportedOperationCopy(
  * The copy for this kind: the Ledger one from ui-lib, the view-only one from the view-only feature
  * through [viewOnlyContent], so every error surface words the limitation the same way.
  */
-fun AccountOperationUnsupportedException.Kind.errorCopy(viewOnlyContent: ViewOnlyContent) =
+internal fun AccountOperationUnsupportedException.Kind.errorCopy(viewOnlyContent: ViewOnlyContent) =
     when (this) {
         AccountOperationUnsupportedException.Kind.LEDGER -> {
             UnsupportedOperationCopy(

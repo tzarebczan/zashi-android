@@ -4,12 +4,17 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.serialization.Serializable
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun NameVKScreen() {
+internal fun NameVKScreen() {
     val vm = koinViewModel<NameVKVM>()
     val state by vm.state.collectAsStateWithLifecycle()
     BackHandler { state.onBack() }
     NameVKView(state)
 }
+
+/** The screen that names the account being imported. */
+@Serializable
+internal data object NameVKArgs

@@ -9,7 +9,7 @@ import cash.z.ecc.sdk.ANDROID_STATE_FLOW_TIMEOUT
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.R
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.provider.GetZcashCurrencyProvider
 import co.electriccoin.zcash.ui.common.repository.ExchangeRateRepository
 import co.electriccoin.zcash.ui.common.usecase.ObserveAccountIconUseCase
@@ -114,7 +114,7 @@ class RequestVM(
                 RequestStage.MEMO -> {
                     RequestState.Memo(
                         icon =
-                            if (account is ZashiAccount) {
+                            if (account is ZodlAccount) {
                                 imageRes(R.drawable.ic_zec_round_full)
                             } else {
                                 observeAccountIcon.iconOf(colors, account)

@@ -11,7 +11,6 @@ import co.electriccoin.zcash.ui.common.usecase.RemoveViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.screen.accountlist.AccountListArgs
 import co.electriccoin.zcash.ui.screen.error.ErrorArgs
 import co.electriccoin.zcash.ui.screen.error.NavigateToErrorUseCase
-import co.electriccoin.zcash.ui.screen.viewingkey.RemoveVKAccountArgs
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay

@@ -16,7 +16,7 @@ import kotlinx.serialization.encoding.Encoder
  * of earlier builds still reads, as the opaque colour. Anything else fails with a
  * [SerializationException].
  */
-object ColorSerializer : KSerializer<Color> {
+internal object ColorSerializer : KSerializer<Color> {
     override val descriptor: SerialDescriptor =
         PrimitiveSerialDescriptor("Color", PrimitiveKind.STRING)
 

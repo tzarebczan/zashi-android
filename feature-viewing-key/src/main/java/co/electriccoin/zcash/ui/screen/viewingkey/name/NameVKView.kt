@@ -7,31 +7,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import co.electriccoin.zcash.ui.common.compose.AccountFormScreen
+import co.electriccoin.zcash.ui.common.compose.AccountFormView
 import co.electriccoin.zcash.ui.common.compose.AccountNameField
 import co.electriccoin.zcash.ui.design.component.ZashiButton
 import co.electriccoin.zcash.ui.design.newcomponent.PreviewScreens
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 
 @Composable
-fun NameVKView(state: NameVKState) {
-    AccountFormScreen(
-        title = state.title,
-        subtitle = state.subtitle,
-        onBack = state.onBack,
-        avatar = state.avatar,
-        heading = state.heading,
-        message = state.message,
-    ) {
-        AccountNameField(
-            label = state.fieldLabel,
-            field = state.field,
-            placeholder = state.placeholder,
-            counter = state.counter,
-            onDone = { if (state.continueButton.isEnabled) state.continueButton.onClick() },
-            fieldTestTag = NameVKTag.FIELD,
-            counterTestTag = NameVKTag.COUNTER,
-        )
+internal fun NameVKView(state: NameVKState) {
+    AccountFormView(state = state.form, onBack = state.onBack) {
+        AccountNameField(state = state.nameField)
         Spacer(Modifier.weight(1f))
         Spacer(Modifier.height(24.dp))
         ZashiButton(

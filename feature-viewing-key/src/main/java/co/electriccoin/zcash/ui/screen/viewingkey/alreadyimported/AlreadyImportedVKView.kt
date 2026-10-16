@@ -19,7 +19,7 @@ import co.electriccoin.zcash.ui.screen.viewingkey.VKSheetContent
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AlreadyImportedVKView(state: AlreadyImportedVKState?) {
+internal fun AlreadyImportedVKView(state: AlreadyImportedVKState?) {
     ZashiScreenModalBottomSheet(
         state = state,
         shape = RoundedCornerShape(34.dp),

@@ -11,7 +11,7 @@ import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.SubmitResult
 import co.electriccoin.zcash.ui.common.model.SwapAssetTestFixture
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.repository.BiometricRepository
 import co.electriccoin.zcash.ui.common.repository.BiometricsCancelledException
 import co.electriccoin.zcash.ui.common.repository.BiometricsFailureException
@@ -161,7 +161,7 @@ class SubmitProposalUseCaseTest {
     fun zashiSubmitFailureStillClearsPrefillAndStillNavigates() =
         runTest {
             val fx = useCase()
-            coEvery { fx.accountDataSource.getSelectedAccount() } returns spendable<ZashiAccount>()
+            coEvery { fx.accountDataSource.getSelectedAccount() } returns spendable<ZodlAccount>()
             coEvery { fx.zashiProposalRepository.getTransactionProposal() } returns
                 swapProposal(tokenTicker = "eth", chainTicker = "eth")
             coEvery { fx.zashiProposalRepository.submit() } throws RuntimeException("boom")
@@ -201,7 +201,7 @@ class SubmitProposalUseCaseTest {
         proposal: TransactionProposal,
         submitResult: SubmitResult = mockk(relaxed = true)
     ) {
-        coEvery { accountDataSource.getSelectedAccount() } returns spendable<ZashiAccount>()
+        coEvery { accountDataSource.getSelectedAccount() } returns spendable<ZodlAccount>()
         coEvery { zashiProposalRepository.getTransactionProposal() } returns proposal
         coEvery { zashiProposalRepository.submit() } returns submitResult
     }

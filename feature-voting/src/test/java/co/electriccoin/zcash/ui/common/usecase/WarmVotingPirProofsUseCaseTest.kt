@@ -9,7 +9,7 @@ import cash.z.ecc.android.sdk.model.Zatoshi
 import cash.z.ecc.android.sdk.model.ZcashNetwork
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.model.voting.Proposal
 import co.electriccoin.zcash.ui.common.model.voting.SessionStatus
 import co.electriccoin.zcash.ui.common.model.voting.VoteOption
@@ -226,7 +226,7 @@ class WarmVotingPirProofsUseCaseTest {
         val synchronizerProvider: SynchronizerProvider,
         val synchronizer: Synchronizer,
         val votingProofPrecomputeRepository: VotingProofPrecomputeRepository,
-        val account: ZashiAccount,
+        val account: ZodlAccount,
         val accountUuidString: String,
         val useCase: WarmVotingPirProofsUseCase
     ) {
@@ -253,7 +253,7 @@ class WarmVotingPirProofsUseCaseTest {
         val getSelectedWalletAccount = mockk<GetSelectedWalletAccountUseCase>()
 
         val account =
-            ZashiAccount(
+            ZodlAccount(
                 sdkAccount = AccountFixture.new(),
                 unifiedAddress = WalletAddressFixture.UNIFIED_ADDRESS_STRING,
                 transparentAddress = WalletAddressFixture.TRANSPARENT_ADDRESS_STRING,

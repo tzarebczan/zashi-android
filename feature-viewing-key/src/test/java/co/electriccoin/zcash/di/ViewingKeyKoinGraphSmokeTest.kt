@@ -3,7 +3,6 @@ package co.electriccoin.zcash.di
 import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
 import co.electriccoin.zcash.ui.common.migration.MigrationAppHooks
-import co.electriccoin.zcash.ui.common.provider.AccountNameProvider
 import co.electriccoin.zcash.ui.common.provider.SynchronizerProvider
 import co.electriccoin.zcash.ui.common.repository.BiometricRepository
 import co.electriccoin.zcash.ui.common.repository.MetadataRepository
@@ -12,9 +11,9 @@ import co.electriccoin.zcash.ui.common.usecase.ClearClipboardUseCase
 import co.electriccoin.zcash.ui.common.usecase.GetViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
 import co.electriccoin.zcash.ui.common.usecase.ImportViewOnlyAccountUseCase
+import co.electriccoin.zcash.ui.common.usecase.IsAccountNameTakenUseCase
 import co.electriccoin.zcash.ui.common.usecase.NavigateToColorPickerUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveAccountIconUseCase
-import co.electriccoin.zcash.ui.common.usecase.ObserveAccountNamesUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveSelectedWalletAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.RemoveViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.RenameViewOnlyAccountUseCase
@@ -27,12 +26,12 @@ import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyNavigator
 import co.electriccoin.zcash.ui.screen.editaccount.EditAccountArgs
 import co.electriccoin.zcash.ui.screen.editaccount.EditAccountVM
 import co.electriccoin.zcash.ui.screen.error.NavigateToErrorUseCase
-import co.electriccoin.zcash.ui.screen.viewingkey.RemoveVKAccountArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.addaccount.AddVKAccountVM
 import co.electriccoin.zcash.ui.screen.viewingkey.alreadyimported.AlreadyImportedVKVM
 import co.electriccoin.zcash.ui.screen.viewingkey.imported.ImportedVKVM
 import co.electriccoin.zcash.ui.screen.viewingkey.importvk.ImportVKVM
 import co.electriccoin.zcash.ui.screen.viewingkey.name.NameVKVM
+import co.electriccoin.zcash.ui.screen.viewingkey.remove.RemoveVKAccountArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.remove.RemoveVKAccountVM
 import co.electriccoin.zcash.ui.screen.viewingkey.scan.ScanVKVM
 import co.electriccoin.zcash.viewingkey.di.featureViewingKeyModule
@@ -77,14 +76,13 @@ class ViewingKeyKoinGraphSmokeTest {
                 factory { mockk<ClearClipboardUseCase>(relaxed = true) }
                 single<BiometricRepository> { mockk(relaxed = true) }
                 single<MigrationAppHooks> { mockk(relaxed = true) }
-                single<AccountNameProvider> { mockk(relaxed = true) }
                 factory { mockk<NavigateToErrorUseCase>(relaxed = true) }
                 single { mockk<NavigateToColorPickerUseCase>(relaxed = true) }
                 single<MetadataRepository> { mockk(relaxed = true) }
                 factory { mockk<ObserveSelectedWalletAccountUseCase>(relaxed = true) }
                 factory { mockk<RenameViewOnlyAccountUseCase>(relaxed = true) }
                 factory { mockk<ObserveAccountIconUseCase>(relaxed = true) }
-                factory { mockk<ObserveAccountNamesUseCase>(relaxed = true) }
+                factory { mockk<IsAccountNameTakenUseCase>(relaxed = true) }
                 viewModelOf(::EditAccountVM)
             }
 

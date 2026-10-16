@@ -28,11 +28,11 @@ import co.electriccoin.zcash.ui.design.component.ZashiIconButton
 import co.electriccoin.zcash.ui.design.component.ZashiModalBottomSheetDefaults
 import co.electriccoin.zcash.ui.design.component.ZashiScreenModalBottomSheet
 import co.electriccoin.zcash.ui.design.component.ZodlTabLayout
-import co.electriccoin.zcash.ui.design.component.colorpicker.ZashiColorGrid
-import co.electriccoin.zcash.ui.design.component.colorpicker.ZashiColorSlider
-import co.electriccoin.zcash.ui.design.component.colorpicker.ZashiColorSpectrum
-import co.electriccoin.zcash.ui.design.component.colorpicker.ZashiColorSwatches
-import co.electriccoin.zcash.ui.design.component.colorpicker.ZashiColorValueField
+import co.electriccoin.zcash.ui.design.component.colorpicker.ZodlColorGrid
+import co.electriccoin.zcash.ui.design.component.colorpicker.ZodlColorSlider
+import co.electriccoin.zcash.ui.design.component.colorpicker.ZodlColorSpectrum
+import co.electriccoin.zcash.ui.design.component.colorpicker.ZodlColorSwatches
+import co.electriccoin.zcash.ui.design.component.colorpicker.ZodlColorValueField
 import co.electriccoin.zcash.ui.design.component.rememberZashiFrostState
 import co.electriccoin.zcash.ui.design.component.zashiFrostSource
 import co.electriccoin.zcash.ui.design.component.zashiFrostedHeader
@@ -49,7 +49,7 @@ import co.electriccoin.zcash.ui.design.util.getValue
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ColorPickerView(state: ColorPickerState?) {
+internal fun ColorPickerView(state: ColorPickerState?) {
     ZashiScreenModalBottomSheet(state = state, dragHandle = null) { innerState, contentPadding ->
         val hazeState = rememberZashiFrostState()
         Box(modifier = Modifier.weight(1f, false)) {
@@ -71,7 +71,7 @@ fun ColorPickerView(state: ColorPickerState?) {
                 Spacer(Modifier.height(15.dp))
                 ZashiHorizontalDivider(color = ZashiColors.Surfaces.strokePrimary)
                 Spacer(Modifier.height(11.dp))
-                ZashiColorSwatches(
+                ZodlColorSwatches(
                     current = innerState.picked,
                     swatches = innerState.swatches
                 )
@@ -123,11 +123,11 @@ private fun Toolbar(
 private fun Content(state: ColorPickerContentState) {
     when (state) {
         is ColorPickerContentState.Grid -> {
-            ZashiColorGrid(selected = state.selected, onSelect = state.onSelect)
+            ZodlColorGrid(selected = state.selected, onSelect = state.onSelect)
         }
 
         is ColorPickerContentState.Spectrum -> {
-            ZashiColorSpectrum(position = state.position, color = state.color, onPick = state.onPick)
+            ZodlColorSpectrum(position = state.position, color = state.color, onPick = state.onPick)
         }
 
         is ColorPickerContentState.Sliders -> {
@@ -147,14 +147,14 @@ private fun Sliders(state: ColorPickerContentState.Sliders) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(11.dp)
             ) {
-                ZashiColorSlider(
+                ZodlColorSlider(
                     value = channel.value,
                     trackColors = channel.trackColors,
                     knobColor = channel.knobColor,
                     onValueChange = channel.onValueChange,
                     modifier = Modifier.weight(1f)
                 )
-                ZashiColorValueField(
+                ZodlColorValueField(
                     value = channel.text,
                     onValueChange = channel.onTextChange,
                     modifier = Modifier.width(VALUE_FIELD_WIDTH),
@@ -173,7 +173,7 @@ private fun Sliders(state: ColorPickerContentState.Sliders) {
                 style = ZashiTypography.textMd,
                 color = ZashiColors.Text.textPrimary
             )
-            ZashiColorValueField(
+            ZodlColorValueField(
                 value = state.hex,
                 onValueChange = state.onHexChange,
                 modifier = Modifier.width(HEX_FIELD_WIDTH),

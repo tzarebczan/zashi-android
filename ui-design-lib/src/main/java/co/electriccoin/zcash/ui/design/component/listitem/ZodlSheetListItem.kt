@@ -26,14 +26,14 @@ import co.electriccoin.zcash.ui.design.util.getValue
  * title, the subtitle in Text XS right under it, and the trailing chevron. The logo and text sit
  * together in the content slot because [BaseListItem]'s leading slot is spaced for a 48 dp item.
  * The "Add Account" and "Wallet Options" sheets build their rows with it; the Wallets & Hardware
- * screen's wallet rows are [ZashiWalletListItem].
+ * screen's wallet rows are [ZodlWalletListItem].
  *
  * The logo and the chevron are decorative and left out of the accessibility tree, so an
  * accessibility service reads the row as one button named by its title and subtitle, not the title
  * three times.
  */
 @Composable
-fun ZashiSheetListItem(
+fun ZodlSheetListItem(
     icon: ImageResource,
     title: StringResource,
     subtitle: StyledStringResource,

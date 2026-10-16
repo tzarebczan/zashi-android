@@ -19,7 +19,7 @@ import co.electriccoin.zcash.ui.common.model.SwapMode.EXACT_OUTPUT
 import co.electriccoin.zcash.ui.common.model.SwapMode.FLEX_INPUT
 import co.electriccoin.zcash.ui.common.model.SwapQuote
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.model.requireSpendable
 import co.electriccoin.zcash.ui.common.provider.SynchronizerProvider
 import co.electriccoin.zcash.ui.common.repository.KeystoneProposalRepository
@@ -207,7 +207,7 @@ class RequestSwapQuoteUseCase(
                 throw AccountOperationUnsupportedException.viewOnly()
             }
 
-            is ZashiAccount -> {
+            is ZodlAccount -> {
                 when (quote.mode) {
                     EXACT_INPUT -> zashiProposalRepository.createExactInputSwapProposal(send, quote)
                     EXACT_OUTPUT -> zashiProposalRepository.createExactOutputSwapProposal(send, quote)

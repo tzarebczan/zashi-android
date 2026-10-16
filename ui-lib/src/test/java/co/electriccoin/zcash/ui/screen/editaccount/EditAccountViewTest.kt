@@ -12,6 +12,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import co.electriccoin.zcash.ui.common.compose.AccountNameFieldTag
 import co.electriccoin.zcash.ui.common.model.AccountNameLimit
 import co.electriccoin.zcash.ui.design.R
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
@@ -62,7 +63,7 @@ class EditAccountViewTest {
         composeTestRule.setContent { ZcashTheme { EditAccountView(EditAccountState.previewZodl) } }
 
         composeTestRule.onNodeWithTag(EditAccountTag.REMOVE_BUTTON).assertDoesNotExist()
-        composeTestRule.onNodeWithTag(EditAccountTag.COUNTER).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(AccountNameFieldTag.COUNTER).assertDoesNotExist()
         composeTestRule.onNode(isTextField).assertIsNotEnabled()
     }
 
@@ -72,7 +73,7 @@ class EditAccountViewTest {
 
         val expected =
             RuntimeEnvironment.getApplication().getString(R.string.accountName_counter, 12, AccountNameLimit.MAX_LENGTH)
-        composeTestRule.onNodeWithTag(EditAccountTag.COUNTER).assertTextEquals(expected)
+        composeTestRule.onNodeWithTag(AccountNameFieldTag.COUNTER).assertTextEquals(expected)
         composeTestRule.onNodeWithTag(EditAccountTag.REMOVE_BUTTON).assertIsEnabled()
         composeTestRule.onNode(isTextField).assertIsEnabled()
     }

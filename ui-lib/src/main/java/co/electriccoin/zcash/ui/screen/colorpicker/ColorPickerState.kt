@@ -18,10 +18,10 @@ import co.electriccoin.zcash.ui.design.component.colorpicker.withChannel
 import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.design.util.stringRes
 
-enum class ColorPickerTab { GRID, SPECTRUM, SLIDERS }
+internal enum class ColorPickerTab { GRID, SPECTRUM, SLIDERS }
 
 /** A text field of the Sliders tab, with the channel it edits; the hex field edits all three. */
-enum class ColorPickerField(
+internal enum class ColorPickerField(
     val channel: ColorChannel?
 ) {
     RED(ColorChannel.RED),
@@ -38,7 +38,7 @@ enum class ColorPickerField(
  * @param drafts the text of a Sliders field while it is being typed, which may not be a value yet.
  */
 @Immutable
-data class ColorPickerSelection(
+internal data class ColorPickerSelection(
     val color: Color,
     val tab: ColorPickerTab,
     val spectrumPosition: Offset,
@@ -60,7 +60,7 @@ data class ColorPickerSelection(
 
 /** One Red, Green or Blue row of the Sliders tab: its label, slider, and 0-255 field. */
 @Immutable
-data class ColorChannelState(
+internal data class ColorChannelState(
     val label: StringResource,
     val value: Float,
     val trackColors: List<Color>,
@@ -72,7 +72,7 @@ data class ColorChannelState(
 
 /** The area under the tabs, which the selected tab decides. */
 @Immutable
-sealed interface ColorPickerContentState {
+internal sealed interface ColorPickerContentState {
     data class Grid(
         val selected: Color,
         val onSelect: (Color) -> Unit,
@@ -98,7 +98,7 @@ sealed interface ColorPickerContentState {
  * well, and every way of closing it keeps the last picked colour.
  */
 @Immutable
-data class ColorPickerState(
+internal data class ColorPickerState(
     val title: StringResource,
     val doneButton: IconButtonState,
     val tabs: List<SegmentedControlItem>,

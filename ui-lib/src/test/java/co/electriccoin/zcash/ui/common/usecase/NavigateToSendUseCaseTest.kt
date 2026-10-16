@@ -5,6 +5,7 @@ import cash.z.ecc.android.sdk.model.FiatCurrency
 import co.electriccoin.zcash.ui.BaseNavigationCommand
 import co.electriccoin.zcash.ui.NavigationCommand
 import co.electriccoin.zcash.ui.NavigationRouter
+import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.repository.ExchangeRateRepository
 import co.electriccoin.zcash.ui.common.wallet.ExchangeRateError
 import co.electriccoin.zcash.ui.common.wallet.ExchangeRateState
@@ -82,9 +83,14 @@ private fun useCase(
 ) = NavigateToSendUseCase(
     navigationRouter = router,
     exchangeRateRepository = repo,
-    accountDataSource = mockk { every { allAccounts } returns MutableStateFlow(null) },
-    navigateToError = mockk(relaxed = true),
-    selectedAccountSpendableStorageProvider = mockk { coEvery { get() } returns true },
+    rejectIfSelectedAccountCannotSpend =
+        RejectIfSelectedAccountCannotSpendUseCase(
+            accountDataSource =
+                mockk {
+                    coEvery { getSelectedAccount() } returns mockk<WalletAccount> { every { isSpendable } returns true }
+                },
+            navigateToError = mockk(relaxed = true),
+        ),
 )
 
 private fun dataState(

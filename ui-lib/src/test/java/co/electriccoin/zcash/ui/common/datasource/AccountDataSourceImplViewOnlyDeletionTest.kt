@@ -4,9 +4,8 @@ import cash.z.ecc.android.sdk.Synchronizer
 import cash.z.ecc.android.sdk.model.Account
 import cash.z.ecc.android.sdk.model.AccountUuid
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.provider.LedgerAccountBindingProvider
-import co.electriccoin.zcash.ui.common.provider.SelectedAccountSpendableStorageProvider
 import co.electriccoin.zcash.ui.common.provider.SelectedAccountUUIDProvider
 import co.electriccoin.zcash.ui.common.provider.SynchronizerProvider
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
@@ -195,9 +194,9 @@ class AccountDataSourceImplViewOnlyDeletionTest {
             val accounts = withTimeout(5_000) { dataSource.allAccounts.filterNotNull().first() }
             val selected = withTimeout(5_000) { dataSource.getSelectedAccount() }
 
-            assertTrue(accounts.filterIsInstance<ZashiAccount>().single().isSelected)
+            assertTrue(accounts.filterIsInstance<ZodlAccount>().single().isSelected)
             assertFalse(accounts.filterIsInstance<ViewOnlyAccount>().single().isSelected)
-            assertTrue(selected is ZashiAccount)
+            assertTrue(selected is ZodlAccount)
         }
 
     private fun viewOnlyAccount() =
@@ -230,7 +229,6 @@ class AccountDataSourceImplViewOnlyDeletionTest {
         synchronizer: Synchronizer,
         ledgerAccountBindingProvider: LedgerAccountBindingProvider,
         selectedAccountUUIDProvider: SelectedAccountUUIDProvider = selectionProvider(selected = null),
-        selectedAccountSpendableStorageProvider: SelectedAccountSpendableStorageProvider = mockk(relaxed = true),
     ): AccountDataSourceImpl {
         val synchronizerProvider =
             mockk<SynchronizerProvider> {
@@ -245,7 +243,6 @@ class AccountDataSourceImplViewOnlyDeletionTest {
                     every { persistableWallet } returns MutableStateFlow(mockk(relaxed = true))
                 },
             ledgerAccountBindingProvider = ledgerAccountBindingProvider,
-            selectedAccountSpendableStorageProvider = selectedAccountSpendableStorageProvider,
             viewOnlyContent = viewOnlyContent,
             context = mockk(relaxed = true),
         )

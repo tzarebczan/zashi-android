@@ -14,19 +14,19 @@ import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyNavigator
 import co.electriccoin.zcash.ui.design.util.stringRes
 import co.electriccoin.zcash.ui.dialogComposable
 import co.electriccoin.zcash.ui.screen.connecthw.HWWalletBranding
-import co.electriccoin.zcash.ui.screen.viewingkey.AddVKAccountArgs
-import co.electriccoin.zcash.ui.screen.viewingkey.AlreadyImportedVKArgs
-import co.electriccoin.zcash.ui.screen.viewingkey.ImportVKArgs
-import co.electriccoin.zcash.ui.screen.viewingkey.ImportedVKArgs
-import co.electriccoin.zcash.ui.screen.viewingkey.NameVKArgs
-import co.electriccoin.zcash.ui.screen.viewingkey.RemoveVKAccountArgs
-import co.electriccoin.zcash.ui.screen.viewingkey.ScanVKArgs
+import co.electriccoin.zcash.ui.screen.viewingkey.addaccount.AddVKAccountArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.addaccount.AddVKAccountScreen
+import co.electriccoin.zcash.ui.screen.viewingkey.alreadyimported.AlreadyImportedVKArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.alreadyimported.AlreadyImportedVKScreen
+import co.electriccoin.zcash.ui.screen.viewingkey.imported.ImportedVKArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.imported.ImportedVKScreen
+import co.electriccoin.zcash.ui.screen.viewingkey.importvk.ImportVKArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.importvk.ImportVKScreen
+import co.electriccoin.zcash.ui.screen.viewingkey.name.NameVKArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.name.NameVKScreen
+import co.electriccoin.zcash.ui.screen.viewingkey.remove.RemoveVKAccountArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.remove.RemoveVKAccountScreen
+import co.electriccoin.zcash.ui.screen.viewingkey.scan.ScanVKArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.scan.ScanVKScreen
 
 /**
@@ -85,7 +85,7 @@ internal class ViewOnlyContentImpl : ViewOnlyContent {
     override val removeAccountButton = stringRes(R.string.view_only_remove_account)
 }
 
-internal object VKEnrollmentTag {
+private object VKEnrollmentTag {
     const val ENTER_MANUALLY_BTN = "VIEW_ONLY_DATE_ENTER_MANUALLY"
     const val IMPORT_BTN = "VIEW_ONLY_HEIGHT_IMPORT"
     const val BLOCK_HEIGHT_FIELD = "VIEW_ONLY_HEIGHT_BLOCK_HEIGHT_FIELD"

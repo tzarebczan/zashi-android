@@ -11,7 +11,7 @@ import co.electriccoin.zcash.ui.common.migration.MigrationNavigator
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.repository.KeystoneProposalRepository
 import co.electriccoin.zcash.ui.common.repository.SwapRepository
 import co.electriccoin.zcash.ui.common.repository.ZashiProposalRepository
@@ -32,7 +32,7 @@ class CancelProposalFlowUseCase(
     suspend operator fun invoke(clearSendForm: Boolean = true) {
         val proposal =
             when (accountDataSource.getSelectedAccount()) {
-                is ZashiAccount -> zashiProposalRepository.getTransactionProposal()
+                is ZodlAccount -> zashiProposalRepository.getTransactionProposal()
                 is KeystoneAccount -> keystoneProposalRepository.getTransactionProposal()
                 is LedgerAccount -> ledgerProposalPipeline.getTransactionProposal()
                 is ViewOnlyAccount -> null

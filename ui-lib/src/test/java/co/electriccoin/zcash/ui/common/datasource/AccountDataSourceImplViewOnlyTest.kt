@@ -19,9 +19,8 @@ import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountAlreadyExistsException
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountImportException
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.provider.LedgerAccountBindingProvider
-import co.electriccoin.zcash.ui.common.provider.SelectedAccountSpendableStorageProvider
 import co.electriccoin.zcash.ui.common.provider.SelectedAccountUUIDProvider
 import co.electriccoin.zcash.ui.common.provider.SynchronizerProvider
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
@@ -147,8 +146,8 @@ class AccountDataSourceImplViewOnlyTest {
                 ironwoodBalance = ironwood,
                 transparentBalance = Zatoshi(7L),
             )
-        val zashi =
-            ZashiAccount(
+        val zodl =
+            ZodlAccount(
                 sdkAccount = account,
                 unifiedAddress = "u",
                 transparentAddress = "t",
@@ -160,10 +159,10 @@ class AccountDataSourceImplViewOnlyTest {
                 isSelected = false,
             )
 
-        assertEquals(zashi.totalBalance, viewOnly.totalBalance)
-        assertEquals(zashi.totalShieldedBalance, viewOnly.totalShieldedBalance)
-        assertEquals(zashi.spendableShieldedBalance, viewOnly.spendableShieldedBalance)
-        assertEquals(zashi.pendingShieldedBalance, viewOnly.pendingShieldedBalance)
+        assertEquals(zodl.totalBalance, viewOnly.totalBalance)
+        assertEquals(zodl.totalShieldedBalance, viewOnly.totalShieldedBalance)
+        assertEquals(zodl.spendableShieldedBalance, viewOnly.spendableShieldedBalance)
+        assertEquals(zodl.pendingShieldedBalance, viewOnly.pendingShieldedBalance)
         assertEquals(Zatoshi(88L), viewOnly.totalBalance)
         assertNull(viewOnly.copy(saplingBalance = null).totalBalance)
     }
@@ -249,29 +248,6 @@ class AccountDataSourceImplViewOnlyTest {
         }
 
     @Test
-    fun whetherTheSelectedAccountCanSpendIsStoredForTheNextColdStart() =
-        runBlocking {
-            val storage = mockk<SelectedAccountSpendableStorageProvider>(relaxed = true)
-            val synchronizer =
-                mockk<Synchronizer> {
-                    every { accountsFlow } returns
-                        MutableStateFlow(listOf(viewOnlySdkAccount(name = "Savings", uuid = accountUuid)))
-                    every { walletBalances } returns MutableStateFlow(null)
-                    coEvery { getCustomUnifiedAddress(any(), any()) } returns "unified-address"
-                    coEvery { getTransparentAddress(any()) } returns "transparent-address"
-                }
-
-            dataSource(
-                synchronizer = synchronizer,
-                ledgerAccountBindingProvider = relaxedBindingProvider(),
-                selectedAccountUUIDProvider = selectionProvider(selected = accountUuid),
-                selectedAccountSpendableStorageProvider = storage,
-            )
-
-            coVerify(timeout = 5_000) { storage.store(false) }
-        }
-
-    @Test
     fun aViewOnlyAccountIsNeverSelectedByDefault() =
         runBlocking {
             val synchronizer =
@@ -289,14 +265,14 @@ class AccountDataSourceImplViewOnlyTest {
                     dataSource(synchronizer, relaxedBindingProvider()).allAccounts.filterNotNull().first()
                 }
 
-            assertTrue(accounts.filterIsInstance<ZashiAccount>().single().isSelected)
+            assertTrue(accounts.filterIsInstance<ZodlAccount>().single().isSelected)
             assertFalse(accounts.filterIsInstance<ViewOnlyAccount>().single().isSelected)
         }
 
     @Test
     fun accountsSortDescendingWithViewOnlyAccountsLast() {
-        val zashi =
-            ZashiAccount(
+        val zodl =
+            ZodlAccount(
                 sdkAccount = account,
                 unifiedAddress = "u",
                 transparentAddress = "t",
@@ -320,11 +296,11 @@ class AccountDataSourceImplViewOnlyTest {
         val ledger = ledgerAccount()
         val viewOnly = viewOnlyAccount()
 
-        val sorted = listOf<WalletAccount>(viewOnly, ledger, zashi, keystone).sortedDescending()
+        val sorted = listOf<WalletAccount>(viewOnly, ledger, zodl, keystone).sortedDescending()
 
-        assertEquals(listOf(zashi, keystone, ledger, viewOnly), sorted)
+        assertEquals(listOf(zodl, keystone, ledger, viewOnly), sorted)
         assertEquals(0, viewOnly.compareTo(viewOnlyAccount()))
-        listOf<WalletAccount>(zashi, keystone, ledger).forEach { other ->
+        listOf<WalletAccount>(zodl, keystone, ledger).forEach { other ->
             assertTrue(other > viewOnly, "$other must sort above the view-only account")
             assertTrue(viewOnly < other)
         }
@@ -688,7 +664,6 @@ class AccountDataSourceImplViewOnlyTest {
         synchronizer: Synchronizer,
         ledgerAccountBindingProvider: LedgerAccountBindingProvider,
         selectedAccountUUIDProvider: SelectedAccountUUIDProvider = selectionProvider(selected = null),
-        selectedAccountSpendableStorageProvider: SelectedAccountSpendableStorageProvider = mockk(relaxed = true),
     ): AccountDataSourceImpl {
         val synchronizerProvider =
             mockk<SynchronizerProvider> {
@@ -703,7 +678,6 @@ class AccountDataSourceImplViewOnlyTest {
                     every { persistableWallet } returns MutableStateFlow(mockk(relaxed = true))
                 },
             ledgerAccountBindingProvider = ledgerAccountBindingProvider,
-            selectedAccountSpendableStorageProvider = selectedAccountSpendableStorageProvider,
             viewOnlyContent = viewOnlyContent,
             context = mockk(relaxed = true),
         )

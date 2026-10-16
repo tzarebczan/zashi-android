@@ -9,7 +9,7 @@ import co.electriccoin.zcash.ui.common.datasource.MetadataDataSource
 import co.electriccoin.zcash.ui.common.model.SimpleSwapAsset
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.model.metadata.AccountAppearanceMetadataV3
 import co.electriccoin.zcash.ui.common.model.metadata.AccountMetadataV3
 import co.electriccoin.zcash.ui.common.model.metadata.MetadataSimpleSwapAssetV3
@@ -43,7 +43,7 @@ import kotlin.test.assertEquals
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class MetadataRepositorySelectedAccountTest {
-    private val first = account<ZashiAccount>(FIRST_UUID)
+    private val first = account<ZodlAccount>(FIRST_UUID)
     private val second = account<ViewOnlyAccount>(SECOND_UUID)
     private val firstKey = mockk<MetadataKey>()
     private val secondKey = mockk<MetadataKey>()

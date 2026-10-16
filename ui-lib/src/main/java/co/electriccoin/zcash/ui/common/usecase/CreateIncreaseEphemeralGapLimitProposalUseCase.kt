@@ -9,7 +9,7 @@ import co.electriccoin.zcash.ui.common.model.AccountOperationUnsupportedExceptio
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.repository.EphemeralAddressRepository
 import co.electriccoin.zcash.ui.common.repository.KeystoneProposalRepository
 import co.electriccoin.zcash.ui.common.repository.ZashiProposalRepository
@@ -47,7 +47,7 @@ class CreateIncreaseEphemeralGapLimitProposalUseCase(
                     throw AccountOperationUnsupportedException.viewOnly()
                 }
 
-                is ZashiAccount -> {
+                is ZodlAccount -> {
                     zashiProposalRepository.createProposal(normalized)
                 }
             }

@@ -2,36 +2,28 @@ package co.electriccoin.zcash.ui.screen.viewingkey.name
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
+import co.electriccoin.zcash.ui.common.compose.AccountFormHeaderState
+import co.electriccoin.zcash.ui.common.compose.AccountFormState
+import co.electriccoin.zcash.ui.common.compose.AccountNameFieldState
 import co.electriccoin.zcash.ui.common.model.AccountNameLimit
-import co.electriccoin.zcash.ui.design.component.AccountAvatarState
 import co.electriccoin.zcash.ui.design.component.ButtonState
 import co.electriccoin.zcash.ui.design.component.ButtonStyle
-import co.electriccoin.zcash.ui.design.component.TextFieldState
-import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.design.util.stringRes
 import co.electriccoin.zcash.ui.screen.viewingkey.vkAvatar
 import co.electriccoin.zcash.viewingkey.R
-import co.electriccoin.zcash.ui.design.R as DesignR
 
 /**
  * Names the account being imported.
  *
- * @param avatar the account avatar, whose pencil badge opens the colour picker. The picked colour is
- *        only shown, not yet stored with the account.
- * @param counter how many of the allowed characters [field] uses, counted in code points, shown
- *        under it.
+ * @param form the form frame, whose avatar's pencil badge opens the colour picker. The picked colour
+ *        is only shown, not yet stored with the account.
+ * @param nameField the name field, with how many of the allowed characters it uses, counted in code
+ *        points, shown under it.
  */
 @Immutable
-data class NameVKState(
-    val title: StringResource,
-    val subtitle: StringResource,
-    val avatar: AccountAvatarState,
-    val heading: StringResource,
-    val message: StringResource,
-    val fieldLabel: StringResource,
-    val field: TextFieldState,
-    val placeholder: StringResource,
-    val counter: StringResource,
+internal data class NameVKState(
+    val form: AccountFormState,
+    val nameField: AccountNameFieldState,
     val continueButton: ButtonState,
     val onBack: () -> Unit,
 ) {
@@ -59,35 +51,36 @@ data class NameVKState(
             onValueChange: (String) -> Unit,
             onContinueClick: () -> Unit,
             onBack: () -> Unit,
-        ) = NameVKState(
-            title = stringRes(R.string.view_only_import_title),
-            subtitle = stringRes(R.string.view_only_import_subtitle),
-            avatar = vkAvatar(color = color, onEditClick = onAvatarEditClick),
-            heading = stringRes(DesignR.string.accountName_heading),
-            message = stringRes(DesignR.string.accountName_message),
-            fieldLabel = stringRes(DesignR.string.accountName_label),
-            field =
-                TextFieldState(
-                    value = stringRes(name),
-                    error = if (isDuplicate) stringRes(DesignR.string.accountName_duplicate) else null,
-                    onValueChange = onValueChange
-                ),
-            placeholder = stringRes(DesignR.string.accountName_placeholder),
-            counter =
-                stringRes(
-                    DesignR.string.accountName_counter,
-                    AccountNameLimit.lengthOf(name),
-                    AccountNameLimit.MAX_LENGTH
-                ),
-            continueButton =
+        ): NameVKState {
+            val continueButton =
                 ButtonState(
                     text = stringRes(R.string.view_only_continue),
                     style = ButtonStyle.PRIMARY,
                     isEnabled = name.isNotBlank() && !isDuplicate,
                     onClick = onContinueClick,
-                ),
-            onBack = onBack,
-        )
+                )
+            return NameVKState(
+                form =
+                    AccountFormState(
+                        title = stringRes(R.string.view_only_import_title),
+                        subtitle = stringRes(R.string.view_only_import_subtitle),
+                        header =
+                            AccountFormHeaderState.createAccountName(
+                                avatar = vkAvatar(color = color, onEditClick = onAvatarEditClick)
+                            ),
+                    ),
+                nameField =
+                    AccountNameFieldState.create(
+                        name = stringRes(name),
+                        nameLength = AccountNameLimit.lengthOf(name),
+                        isDuplicate = isDuplicate,
+                        onValueChange = onValueChange,
+                        submit = continueButton,
+                    ),
+                continueButton = continueButton,
+                onBack = onBack,
+            )
+        }
 
         private fun preview(
             name: String,
@@ -107,8 +100,6 @@ data class NameVKState(
     }
 }
 
-object NameVKTag {
-    const val FIELD = "view_only_name_field"
-    const val COUNTER = "view_only_name_counter"
+internal object NameVKTag {
     const val CONTINUE_BUTTON = "view_only_name_continue_button"
 }

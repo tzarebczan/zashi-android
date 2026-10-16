@@ -21,10 +21,9 @@ import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountAlreadyExistsException
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountImportException
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.provider.LedgerAccountBindingProvider
 import co.electriccoin.zcash.ui.common.provider.PersistableWalletProvider
-import co.electriccoin.zcash.ui.common.provider.SelectedAccountSpendableStorageProvider
 import co.electriccoin.zcash.ui.common.provider.SelectedAccountUUIDProvider
 import co.electriccoin.zcash.ui.common.provider.SynchronizerProvider
 import co.electriccoin.zcash.ui.common.provider.retainWhileWalletExists
@@ -69,13 +68,13 @@ interface AccountDataSource {
 
     val selectedAccount: Flow<WalletAccount?>
 
-    val zashiAccount: Flow<ZashiAccount?>
+    val zashiAccount: Flow<ZodlAccount?>
 
     suspend fun getAllAccounts(): List<WalletAccount>
 
     suspend fun getSelectedAccount(): WalletAccount
 
-    suspend fun getZashiAccount(): ZashiAccount
+    suspend fun getZashiAccount(): ZodlAccount
 
     suspend fun selectAccount(account: Account)
 
@@ -140,7 +139,6 @@ class AccountDataSourceImpl(
     private val selectedAccountUUIDProvider: SelectedAccountUUIDProvider,
     private val persistableWalletProvider: PersistableWalletProvider,
     private val ledgerAccountBindingProvider: LedgerAccountBindingProvider,
-    private val selectedAccountSpendableStorageProvider: SelectedAccountSpendableStorageProvider,
     private val viewOnlyContent: ViewOnlyContent,
     private val context: Context,
 ) : AccountDataSource {
@@ -209,14 +207,10 @@ class AccountDataSourceImpl(
                 account?.firstOrNull { it.isSelected }
             }.distinctUntilChanged()
 
-    init {
-        rememberWhetherTheSelectedAccountCanSpend()
-    }
-
-    override val zashiAccount: Flow<ZashiAccount?> =
+    override val zashiAccount: Flow<ZodlAccount?> =
         allAccounts
             .map { account ->
-                account?.filterIsInstance<ZashiAccount>()?.firstOrNull()
+                account?.filterIsInstance<ZodlAccount>()?.firstOrNull()
             }.distinctUntilChanged()
 
     override suspend fun getAllAccounts() = withContext(Dispatchers.IO) { allAccounts.filterNotNull().first() }
@@ -430,25 +424,6 @@ class AccountDataSourceImpl(
     }
 
     /**
-     * Stores whether the selected account can spend each time that changes, so the next cold start
-     * draws Home's buttons for it before the accounts load. Best-effort: the stored value is only a
-     * hint the live account replaces.
-     */
-    private fun rememberWhetherTheSelectedAccountCanSpend() {
-        scope.launch {
-            selectedAccount
-                .map { it?.isSpendable }
-                .filterNotNull()
-                .distinctUntilChanged()
-                .collect { isSpendable ->
-                    bestEffort("failed to store whether the selected account can spend") {
-                        selectedAccountSpendableStorageProvider.store(isSpendable)
-                    }
-                }
-        }
-    }
-
-    /**
      * Runs [block], logging instead of propagating its failure; cancellation still propagates.
      */
     @Suppress("TooGenericExceptionCaught")
@@ -538,7 +513,7 @@ class AccountDataSourceImpl(
             }
 
             else -> {
-                ZashiAccount(
+                ZodlAccount(
                     sdkAccount = sdkAccount,
                     unifiedAddress = snapshot.unifiedAddress,
                     transparentAddress = snapshot.transparentAddress,
@@ -695,7 +670,7 @@ private const val KEYSTONE_KEYSOURCE = "keystone"
 /**
  * The key source a view-only import is stored with, which is how the account is recognised again.
  */
-const val VIEW_ONLY_KEYSOURCE = "view_only"
+internal const val VIEW_ONLY_KEYSOURCE = "view_only"
 
 class AccountDeletionException(
     message: String,

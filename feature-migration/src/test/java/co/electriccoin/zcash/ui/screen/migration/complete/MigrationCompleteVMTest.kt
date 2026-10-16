@@ -18,7 +18,7 @@ import co.electriccoin.zcash.ui.common.model.MutableLce
 import co.electriccoin.zcash.ui.common.model.SubmitResult
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.model.migration.MIGRATION_DUST_THRESHOLD_ZATOSHI
 import co.electriccoin.zcash.ui.common.model.migration.MIGRATION_RESIDUAL_MIN_ZATOSHI
 import co.electriccoin.zcash.ui.common.model.migration.formatMigrationDuration
@@ -150,7 +150,7 @@ class MigrationCompleteVMTest {
             val vm =
                 vm(
                     seen = seen,
-                    account = mockk<ZashiAccount>(relaxed = true) { every { isSpendable } returns true },
+                    account = mockk<ZodlAccount>(relaxed = true) { every { isSpendable } returns true },
                     orchardBalanceZatoshi = 500_000L,
                     router = router,
                 )
@@ -269,7 +269,7 @@ class MigrationCompleteVMTest {
 
             val vm =
                 vm(
-                    account = mockk<ZashiAccount>(relaxed = true) { every { isSpendable } returns true },
+                    account = mockk<ZodlAccount>(relaxed = true) { every { isSpendable } returns true },
                     orchardBalanceZatoshi = 500_000L,
                     router = router,
                     getOrchardMigrationSdk = mockk { coEvery { this@mockk() } returns sdk },

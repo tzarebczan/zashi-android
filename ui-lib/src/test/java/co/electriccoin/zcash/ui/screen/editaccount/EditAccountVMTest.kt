@@ -2,16 +2,13 @@ package co.electriccoin.zcash.ui.screen.editaccount
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
-import cash.z.ecc.android.sdk.model.Account
 import cash.z.ecc.android.sdk.model.AccountUuid
 import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
 import co.electriccoin.zcash.ui.common.model.AccountNameLimit
-import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.toStorageKeyId
-import co.electriccoin.zcash.ui.common.provider.AccountNameLock
 import co.electriccoin.zcash.ui.common.repository.MetadataRepository
 import co.electriccoin.zcash.ui.common.usecase.AccountIconFixtures
 import co.electriccoin.zcash.ui.common.usecase.EditAccountFixtures
@@ -69,9 +66,11 @@ import co.electriccoin.zcash.ui.R as UiR
  * A failed rename writes no colour, a retry after an unsaved colour writes only the colour, remove and
  * a second avatar tap do nothing while a save runs or the picker is open, and an account removed while
  * it is edited goes back on Save. A name another account shows, the Zodl account's in any case
- * included, disables Save and says so under the field; the account's own name never does.
+ * included, disables Save and says so under the field, never next to another name; the account's own
+ * name never does. The keyboard's Done key saves only while Save is enabled.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("LargeClass")
 class EditAccountVMTest {
     private val navigationRouter = mockk<NavigationRouter>(relaxed = true)
 
@@ -108,18 +107,11 @@ class EditAccountVMTest {
         }
 
     private val accounts =
-        MutableStateFlow<List<WalletAccount>?>(listOf(EditAccountFixtures.zashi(), EditAccountFixtures.viewOnly()))
-
-    private val shownNames =
-        MutableStateFlow(
-            mapOf(
-                EditAccountFixtures.zashiKeyId to "Zodl",
-                EditAccountFixtures.viewOnlyKeyId to "Zodl Vault",
-                KEYSTONE_KEY_ID to "Keystone",
-            )
+        MutableStateFlow<List<WalletAccount>?>(
+            listOf(EditAccountFixtures.zodl(), EditAccountFixtures.viewOnly(), EditAccountFixtures.keystone())
         )
 
-    private val accountNames = EditAccountFixtures.accountNames(shownNames)
+    private val isAccountNameTaken = EditAccountFixtures.isAccountNameTaken(accounts)
 
     @BeforeTest
     fun setUp() {
@@ -255,6 +247,57 @@ class EditAccountVMTest {
         }
 
     @Test
+    fun theDuplicateErrorAlwaysBelongsToTheNameShown() =
+        runTest {
+            val vm = vm()
+            val states = mutableListOf<EditAccountState>()
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                vm.state.collect { state -> state?.let { states.add(it) } }
+            }
+            runCurrent()
+
+            listOf("Keystone", "Savings", "zodl", "Zodl Vault").forEach { type(vm, it) }
+
+            assertTrue(states.isNotEmpty())
+            states.forEach { state ->
+                val shown = state.field.value.text()
+                val isDuplicate = shown.trim().lowercase() in setOf("keystone", "zodl")
+                assertEquals(isDuplicate, state.field.error != null, shown)
+            }
+        }
+
+    @Test
+    fun doneOnTheKeyboardDoesNothingForABlankOrDuplicateName() =
+        runTest {
+            val vm = vm()
+            collect(vm)
+
+            type(vm, "   ")
+            assertNotNull(vm.state.value).nameField.onDone()
+            runCurrent()
+            type(vm, "Keystone")
+            assertNotNull(vm.state.value).nameField.onDone()
+            runCurrent()
+
+            coVerify(exactly = 0) { accountDataSource.renameAccount(any(), any()) }
+            verify(exactly = 0) { navigationRouter.back() }
+        }
+
+    @Test
+    fun doneOnTheKeyboardSavesWhileSaveIsEnabled() =
+        runTest {
+            val vm = vm()
+            collect(vm)
+            type(vm, "Savings")
+
+            assertNotNull(vm.state.value).nameField.onDone()
+            runCurrent()
+
+            coVerify(exactly = 1) { accountDataSource.renameAccount(viewOnlyAccount(), "Savings") }
+            verify(exactly = 1) { navigationRouter.back() }
+        }
+
+    @Test
     fun theZodlNameIsADuplicateInAnyCase() =
         runTest {
             val vm = vm()
@@ -365,7 +408,7 @@ class EditAccountVMTest {
     @Test
     fun aMissingAccountGoesBack() =
         runTest {
-            accounts.value = listOf(EditAccountFixtures.zashi())
+            accounts.value = listOf(EditAccountFixtures.zodl())
 
             val vm = vm()
             collect(vm)
@@ -377,11 +420,9 @@ class EditAccountVMTest {
     @Test
     fun aHardwareWalletIsNeverEdited() =
         runTest {
-            val keystoneUuid = AccountUuid.new(ByteArray(16) { (it + 2).toByte() })
-            accounts.value =
-                listOf(mockk<KeystoneAccount> { every { sdkAccount } returns Account.new(keystoneUuid) })
+            accounts.value = listOf(EditAccountFixtures.keystone())
 
-            val vm = vm(accountKeyId = keystoneUuid.toStorageKeyId())
+            val vm = vm(accountKeyId = EditAccountFixtures.hardwareUuid.toStorageKeyId())
             collect(vm)
 
             verify(exactly = 1) { navigationRouter.back() }
@@ -548,7 +589,7 @@ class EditAccountVMTest {
     @Test
     fun theZodlNameIsShownDisabledWithoutCounterOrRemoval() =
         runTest {
-            val vm = vm(accountKeyId = EditAccountFixtures.zashiKeyId)
+            val vm = vm(accountKeyId = EditAccountFixtures.zodlKeyId)
             collect(vm)
 
             val state = assertNotNull(vm.state.value)
@@ -564,7 +605,7 @@ class EditAccountVMTest {
     @Test
     fun typingIntoTheZodlFieldNeverRenamesItAndSaveFollowsTheColorOnly() =
         runTest {
-            val vm = vm(accountKeyId = EditAccountFixtures.zashiKeyId)
+            val vm = vm(accountKeyId = EditAccountFixtures.zodlKeyId)
             collect(vm)
 
             type(vm, "Savings")
@@ -579,7 +620,7 @@ class EditAccountVMTest {
 
             val saved = slot<WalletAccount>()
             coVerify(exactly = 1) { metadataRepository.setAccountColor(capture(saved), Color(PICKED)) }
-            assertEquals(EditAccountFixtures.zashiUuid, saved.captured.sdkAccount.accountUuid)
+            assertEquals(EditAccountFixtures.zodlUuid, saved.captured.sdkAccount.accountUuid)
             coVerify(exactly = 0) { accountDataSource.renameAccount(any(), any()) }
             verify(exactly = 1) { navigationRouter.back() }
         }
@@ -587,8 +628,8 @@ class EditAccountVMTest {
     @Test
     fun aColoredZodlAvatarIsTheMarkOnTheColor() =
         runTest {
-            storedColors.value = mapOf(EditAccountFixtures.zashiUuid to Color(STORED))
-            val vm = vm(accountKeyId = EditAccountFixtures.zashiKeyId)
+            storedColors.value = mapOf(EditAccountFixtures.zodlUuid to Color(STORED))
+            val vm = vm(accountKeyId = EditAccountFixtures.zodlKeyId)
             collect(vm)
 
             assertEquals(zodlIcon(Color(STORED)), assertNotNull(vm.state.value).avatar.image)
@@ -602,7 +643,7 @@ class EditAccountVMTest {
     fun anUnsavedZodlColorShowsTheErrorAndKeepsThePickedColor() =
         runTest {
             coEvery { metadataRepository.setAccountColor(any(), any()) } returns false
-            val vm = vm(accountKeyId = EditAccountFixtures.zashiKeyId)
+            val vm = vm(accountKeyId = EditAccountFixtures.zodlKeyId)
             collect(vm)
             pick(vm, Color(PICKED))
 
@@ -646,7 +687,7 @@ class EditAccountVMTest {
             assertNotNull(vm.state.value).saveButton.onClick()
             runCurrent()
             verifyColorNotSavedError()
-            accounts.value = listOf(EditAccountFixtures.zashi(), EditAccountFixtures.viewOnly(customName = "Savings"))
+            accounts.value = listOf(EditAccountFixtures.zodl(), EditAccountFixtures.viewOnly(customName = "Savings"))
             runCurrent()
 
             coEvery { metadataRepository.setAccountColor(any(), any()) } returns true
@@ -703,7 +744,7 @@ class EditAccountVMTest {
             type(vm, "Savings")
             val save = assertNotNull(vm.state.value).saveButton
 
-            accounts.value = listOf(EditAccountFixtures.zashi())
+            accounts.value = listOf(EditAccountFixtures.zodl())
             runCurrent()
             save.onClick()
             runCurrent()
@@ -734,6 +775,12 @@ class EditAccountVMTest {
     private fun zodlIcon(color: Color) =
         ImageResource.Layered(background = color, foreground = ImageResource.ByDrawable(R.drawable.ic_item_zodl_glyph))
 
+    private val EditAccountState.field get() = nameField.field
+
+    private val EditAccountState.counter get() = nameField.counter
+
+    private val EditAccountState.avatar get() = form.header.avatar
+
     private fun EditAccountState.avatarColor() =
         (avatar.image as ImageResource.Layered).background.takeIf { it.isSpecified }
 
@@ -753,8 +800,7 @@ class EditAccountVMTest {
         EditAccountVM(
             args = EditAccountArgs(accountKeyId),
             getWalletAccounts = EditAccountFixtures.getWalletAccounts(accounts),
-            renameViewOnlyAccount =
-                RenameViewOnlyAccountUseCase(accountDataSource, mockk(relaxed = true), AccountNameLock(), accountNames),
+            renameViewOnlyAccount = RenameViewOnlyAccountUseCase(accountDataSource),
             observeAccountIcon = AccountIconFixtures.useCase(),
             metadataRepository = metadataRepository,
             navigateToColorPicker = navigateToColorPicker,
@@ -762,7 +808,7 @@ class EditAccountVMTest {
             navigationRouter = navigationRouter,
             viewOnlyNavigator = viewOnlyNavigator,
             viewOnlyContent = viewOnlyContent,
-            accountNames = accountNames,
+            isAccountNameTaken = isAccountNameTaken,
         )
 
     private fun TestScope.collect(vm: EditAccountVM) {
@@ -779,7 +825,6 @@ private const val LOCK = "🔐"
 private const val PICKED = 0xFF0088FF
 private const val STORED = 0xFFBE38F3
 private const val REMOVE_ICON = 7
-private const val KEYSTONE_KEY_ID = "keystone"
 
 /** Resource-backed, because mockk hands back a `@JvmInline` `StringResource.ByString` unboxed. */
 private val REMOVE_INFO = stringRes(101)

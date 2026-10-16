@@ -28,7 +28,7 @@ import kotlin.math.roundToInt
  * not leave it stuck. A sheet restored without a caller collecting its picks, after process death,
  * closes itself.
  */
-class ColorPickerVM(
+internal class ColorPickerVM(
     private val args: ColorPickerArgs,
     private val navigateToColorPicker: NavigateToColorPickerUseCase,
 ) : ViewModel() {

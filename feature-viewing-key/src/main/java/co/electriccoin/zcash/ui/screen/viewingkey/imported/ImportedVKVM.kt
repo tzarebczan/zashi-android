@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.map
  * shows, so its avatar takes the selected account's colour, and Done and back both close the flow
  * and land on the new account's home.
  */
-class ImportedVKVM(
+internal class ImportedVKVM(
     observeSelectedWalletAccount: ObserveSelectedWalletAccountUseCase,
     metadataRepository: MetadataRepository,
     private val navigationRouter: NavigationRouter,

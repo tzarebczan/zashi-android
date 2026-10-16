@@ -10,7 +10,7 @@ import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LceError
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.model.toStorageKeyId
 import co.electriccoin.zcash.ui.common.usecase.DisconnectUseCase
 import co.electriccoin.zcash.ui.common.usecase.ErrorMapperUseCase
@@ -164,7 +164,7 @@ class DisconnectVMTest {
     fun openingOnTheSoftwareWalletGoesBack() =
         runTest {
             val navigationRouter = mockk<NavigationRouter>(relaxed = true)
-            vm(MutableStateFlow(zashi(isSelected = true)), navigationRouter = navigationRouter)
+            vm(MutableStateFlow(zodl(isSelected = true)), navigationRouter = navigationRouter)
             runCurrent()
 
             verify(exactly = 1) { navigationRouter.back() }
@@ -211,7 +211,7 @@ class DisconnectVMTest {
             val selected = MutableStateFlow<WalletAccount?>(account)
             val disconnect =
                 mockk<DisconnectUseCase> {
-                    coEvery { this@mockk(account) } coAnswers { selected.value = zashi(isSelected = true) }
+                    coEvery { this@mockk(account) } coAnswers { selected.value = zodl(isSelected = true) }
                 }
             val navigationRouter = mockk<NavigationRouter>(relaxed = true)
             val vm = vm(selected, disconnect, navigationRouter)
@@ -232,16 +232,16 @@ class DisconnectVMTest {
     @Test
     fun aNamedHardwareWalletIsDisconnectedEvenWhileAnotherAccountIsSelected() =
         runTest {
-            val zashi = zashi(isSelected = true)
+            val zodl = zodl(isSelected = true)
             val ledger = ledger(isSelected = false).copy(sdkAccount = Account.new(otherUuid))
             val disconnect = mockk<DisconnectUseCase>(relaxed = true)
             val navigationRouter = mockk<NavigationRouter>(relaxed = true)
             val vm =
                 vm(
-                    selected = MutableStateFlow(zashi),
+                    selected = MutableStateFlow(zodl),
                     disconnect = disconnect,
                     navigationRouter = navigationRouter,
-                    accounts = MutableStateFlow(listOf(zashi, ledger)),
+                    accounts = MutableStateFlow(listOf(zodl, ledger)),
                     args = DisconnectArgs(accountKeyId = otherUuid.toStorageKeyId()),
                 )
             collect(vm)
@@ -263,14 +263,14 @@ class DisconnectVMTest {
     @Test
     fun aNamedAccountThatIsMissingOrNotAHardwareWalletGoesBack() =
         runTest {
-            val zashi = zashi(isSelected = true)
+            val zodl = zodl(isSelected = true)
             listOf(DisconnectArgs(accountKeyId = defaultUuid.toStorageKeyId()), DisconnectArgs("missing"))
                 .forEach { args ->
                     val navigationRouter = mockk<NavigationRouter>(relaxed = true)
                     vm(
                         selected = MutableStateFlow(keystone(isSelected = true)),
                         navigationRouter = navigationRouter,
-                        accounts = MutableStateFlow(listOf(zashi)),
+                        accounts = MutableStateFlow(listOf(zodl)),
                         args = args,
                     )
                     runCurrent()
@@ -283,28 +283,28 @@ class DisconnectVMTest {
     fun theDisconnectUseCaseDeletesTheSelectedAccountAndSelectsTheSoftwareWallet() =
         runTest {
             val account = ledger(isSelected = true).copy(sdkAccount = Account.new(otherUuid))
-            val zashi = zashi()
+            val zodl = zodl()
             val accountDataSource =
                 mockk<AccountDataSource>(relaxed = true) {
-                    coEvery { getAllAccounts() } returns listOf(zashi, account)
-                    coEvery { getZashiAccount() } returns zashi
+                    coEvery { getAllAccounts() } returns listOf(zodl, account)
+                    coEvery { getZashiAccount() } returns zodl
                 }
 
             disconnectUseCase(accountDataSource)(account)
 
             coVerify(exactly = 1) { accountDataSource.deleteAccount(account) }
-            coVerify(exactly = 1) { accountDataSource.selectAccount(zashi) }
+            coVerify(exactly = 1) { accountDataSource.selectAccount(zodl) }
         }
 
     @Test
     fun disconnectingAnUnselectedAccountLeavesTheSelectionAlone() =
         runTest {
             val account = ledger(isSelected = false).copy(sdkAccount = Account.new(otherUuid))
-            val zashi = zashi(isSelected = true)
+            val zodl = zodl(isSelected = true)
             val accountDataSource =
                 mockk<AccountDataSource>(relaxed = true) {
-                    coEvery { getAllAccounts() } returns listOf(zashi, account)
-                    coEvery { getZashiAccount() } returns zashi
+                    coEvery { getAllAccounts() } returns listOf(zodl, account)
+                    coEvery { getZashiAccount() } returns zodl
                 }
 
             disconnectUseCase(accountDataSource)(account)
@@ -318,16 +318,16 @@ class DisconnectVMTest {
     fun theSelectionIsReadAgainRatherThanTakenFromTheStaleAccount() =
         runTest {
             val stale = ledger(isSelected = false).copy(sdkAccount = Account.new(otherUuid))
-            val zashi = zashi()
+            val zodl = zodl()
             val accountDataSource =
                 mockk<AccountDataSource>(relaxed = true) {
-                    coEvery { getAllAccounts() } returns listOf(zashi, stale.copy(isSelected = true))
-                    coEvery { getZashiAccount() } returns zashi
+                    coEvery { getAllAccounts() } returns listOf(zodl, stale.copy(isSelected = true))
+                    coEvery { getZashiAccount() } returns zodl
                 }
 
             disconnectUseCase(accountDataSource)(stale)
 
-            coVerify(exactly = 1) { accountDataSource.selectAccount(zashi) }
+            coVerify(exactly = 1) { accountDataSource.selectAccount(zodl) }
         }
 
     private fun disconnectUseCase(accountDataSource: AccountDataSource) =
@@ -364,8 +364,8 @@ class DisconnectVMTest {
             ),
     )
 
-    private fun zashi(isSelected: Boolean = false) =
-        ZashiAccount(
+    private fun zodl(isSelected: Boolean = false) =
+        ZodlAccount(
             sdkAccount = sdkAccount,
             unifiedAddress = "u",
             transparentAddress = "t",

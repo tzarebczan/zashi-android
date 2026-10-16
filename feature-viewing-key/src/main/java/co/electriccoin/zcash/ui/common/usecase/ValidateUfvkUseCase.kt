@@ -91,7 +91,7 @@ internal class ValidateUfvkUseCase(
 /**
  * The outcome of [ValidateUfvkUseCase].
  */
-sealed interface UfvkValidation {
+internal sealed interface UfvkValidation {
     /**
      * [ufvk] is importable. [toString] leaves the key out.
      */

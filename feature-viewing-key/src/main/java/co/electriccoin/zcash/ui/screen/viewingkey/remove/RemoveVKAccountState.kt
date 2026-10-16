@@ -16,7 +16,7 @@ import co.electriccoin.zcash.viewingkey.R
  *        removal ends, whatever the user drags, taps or presses.
  */
 @Immutable
-data class RemoveVKAccountState(
+internal data class RemoveVKAccountState(
     val icon: ImageResource.ByDrawable,
     val title: StringResource,
     val message: StringResource,
@@ -71,7 +71,7 @@ data class RemoveVKAccountState(
     }
 }
 
-object RemoveVKAccountTag {
+internal object RemoveVKAccountTag {
     const val REMOVE_BUTTON = "view_only_remove_account_remove_button"
     const val CANCEL_BUTTON = "view_only_remove_account_cancel_button"
 }

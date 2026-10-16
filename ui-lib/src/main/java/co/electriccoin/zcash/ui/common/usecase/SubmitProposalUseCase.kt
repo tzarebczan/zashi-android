@@ -13,7 +13,7 @@ import co.electriccoin.zcash.ui.common.model.AccountOperationUnsupportedExceptio
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.repository.BiometricRepository
 import co.electriccoin.zcash.ui.common.repository.BiometricRequest
 import co.electriccoin.zcash.ui.common.repository.BiometricsCancelledException
@@ -81,7 +81,7 @@ class SubmitProposalUseCase(
                     is KeystoneAccount -> keystoneProposalRepository.getTransactionProposal()
                     is LedgerAccount -> ledgerProposalPipeline.getTransactionProposal()
                     is ViewOnlyAccount -> throw AccountOperationUnsupportedException.viewOnly()
-                    is ZashiAccount -> zashiProposalRepository.getTransactionProposal()
+                    is ZodlAccount -> zashiProposalRepository.getTransactionProposal()
                 }
             if (proposal is SwapTransactionProposal) {
                 val selectedSwapAsset = proposal.quote.destinationAsset
@@ -103,7 +103,7 @@ class SubmitProposalUseCase(
                     throw AccountOperationUnsupportedException.viewOnly()
                 }
 
-                is ZashiAccount -> {
+                is ZodlAccount -> {
                     swapRepository.clear()
                     submitZashiProposal(proposal)
                     navigationRouter.replace(TransactionProgressArgs)

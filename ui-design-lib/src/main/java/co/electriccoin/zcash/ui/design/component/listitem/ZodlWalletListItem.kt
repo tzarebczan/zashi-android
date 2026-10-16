@@ -65,7 +65,7 @@ import co.electriccoin.zcash.ui.design.util.stringRes
  * is; one with a description stays a focusable button of its own.
  */
 @Composable
-fun ZashiWalletListItem(
+fun ZodlWalletListItem(
     state: WalletListItemState,
     modifier: Modifier = Modifier,
 ) {
@@ -164,7 +164,7 @@ private fun WalletAvatar(
 /**
  * Reports [TRAILING_ACTION_SIZE] to the row and centres the 48 dp [ZashiIconButton] on it; the
  * overflow falls inside the row's padding, which nothing clips, and Compose hit-tests a child
- * outside its parent's bounds, so the whole button stays tappable (ZashiWalletListItemTouchTargetTest
+ * outside its parent's bounds, so the whole button stays tappable (ZodlWalletListItemTouchTargetTest
  * taps its outer ring). Without a content description it is hidden from accessibility services but
  * still reacts to touch.
  */
@@ -213,11 +213,11 @@ data class WalletListItemState(
 
 @PreviewScreens
 @Composable
-private fun ZashiWalletListItemPreview() =
+private fun ZodlWalletListItemPreview() =
     ZcashTheme {
         BlankSurface {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                ZashiWalletListItem(
+                ZodlWalletListItem(
                     state =
                         WalletListItemState(
                             icon = imageRes(R.drawable.ic_item_zashi),
@@ -229,7 +229,7 @@ private fun ZashiWalletListItemPreview() =
                             onClick = {},
                         )
                 )
-                ZashiWalletListItem(
+                ZodlWalletListItem(
                     state =
                         WalletListItemState(
                             icon = imageRes(R.drawable.ic_item_keystone),
@@ -241,7 +241,7 @@ private fun ZashiWalletListItemPreview() =
                             onClick = {},
                         )
                 )
-                ZashiWalletListItem(
+                ZodlWalletListItem(
                     state =
                         WalletListItemState(
                             icon = imageRes(R.drawable.ic_item_ledger),

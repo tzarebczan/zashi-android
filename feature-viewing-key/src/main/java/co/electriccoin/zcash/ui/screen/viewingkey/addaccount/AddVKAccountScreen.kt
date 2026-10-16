@@ -7,10 +7,11 @@ import co.electriccoin.zcash.ui.design.newcomponent.PreviewScreens
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.screen.accountlist.options.WalletOptionsState
 import co.electriccoin.zcash.ui.screen.accountlist.options.WalletOptionsView
+import kotlinx.serialization.Serializable
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun AddVKAccountScreen() {
+internal fun AddVKAccountScreen() {
     val vm = koinViewModel<AddVKAccountVM>()
     val state by vm.state.collectAsStateWithLifecycle()
     WalletOptionsView(state)
@@ -29,3 +30,7 @@ private fun HardwareWalletsConnectedPreview() =
     ZcashTheme {
         WalletOptionsView(WalletOptionsState.previewAddAccountHardwareWalletsConnected)
     }
+
+/** The "Add Account" options sheet. */
+@Serializable
+internal data object AddVKAccountArgs

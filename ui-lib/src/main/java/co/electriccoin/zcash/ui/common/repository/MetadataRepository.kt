@@ -14,8 +14,8 @@ import co.electriccoin.zcash.ui.common.model.SwapMode
 import co.electriccoin.zcash.ui.common.model.SwapStatus
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.model.ZecSimpleSwapAsset
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.model.metadata.MetadataV3
 import co.electriccoin.zcash.ui.common.model.metadata.SwapMetadataV3
 import co.electriccoin.zcash.ui.common.provider.MetadataKeyStorageProvider
@@ -421,7 +421,7 @@ class MetadataRepositoryImpl(
                                 is KeystoneAccount -> account.sdkAccount.ufvk
                                 is LedgerAccount -> account.sdkAccount.ufvk
                                 is ViewOnlyAccount -> account.sdkAccount.ufvk
-                                is ZashiAccount -> null
+                                is ZodlAccount -> null
                             }
                     )
                 metadataKeyStorageProvider.store(account.sdkAccount.accountUuid, newKey)

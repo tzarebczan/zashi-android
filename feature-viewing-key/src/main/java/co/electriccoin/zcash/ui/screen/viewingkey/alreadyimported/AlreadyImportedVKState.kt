@@ -13,7 +13,7 @@ import co.electriccoin.zcash.viewingkey.R
  * The sheet that ends the import when the key belongs to an account the wallet already holds.
  */
 @Immutable
-data class AlreadyImportedVKState(
+internal data class AlreadyImportedVKState(
     val icon: ImageResource.ByDrawable,
     val title: StringResource,
     val message: StringResource,

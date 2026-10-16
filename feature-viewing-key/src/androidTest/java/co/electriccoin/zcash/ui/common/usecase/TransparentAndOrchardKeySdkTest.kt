@@ -51,7 +51,7 @@ class TransparentAndOrchardKeySdkTest {
     @Test
     @SmallTest
     fun theValidationAcceptsAKeyWithoutSapling() =
-        runBlocking {
+        runBlocking<Unit> {
             val result = ValidateUfvkUseCase(SdkUfvkDescriber())(key, ZcashNetwork.Mainnet)
 
             assertIs<UfvkValidation.Valid>(result)

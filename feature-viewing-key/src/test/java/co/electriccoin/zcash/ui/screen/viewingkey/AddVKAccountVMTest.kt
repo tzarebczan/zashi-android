@@ -5,11 +5,12 @@ import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
 import co.electriccoin.zcash.ui.screen.choosehwwallet.ChooseHWWalletArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.addaccount.AddVKAccountTag
 import co.electriccoin.zcash.ui.screen.viewingkey.addaccount.AddVKAccountVM
+import co.electriccoin.zcash.ui.screen.viewingkey.importvk.ImportVKArgs
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -53,7 +54,7 @@ class AddVKAccountVMTest {
     @Test
     fun bothOptionsShowWhileAVendorIsUnconnected() =
         runTest {
-            val vm = vm(listOf(mockk<ZashiAccount>(), mockk<KeystoneAccount>(), mockk<ViewOnlyAccount>()))
+            val vm = vm(listOf(mockk<ZodlAccount>(), mockk<KeystoneAccount>(), mockk<ViewOnlyAccount>()))
             collect(vm)
 
             assertEquals(
@@ -65,7 +66,7 @@ class AddVKAccountVMTest {
     @Test
     fun onlyTheImportShowsOnceEveryVendorIsConnected() =
         runTest {
-            val vm = vm(listOf(mockk<ZashiAccount>(), mockk<KeystoneAccount>(), mockk<LedgerAccount>()))
+            val vm = vm(listOf(mockk<ZodlAccount>(), mockk<KeystoneAccount>(), mockk<LedgerAccount>()))
             collect(vm)
 
             assertEquals(
@@ -77,7 +78,7 @@ class AddVKAccountVMTest {
     @Test
     fun twoAccountsOfOneVendorStillLeaveTheOtherVendorToConnect() =
         runTest {
-            val vm = vm(listOf(mockk<ZashiAccount>(), mockk<KeystoneAccount>(), mockk<KeystoneAccount>()))
+            val vm = vm(listOf(mockk<ZodlAccount>(), mockk<KeystoneAccount>(), mockk<KeystoneAccount>()))
             collect(vm)
 
             assertEquals(
@@ -98,7 +99,7 @@ class AddVKAccountVMTest {
     @Test
     fun theImportHidesTheSheetThenReplacesIt() =
         runTest {
-            val vm = vm(listOf(mockk<ZashiAccount>()))
+            val vm = vm(listOf(mockk<ZodlAccount>()))
             collect(vm)
 
             assertNotNull(vm.state.value).options.last().onClick()
@@ -114,7 +115,7 @@ class AddVKAccountVMTest {
     @Test
     fun theHardwareWalletOptionHidesTheSheetThenReplacesItWithTheVendorPicker() =
         runTest {
-            val vm = vm(listOf(mockk<ZashiAccount>()))
+            val vm = vm(listOf(mockk<ZodlAccount>()))
             collect(vm)
 
             val option = assertNotNull(vm.state.value).options.first()
@@ -129,7 +130,7 @@ class AddVKAccountVMTest {
     @Test
     fun dismissGoesBack() =
         runTest {
-            val vm = vm(listOf(mockk<ZashiAccount>()))
+            val vm = vm(listOf(mockk<ZodlAccount>()))
             collect(vm)
 
             assertNotNull(vm.state.value).dismissButton.onClick()

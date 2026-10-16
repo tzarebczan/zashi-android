@@ -10,7 +10,7 @@ import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.usecase.CopyToClipboardUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveSelectedWalletAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.ShareQRUseCase
@@ -183,7 +183,7 @@ class QrCodeVMTest {
         }
 
     private fun zashiAccount() =
-        ZashiAccount(
+        ZodlAccount(
             sdkAccount = mockk<Account>(relaxed = true),
             unifiedAddress = UNIFIED,
             transparentAddress = TRANSPARENT,

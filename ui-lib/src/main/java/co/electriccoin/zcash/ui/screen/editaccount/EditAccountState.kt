@@ -3,12 +3,14 @@ package co.electriccoin.zcash.ui.screen.editaccount
 import androidx.annotation.DrawableRes
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
+import co.electriccoin.zcash.ui.common.compose.AccountFormHeaderState
+import co.electriccoin.zcash.ui.common.compose.AccountFormState
+import co.electriccoin.zcash.ui.common.compose.AccountNameFieldState
 import co.electriccoin.zcash.ui.common.model.AccountNameLimit
 import co.electriccoin.zcash.ui.design.R
 import co.electriccoin.zcash.ui.design.component.AccountAvatarState
 import co.electriccoin.zcash.ui.design.component.ButtonState
 import co.electriccoin.zcash.ui.design.component.ButtonStyle
-import co.electriccoin.zcash.ui.design.component.TextFieldState
 import co.electriccoin.zcash.ui.design.util.ImageResource
 import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.design.util.imageRes
@@ -17,21 +19,16 @@ import co.electriccoin.zcash.ui.design.util.stringRes
 /**
  * Edits the Zodl account's colour, or a view-only account's colour and name and starts removing it.
  *
- * @param avatar the account avatar in its colour, whose pencil badge opens the colour picker.
- * @param counter how many of the allowed characters [field] uses, shown under it; null while the
- *        name cannot be changed.
+ * @param form the form frame, whose avatar in the account's colour has the pencil badge that opens
+ *        the colour picker.
+ * @param nameField the name field, with how many of the allowed characters it uses shown under it;
+ *        no counter while the name cannot be changed.
  * @param remove the removal entry under the field, only for a view-only account.
  */
 @Immutable
-data class EditAccountState(
-    val title: StringResource,
-    val avatar: AccountAvatarState,
-    val heading: StringResource,
-    val message: StringResource,
-    val fieldLabel: StringResource,
-    val field: TextFieldState,
-    val placeholder: StringResource,
-    val counter: StringResource?,
+internal data class EditAccountState(
+    val form: AccountFormState,
+    val nameField: AccountNameFieldState,
     val remove: EditAccountRemoveState?,
     val saveButton: ButtonState,
     val onBack: () -> Unit,
@@ -75,35 +72,38 @@ data class EditAccountState(
             onValueChange: (String) -> Unit,
             onSaveClick: () -> Unit,
             onBack: () -> Unit,
-        ) = EditAccountState(
-            title = stringRes(R.string.editAccount_title),
-            avatar = AccountAvatarState.create(image = image, onEditClick = onAvatarEditClick),
-            heading = stringRes(R.string.accountName_heading),
-            message = stringRes(R.string.accountName_message),
-            fieldLabel = stringRes(R.string.accountName_label),
-            field =
-                TextFieldState(
-                    value = name,
-                    error = if (isDuplicate) stringRes(R.string.accountName_duplicate) else null,
-                    isEnabled = nameLength != null,
-                    onValueChange = onValueChange
-                ),
-            placeholder = stringRes(R.string.accountName_placeholder),
-            counter =
-                nameLength?.let {
-                    stringRes(R.string.accountName_counter, it, AccountNameLimit.MAX_LENGTH)
-                },
-            remove = remove,
-            saveButton =
+        ): EditAccountState {
+            val saveButton =
                 ButtonState(
                     text = stringRes(R.string.editAccount_save),
                     style = ButtonStyle.PRIMARY,
                     isEnabled = canSave && !isSaving,
                     isLoading = isSaving,
                     onClick = onSaveClick,
-                ),
-            onBack = onBack,
-        )
+                )
+            return EditAccountState(
+                form =
+                    AccountFormState(
+                        title = stringRes(R.string.editAccount_title),
+                        subtitle = null,
+                        header =
+                            AccountFormHeaderState.createAccountName(
+                                avatar = AccountAvatarState.create(image = image, onEditClick = onAvatarEditClick)
+                            ),
+                    ),
+                nameField =
+                    AccountNameFieldState.create(
+                        name = name,
+                        nameLength = nameLength,
+                        isDuplicate = isDuplicate,
+                        onValueChange = onValueChange,
+                        submit = saveButton,
+                    ),
+                remove = remove,
+                saveButton = saveButton,
+                onBack = onBack,
+            )
+        }
 
         private fun previewViewOnly(
             name: String,
@@ -156,7 +156,7 @@ data class EditAccountState(
 
 /** The line that says removing asks for a confirmation, with its [icon], and the Remove Account button. */
 @Immutable
-data class EditAccountRemoveState(
+internal data class EditAccountRemoveState(
     val icon: ImageResource.ByDrawable,
     val info: StringResource,
     val button: ButtonState,
@@ -183,9 +183,7 @@ data class EditAccountRemoveState(
     }
 }
 
-object EditAccountTag {
-    const val FIELD = "edit_account_field"
-    const val COUNTER = "edit_account_counter"
+internal object EditAccountTag {
     const val REMOVE_BUTTON = "edit_account_remove_button"
     const val SAVE_BUTTON = "edit_account_save_button"
 }

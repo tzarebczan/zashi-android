@@ -8,7 +8,7 @@ import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.provider.GetVersionInfoProvider
 import co.electriccoin.zcash.ui.common.repository.ReceiveTransaction
 import co.electriccoin.zcash.ui.common.repository.SendTransaction
@@ -64,7 +64,7 @@ class ExportTaxUseCase(
                             "${viewOnlyContent.taxExportFileNamePrefix}_Transaction_History_$previousYear.csv"
                         }
 
-                        is ZashiAccount -> {
+                        is ZodlAccount -> {
                             "Zodl_Transaction_History_$previousYear.csv"
                         }
                     }

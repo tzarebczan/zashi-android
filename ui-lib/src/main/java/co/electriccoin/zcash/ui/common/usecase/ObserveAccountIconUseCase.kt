@@ -4,7 +4,7 @@ import androidx.compose.ui.graphics.Color
 import cash.z.ecc.android.sdk.model.AccountUuid
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.repository.MetadataRepository
 import co.electriccoin.zcash.ui.design.R
 import co.electriccoin.zcash.ui.design.util.ImageResource
@@ -53,7 +53,7 @@ class ObserveAccountIconUseCase(
                 )
             }
 
-            account is ZashiAccount && color != null -> {
+            account is ZodlAccount && color != null -> {
                 ImageResource.Layered(
                     background = color,
                     foreground = ImageResource.ByDrawable(R.drawable.ic_item_zodl_glyph),

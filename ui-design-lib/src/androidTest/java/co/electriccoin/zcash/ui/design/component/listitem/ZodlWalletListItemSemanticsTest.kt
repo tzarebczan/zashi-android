@@ -26,7 +26,7 @@ import org.junit.Test
  * description stays out of the accessibility tree while a described options button remains
  * reachable.
  */
-class ZashiWalletListItemSemanticsTest {
+class ZodlWalletListItemSemanticsTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -36,7 +36,7 @@ class ZashiWalletListItemSemanticsTest {
     ) {
         composeTestRule.setContent {
             ZcashTheme {
-                ZashiWalletListItem(
+                ZodlWalletListItem(
                     state =
                         WalletListItemState(
                             icon = imageRes(R.drawable.ic_item_zashi),

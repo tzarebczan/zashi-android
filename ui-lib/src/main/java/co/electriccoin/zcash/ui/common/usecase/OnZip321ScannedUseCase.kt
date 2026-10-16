@@ -10,7 +10,7 @@ import co.electriccoin.zcash.ui.common.model.AccountOperationUnsupportedExceptio
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.repository.KeystoneProposalRepository
 import co.electriccoin.zcash.ui.common.repository.ZashiProposalRepository
 import co.electriccoin.zcash.ui.common.usecase.Zip321ParseUriValidationUseCase.Zip321ParseUriValidation
@@ -85,7 +85,7 @@ class OnZip321ScannedUseCase(
                         throw AccountOperationUnsupportedException.viewOnly()
                     }
 
-                    is ZashiAccount -> {
+                    is ZodlAccount -> {
                         zashiProposalRepository.createZip321Proposal(zip321.zip321Uri)
                     }
                 }
@@ -148,7 +148,7 @@ class OnZip321ScannedUseCase(
                         throw AccountOperationUnsupportedException.viewOnly()
                     }
 
-                    is ZashiAccount -> {
+                    is ZodlAccount -> {
                         zashiProposalRepository.createZip321Proposal(zip321.zip321Uri)
                     }
                 }

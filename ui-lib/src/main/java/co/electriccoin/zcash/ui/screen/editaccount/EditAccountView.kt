@@ -12,7 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import co.electriccoin.zcash.ui.common.compose.AccountFormScreen
+import co.electriccoin.zcash.ui.common.compose.AccountFormView
 import co.electriccoin.zcash.ui.common.compose.AccountNameField
 import co.electriccoin.zcash.ui.design.component.ZashiButton
 import co.electriccoin.zcash.ui.design.newcomponent.PreviewScreens
@@ -27,24 +27,9 @@ import co.electriccoin.zcash.ui.design.util.getValue
  * entry (the confirmation hint and the destructive Remove Account button), then Save changes.
  */
 @Composable
-fun EditAccountView(state: EditAccountState) {
-    AccountFormScreen(
-        title = state.title,
-        subtitle = null,
-        onBack = state.onBack,
-        avatar = state.avatar,
-        heading = state.heading,
-        message = state.message,
-    ) {
-        AccountNameField(
-            label = state.fieldLabel,
-            field = state.field,
-            placeholder = state.placeholder,
-            counter = state.counter,
-            onDone = { if (state.saveButton.isEnabled) state.saveButton.onClick() },
-            fieldTestTag = EditAccountTag.FIELD,
-            counterTestTag = EditAccountTag.COUNTER,
-        )
+internal fun EditAccountView(state: EditAccountState) {
+    AccountFormView(state = state.form, onBack = state.onBack) {
+        AccountNameField(state = state.nameField)
         Spacer(Modifier.weight(1f))
         Spacer(Modifier.height(24.dp))
         state.remove?.let { remove ->

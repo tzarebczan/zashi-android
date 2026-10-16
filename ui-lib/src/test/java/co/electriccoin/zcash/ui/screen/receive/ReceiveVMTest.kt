@@ -75,9 +75,9 @@ class ReceiveVMTest {
     @Test
     fun theZodlAccountKeepsTheZecIconEvenWithAColor() =
         runTest {
-            allMetadata.value = mapOf(EditAccountFixtures.zashiUuid to AccountIconFixtures.metadata(Color(PICKED)))
+            allMetadata.value = mapOf(EditAccountFixtures.zodlUuid to AccountIconFixtures.metadata(Color(PICKED)))
 
-            val items = items(EditAccountFixtures.zashi())
+            val items = items(EditAccountFixtures.zodl())
 
             assertEquals(List(2) { imageRes(R.drawable.ic_zec_round_full) }, items.map { it.icon })
             assertEquals(ColorMode.ZASHI, items.first().colorMode)

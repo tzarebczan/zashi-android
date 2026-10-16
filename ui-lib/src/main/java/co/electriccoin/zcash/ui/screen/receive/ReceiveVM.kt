@@ -10,7 +10,7 @@ import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
-import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.usecase.CopyToClipboardUseCase
 import co.electriccoin.zcash.ui.common.usecase.NavigateToRequestZecUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveAccountIconUseCase
@@ -53,7 +53,7 @@ class ReceiveVM(
             observeAccountIcon.observeAll()
         ) { expandedIndex, account, colors ->
             val icon =
-                if (account is ZashiAccount) {
+                if (account is ZodlAccount) {
                     imageRes(R.drawable.ic_zec_round_full)
                 } else {
                     observeAccountIcon.iconOf(colors, account)
@@ -130,7 +130,7 @@ class ReceiveVM(
                     }
                 }
 
-                is ZashiAccount -> {
+                is ZodlAccount -> {
                     if (type == Unified) {
                         stringRes(R.string.accounts_zashi_shieldedAddress)
                     } else {
@@ -155,7 +155,7 @@ class ReceiveVM(
                 is LedgerAccount,
                 is ViewOnlyAccount -> if (type == Unified) HW_WALLET else DEFAULT
 
-                is ZashiAccount -> if (type == Unified) ZASHI else DEFAULT
+                is ZodlAccount -> if (type == Unified) ZASHI else DEFAULT
             },
         infoIconButton =
             IconButtonState(
@@ -166,7 +166,7 @@ class ReceiveVM(
                             is KeystoneAccount -> R.drawable.ic_receive_ks_shielded_info
                             is LedgerAccount -> R.drawable.ic_receive_ks_shielded_info
                             is ViewOnlyAccount -> R.drawable.ic_receive_ks_shielded_info
-                            is ZashiAccount -> R.drawable.ic_receive_zashi_shielded_info
+                            is ZodlAccount -> R.drawable.ic_receive_zashi_shielded_info
                         }
                     }
 
