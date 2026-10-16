@@ -34,6 +34,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import java.io.IOException
 import java.time.Instant
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
@@ -47,7 +48,8 @@ import kotlin.time.Duration.Companion.seconds
 /**
  * [MetadataRepositoryImpl]'s shared map keeping every known account's entry while a change of the
  * account set subscribes to the accounts again, and deriving each account's key once however many
- * readers and writers ask for it at the same time, while a stored key never waits on a derivation.
+ * readers and writers ask for it at the same time, while a stored key never waits on a derivation. One
+ * account's failing read never costs the other accounts their entries.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class MetadataRepositoryMetadataMapTest {
@@ -177,6 +179,24 @@ class MetadataRepositoryMetadataMapTest {
             release.complete(Unit)
 
             assertEquals(contentsOf(FIRST_UUID), read)
+        }
+
+    @Test
+    fun oneAccountsFailingReadKeepsEveryOtherEntry() =
+        runTest {
+            every { metadataDataSource.observe(keys.getValue(SECOND_UUID)) } returns
+                flow {
+                    emit(null)
+                    throw IOException("unreadable")
+                }
+            val repository = repository(storedKeys())
+            accounts.value = listOf(first, second, third)
+            record(repository)
+
+            assertEquals(
+                contentsOf(FIRST_UUID, THIRD_UUID),
+                repository.metadata.first { FIRST_UUID in it && THIRD_UUID in it }
+            )
         }
 
     private fun TestScope.record(repository: MetadataRepositoryImpl): List<Map<AccountUuid, MetadataV3>> {

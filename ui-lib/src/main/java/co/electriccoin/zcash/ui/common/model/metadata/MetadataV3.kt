@@ -52,7 +52,8 @@ data class AccountMetadataV3(
 )
 
 /**
- * How the account looks: [color] is its icon colour, stored as `#RRGGBBAA` in sRGB.
+ * How the account looks: [color] is its icon colour, stored as `#RRGGBB` in sRGB. A legacy
+ * `#RRGGBBAA` value is still read, with its alpha ignored.
  */
 @JsonIgnoreUnknownKeys
 @Serializable

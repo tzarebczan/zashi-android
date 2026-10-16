@@ -44,13 +44,17 @@ data class NameVKState(
 
         val previewLimit: NameVKState = preview(name = "Zodl Savings")
 
+        val previewDuplicate: NameVKState = preview(name = "Zodl", isDuplicate = true)
+
         /**
          * The screen for [name] with the avatar in [color], or the default avatar without one.
-         * Continue is enabled while the name is not blank.
+         * Continue is enabled while the name is not blank and not [isDuplicate], the name of another
+         * account, which the field also says under it.
          */
         fun create(
             name: String,
             color: Color?,
+            isDuplicate: Boolean,
             onAvatarEditClick: () -> Unit,
             onValueChange: (String) -> Unit,
             onContinueClick: () -> Unit,
@@ -62,7 +66,12 @@ data class NameVKState(
             heading = stringRes(DesignR.string.accountName_heading),
             message = stringRes(DesignR.string.accountName_message),
             fieldLabel = stringRes(DesignR.string.accountName_label),
-            field = TextFieldState(value = stringRes(name), onValueChange = onValueChange),
+            field =
+                TextFieldState(
+                    value = stringRes(name),
+                    error = if (isDuplicate) stringRes(DesignR.string.accountName_duplicate) else null,
+                    onValueChange = onValueChange
+                ),
             placeholder = stringRes(DesignR.string.accountName_placeholder),
             counter =
                 stringRes(
@@ -74,7 +83,7 @@ data class NameVKState(
                 ButtonState(
                     text = stringRes(R.string.view_only_continue),
                     style = ButtonStyle.PRIMARY,
-                    isEnabled = name.isNotBlank(),
+                    isEnabled = name.isNotBlank() && !isDuplicate,
                     onClick = onContinueClick,
                 ),
             onBack = onBack,
@@ -82,10 +91,12 @@ data class NameVKState(
 
         private fun preview(
             name: String,
-            color: Color? = null
+            color: Color? = null,
+            isDuplicate: Boolean = false,
         ) = create(
             name = name,
             color = color,
+            isDuplicate = isDuplicate,
             onAvatarEditClick = {},
             onValueChange = {},
             onContinueClick = {},

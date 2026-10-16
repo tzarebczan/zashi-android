@@ -11,6 +11,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -18,14 +19,16 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
 /**
  * A view-only account's name stored by an earlier build moves into the wallet database once and is
  * then cleared from preferences; a name the wallet already has is only cleared, an account without a
  * stored name is left alone, and a name that fails to move stays stored for the next start without
- * holding up the other accounts. A user's rename saved while the move runs is never overwritten by
- * the older stored name.
+ * holding up the other accounts. A stored name is saved trimmed and capped like a rename, and one that
+ * is blank once trimmed is only cleared. A cancelled move is rethrown. A user's rename saved while the
+ * move runs is never overwritten by the older stored name.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class MigrateStoredAccountNamesUseCaseTest {
@@ -88,6 +91,61 @@ class MigrateStoredAccountNamesUseCaseTest {
             coVerify(exactly = 0) { accountNameProvider.clear(FIRST_UUID) }
             coVerify(exactly = 1) { accountDataSource.renameAccount(moving, "Savings") }
             coVerify(exactly = 1) { accountNameProvider.clear(SECOND_UUID) }
+        }
+
+    @Test
+    fun anOverLimitNameIsMovedCapped() =
+        runTest {
+            val account = viewOnly(FIRST_UUID, sdkName = "Imported")
+            coEvery { accountDataSource.getAllAccounts() } returns listOf(account)
+            coEvery { accountNameProvider.get(FIRST_UUID) } returns "  A very long vault name  "
+
+            useCase()
+
+            coVerify(exactly = 1) { accountDataSource.renameAccount(account, "A very long") }
+            coVerify(exactly = 1) { accountNameProvider.clear(FIRST_UUID) }
+        }
+
+    @Test
+    fun theCappedNameIsComparedWithTheWalletsName() =
+        runTest {
+            coEvery { accountDataSource.getAllAccounts() } returns
+                listOf(viewOnly(FIRST_UUID, sdkName = "A very long"))
+            coEvery { accountNameProvider.get(FIRST_UUID) } returns "A very long vault name"
+
+            useCase()
+
+            coVerify(exactly = 0) { accountDataSource.renameAccount(any(), any()) }
+            coVerify(exactly = 1) { accountNameProvider.clear(FIRST_UUID) }
+        }
+
+    @Test
+    fun aNameThatIsBlankOnceTrimmedIsClearedNotMoved() =
+        runTest {
+            coEvery { accountDataSource.getAllAccounts() } returns listOf(viewOnly(FIRST_UUID, sdkName = "Imported"))
+            coEvery { accountNameProvider.get(FIRST_UUID) } returns "   "
+
+            useCase()
+
+            coVerify(exactly = 0) { accountDataSource.renameAccount(any(), any()) }
+            coVerify(exactly = 1) { accountNameProvider.clear(FIRST_UUID) }
+        }
+
+    @Test
+    fun aCancelledMoveIsRethrownAndStopsTheRest() =
+        runTest {
+            val cancelled = viewOnly(FIRST_UUID, sdkName = "Imported")
+            val next = viewOnly(SECOND_UUID, sdkName = "Imported")
+            coEvery { accountDataSource.getAllAccounts() } returns listOf(cancelled, next)
+            coEvery { accountNameProvider.get(FIRST_UUID) } returns "Vault"
+            coEvery { accountNameProvider.get(SECOND_UUID) } returns "Savings"
+            coEvery { accountDataSource.renameAccount(cancelled, any()) } throws CancellationException("left")
+
+            assertFailsWith<CancellationException> { useCase() }
+
+            coVerify(exactly = 0) { accountNameProvider.clear(FIRST_UUID) }
+            coVerify(exactly = 0) { accountNameProvider.get(SECOND_UUID) }
+            coVerify(exactly = 0) { accountDataSource.renameAccount(next, any()) }
         }
 
     @Test
@@ -164,7 +222,7 @@ class MigrateStoredAccountNamesUseCaseTest {
         suspend fun rename(
             account: ViewOnlyAccount,
             name: String
-        ) = RenameViewOnlyAccountUseCase(dataSource, names, lock)(account, name)
+        ) = RenameViewOnlyAccountUseCase(dataSource, names, lock, EditAccountFixtures.accountNames())(account, name)
     }
 
     private class InMemoryAccountNameProvider(

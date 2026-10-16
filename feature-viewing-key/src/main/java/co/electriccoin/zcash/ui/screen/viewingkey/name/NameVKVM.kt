@@ -4,10 +4,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.electriccoin.zcash.ui.NavigationRouter
+import co.electriccoin.zcash.ui.common.model.AccountNameDuplicates
 import co.electriccoin.zcash.ui.common.model.AccountNameLimit
 import co.electriccoin.zcash.ui.common.model.stateIn
 import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepository
 import co.electriccoin.zcash.ui.common.usecase.NavigateToColorPickerUseCase
+import co.electriccoin.zcash.ui.common.usecase.ObserveAccountNamesUseCase
 import co.electriccoin.zcash.ui.screen.connecthw.HWWalletEnrollment
 import co.electriccoin.zcash.ui.screen.connecthw.date.HWDateArgs
 import kotlinx.coroutines.Job
@@ -24,22 +26,29 @@ import kotlinx.coroutines.launch
  * after process death, there is nothing to name and the flow returns to the root. The avatar's pencil
  * badge opens the colour picker, the avatar follows the picks live and keeps the last one however the
  * picker closes; Continue keeps the picked colour with the pending import, in memory
- * only, for the import to store with the new account.
+ * only, for the import to store with the new account. A name another account already shows, by
+ * [AccountNameDuplicates], disables Continue and says so under the field.
  */
 class NameVKVM(
     private val pendingImportRepository: ViewOnlyPendingImportRepository,
     private val navigationRouter: NavigationRouter,
     private val navigateToColorPicker: NavigateToColorPickerUseCase,
+    accountNames: ObserveAccountNamesUseCase,
 ) : ViewModel() {
     private val name = MutableStateFlow(pendingImportRepository.get()?.name.orEmpty())
 
     private val color = MutableStateFlow(pendingImportRepository.get()?.color)
 
+    /** The name every existing account shows, which the new name must not repeat. */
+    private val existingNames: StateFlow<Map<String, String>> =
+        accountNames.observe().stateIn(viewModel = this, initialValue = emptyMap())
+
     private var colorPickerJob: Job? = null
 
     val state: StateFlow<NameVKState> =
-        combine(name, color) { name, color -> createState(name, color) }
-            .stateIn(viewModel = this, initialValue = createState(name.value, color.value))
+        combine(name, color, existingNames) { name, color, existing ->
+            createState(name, color, isDuplicate(name, existing))
+        }.stateIn(viewModel = this, initialValue = createState(name.value, color.value, isDuplicate = false))
 
     init {
         if (pendingImportRepository.get() == null) {
@@ -49,10 +58,12 @@ class NameVKVM(
 
     private fun createState(
         name: String,
-        color: Color?
+        color: Color?,
+        isDuplicate: Boolean,
     ) = NameVKState.create(
         name = name,
         color = color,
+        isDuplicate = isDuplicate,
         onAvatarEditClick = ::onAvatarEditClick,
         onValueChange = ::onValueChange,
         onContinueClick = ::onContinueClick,
@@ -70,14 +81,14 @@ class NameVKVM(
     private fun onValueChange(value: String) = name.update { AccountNameLimit.cap(value) }
 
     private fun onContinueClick() {
-        val trimmed = name.value.trim()
-        if (trimmed.isEmpty()) return
+        val normalized = AccountNameLimit.normalize(name.value)
+        if (normalized.isEmpty() || isDuplicate(normalized, existingNames.value)) return
         val pending = pendingImportRepository.get()
         if (pending == null) {
             navigationRouter.backToRoot()
             return
         }
-        pendingImportRepository.set(pending.copy(name = trimmed, color = color.value))
+        pendingImportRepository.set(pending.copy(name = normalized, color = color.value))
         navigationRouter.forward(HWDateArgs(HWWalletEnrollment.ViewOnly))
     }
 
@@ -90,4 +101,9 @@ class NameVKVM(
         pendingImportRepository.clear()
         navigationRouter.back()
     }
+
+    private fun isDuplicate(
+        name: String,
+        existing: Map<String, String>
+    ) = AccountNameDuplicates.isDuplicate(name, existing)
 }

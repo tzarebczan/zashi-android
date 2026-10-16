@@ -6,6 +6,7 @@ import cash.z.ecc.android.sdk.model.AccountUuid
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.model.metadata.MetadataV3
+import co.electriccoin.zcash.ui.common.usecase.AccountIconFixtures.PICKED
 import co.electriccoin.zcash.ui.design.R
 import co.electriccoin.zcash.ui.design.util.ImageResource
 import co.electriccoin.zcash.ui.design.util.imageRes
@@ -22,7 +23,9 @@ import kotlin.test.assertEquals
 /**
  * Every account's colour comes from the repository's shared metadata map, empty at first, an account
  * without a colour left out; a view-only icon takes its colour, the default circle without one; the
- * Zodl account shows its own drawable until it has a colour, then its mark on a circle in it.
+ * Zodl account shows its own drawable until it has a colour, then its mark on a circle in it. A
+ * hardware wallet always shows its own drawable, an account never takes another account's colour,
+ * and a metadata change that leaves every colour as it was emits nothing.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ObserveAccountIconUseCaseTest {
@@ -74,6 +77,43 @@ class ObserveAccountIconUseCaseTest {
         assertEquals(imageRes(R.drawable.ic_item_zashi), useCase.iconOf(emptyMap(), zashi()))
     }
 
+    @Test
+    fun hardwareWalletsKeepTheirDrawableWhateverTheColor() {
+        val colors = mapOf(EditAccountFixtures.hardwareUuid to Color(PICKED))
+
+        listOf(EditAccountFixtures.keystone(), EditAccountFixtures.ledger()).forEach { account ->
+            assertEquals(imageRes(account.icon), useCase.iconOf(account, Color(PICKED)))
+            assertEquals(imageRes(account.icon), useCase.iconOf(colors, account))
+            assertEquals(imageRes(account.icon), useCase.iconOf(account, null))
+        }
+    }
+
+    @Test
+    fun anotherAccountsColorIsNotApplied() {
+        val colors = mapOf(OTHER_UUID to Color(PICKED))
+
+        assertEquals(AccountIconFixtures.viewOnlyIcon(), useCase.iconOf(colors, viewOnly()))
+        assertEquals(imageRes(R.drawable.ic_item_zashi), useCase.iconOf(colors, zashi()))
+    }
+
+    @Test
+    fun aMetadataChangeThatIsNotAColorEmitsNothing() =
+        runTest {
+            val emitted = mutableListOf<Map<AccountUuid, Color>>()
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { useCase.observeAll().toList(emitted) }
+            val colored = AccountIconFixtures.metadata(Color(PICKED))
+
+            metadata.value = mapOf(VIEW_ONLY_UUID to colored)
+            metadata.value =
+                mapOf(
+                    VIEW_ONLY_UUID to
+                        colored.copy(accountMetadata = colored.accountMetadata.copy(read = listOf("tx1"))),
+                    ZASHI_UUID to AccountIconFixtures.metadata(null)
+                )
+
+            assertEquals(listOf(emptyMap(), mapOf(VIEW_ONLY_UUID to Color(PICKED))), emitted)
+        }
+
     private fun zashi() =
         ZashiAccount(
             sdkAccount = Account.new(ZASHI_UUID),
@@ -105,7 +145,7 @@ class ObserveAccountIconUseCaseTest {
     private companion object {
         val ZASHI_UUID: AccountUuid = AccountUuid.new(ByteArray(16) { it.toByte() })
         val VIEW_ONLY_UUID: AccountUuid = AccountUuid.new(ByteArray(16) { (it + 1).toByte() })
-        const val PICKED = 0xFFBE38F3
+        val OTHER_UUID: AccountUuid = AccountUuid.new(ByteArray(16) { (it + 3).toByte() })
         const val OTHER = 0xFF0088FF
     }
 }

@@ -14,6 +14,7 @@ import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
 import co.electriccoin.zcash.ui.common.usecase.ImportViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.NavigateToColorPickerUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveAccountIconUseCase
+import co.electriccoin.zcash.ui.common.usecase.ObserveAccountNamesUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveSelectedWalletAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.RemoveViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.RenameViewOnlyAccountUseCase
@@ -83,6 +84,7 @@ class ViewingKeyKoinGraphSmokeTest {
                 factory { mockk<ObserveSelectedWalletAccountUseCase>(relaxed = true) }
                 factory { mockk<RenameViewOnlyAccountUseCase>(relaxed = true) }
                 factory { mockk<ObserveAccountIconUseCase>(relaxed = true) }
+                factory { mockk<ObserveAccountNamesUseCase>(relaxed = true) }
                 viewModelOf(::EditAccountVM)
             }
 

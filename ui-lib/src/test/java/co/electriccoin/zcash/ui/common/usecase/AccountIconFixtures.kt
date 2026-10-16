@@ -18,6 +18,9 @@ internal object AccountIconFixtures {
     /** The drawable every test view-only account carries as its icon. */
     const val VIEW_ONLY_ICON = 43
 
+    /** The ARGB of the colour the tests pick for an account. */
+    const val PICKED = 0xFFBE38F3
+
     fun useCase(allMetadata: StateFlow<Map<AccountUuid, MetadataV3>> = MutableStateFlow(emptyMap())) =
         ObserveAccountIconUseCase(
             metadataRepository = mockk<MetadataRepository> { every { metadata } returns allMetadata },

@@ -1,6 +1,7 @@
 package co.electriccoin.zcash.ui.common.usecase
 
 import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
+import co.electriccoin.zcash.ui.common.model.AccountNameLimit
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.provider.AccountNameLock
 import co.electriccoin.zcash.ui.common.provider.AccountNameProvider
@@ -12,6 +13,10 @@ import kotlinx.coroutines.CancellationException
  * database, then clears them from preferences. Launched once from the application class at startup:
  * it waits for the first accounts load, which it never holds up, and is best-effort and idempotent,
  * so a name that could not be moved stays stored and is moved at the next start.
+ *
+ * A stored name is saved in the same normalized form as a rename, see [AccountNameLimit.normalize],
+ * since earlier builds stored it uncapped. A name that is blank once trimmed is not moved, so the
+ * account keeps its wallet name, but it is still cleared.
  *
  * Each account is moved under [AccountNameLock], from reading its stored name to clearing it. A user's
  * rename takes the same lock and clears the stored name, so a rename saved while the move runs either
@@ -41,8 +46,9 @@ class MigrateStoredAccountNamesUseCase(
         accountNameLock.withLock {
             val accountUuid = account.sdkAccount.accountUuid
             val storedName = accountNameProvider.get(accountUuid) ?: return@withLock
-            if (storedName != account.sdkAccount.accountName) {
-                accountDataSource.renameAccount(account, storedName)
+            val name = AccountNameLimit.normalize(storedName)
+            if (name.isNotEmpty() && name != account.sdkAccount.accountName) {
+                accountDataSource.renameAccount(account, name)
             }
             accountNameProvider.clear(accountUuid)
         }

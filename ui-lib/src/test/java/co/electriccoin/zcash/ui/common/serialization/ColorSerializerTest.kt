@@ -53,4 +53,24 @@ class ColorSerializerTest {
             assertFailsWith<SerializationException>(text) { Json.decodeFromString(ColorSerializer, text) }
         }
     }
+
+    @Test
+    fun surroundingWhitespaceIsRejected() {
+        listOf("\" #BE38F3\"", "\"#BE38F3 \"", "\"#BE38F3  \"", "\"\\t#BE38F3\"").forEach { text ->
+            assertFailsWith<SerializationException>(text) { Json.decodeFromString(ColorSerializer, text) }
+        }
+    }
+
+    @Test
+    fun aDoubleHashIsRejected() {
+        assertFailsWith<SerializationException> { Json.decodeFromString(ColorSerializer, "\"##BE38F3\"") }
+        assertFailsWith<SerializationException> { Json.decodeFromString(ColorSerializer, "\"##BE38F380\"") }
+    }
+
+    @Test
+    fun aJsonNumberIsRejected() {
+        listOf("12466419", "0xBE38F3", "1.5").forEach { text ->
+            assertFailsWith<SerializationException>(text) { Json.decodeFromString(ColorSerializer, text) }
+        }
+    }
 }

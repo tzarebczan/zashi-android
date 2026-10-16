@@ -7,6 +7,8 @@ import co.electriccoin.zcash.ui.common.model.AccountNameLimit
 import co.electriccoin.zcash.ui.common.repository.PendingViewOnlyImport
 import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepositoryImpl
 import co.electriccoin.zcash.ui.common.usecase.NavigateToColorPickerUseCase
+import co.electriccoin.zcash.ui.common.usecase.ObserveAccountNamesUseCase
+import co.electriccoin.zcash.ui.design.R
 import co.electriccoin.zcash.ui.design.util.ImageResource
 import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.screen.colorpicker.ColorPickerArgs
@@ -20,6 +22,7 @@ import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -42,7 +45,8 @@ import kotlin.test.assertTrue
  * name that is not blank and stores it trimmed before going straight to the birthday date, without
  * the new-or-active question, and back forgets the pending key. The avatar's pencil badge opens the
  * colour picker; the avatar follows the picks live and keeps the last one however the picker closes,
- * and Continue keeps it with the pending import.
+ * and Continue keeps it with the pending import. A name another account shows, in any case,
+ * disables Continue and says so under the field.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class NameVKVMTest {
@@ -58,6 +62,10 @@ class NameVKVMTest {
                 }
             }
         )
+
+    private val existingNames = MutableStateFlow(mapOf(ZODL_ID to "Zodl", KEYSTONE_ID to "Keystone"))
+
+    private val accountNames = mockk<ObserveAccountNamesUseCase> { every { observe() } returns existingNames }
 
     private val repository =
         ViewOnlyPendingImportRepositoryImpl().apply { set(PendingViewOnlyImport(ufvk = UFVK, name = "")) }
@@ -155,6 +163,40 @@ class NameVKVMTest {
 
             type(vm, "Vault")
             assertTrue(vm.state.value.continueButton.isEnabled)
+        }
+
+    @Test
+    fun aNameAnotherAccountShowsDisablesContinueAndShowsTheError() =
+        runTest {
+            val vm = vm()
+            collect(vm)
+
+            type(vm, " keystone ")
+
+            assertFalse(vm.state.value.continueButton.isEnabled)
+            assertEquals(
+                R.string.accountName_duplicate,
+                (vm.state.value.field.error as StringResource.ByResource).resource
+            )
+            vm.state.value.continueButton
+                .onClick()
+            verify(exactly = 0) { navigationRouter.forward(any()) }
+            assertEquals(PendingViewOnlyImport(ufvk = UFVK, name = ""), repository.get())
+        }
+
+    @Test
+    fun aUniqueNameEnablesContinueWithoutAnError() =
+        runTest {
+            val vm = vm()
+            collect(vm)
+
+            type(vm, "ZODL")
+            assertFalse(vm.state.value.continueButton.isEnabled)
+
+            type(vm, "Zodl 2")
+
+            assertTrue(vm.state.value.continueButton.isEnabled)
+            assertNull(vm.state.value.field.error)
         }
 
     @Test
@@ -301,7 +343,8 @@ class NameVKVMTest {
         NameVKVM(
             pendingImportRepository = repository,
             navigationRouter = navigationRouter,
-            navigateToColorPicker = navigateToColorPicker
+            navigateToColorPicker = navigateToColorPicker,
+            accountNames = accountNames,
         )
 
     private fun TestScope.collect(vm: NameVKVM) {
@@ -317,6 +360,8 @@ class NameVKVMTest {
         const val UFVK = "uview1namefixture"
         const val PICKED = 0x80BE38F3
         const val OTHER = 0xFF0088FF
+        const val ZODL_ID = "zodl"
+        const val KEYSTONE_ID = "keystone"
     }
 }
 

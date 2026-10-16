@@ -15,11 +15,13 @@ import co.electriccoin.zcash.ui.screen.scan.ScanValidationState
 import co.electriccoin.zcash.ui.screen.viewingkey.AlreadyImportedVKArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.NameVKArgs
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -35,7 +37,8 @@ import kotlin.time.Duration.Companion.milliseconds
  * wrong: the scanner stops taking results, returns to the paste screen and opens the general error
  * screen there, from where the user can scan again.
  *
- * Checking a key suspends, so the scanned-once guard runs under a mutex.
+ * Checking a key suspends, so the scanned-once guard runs under a mutex. Every check runs under one
+ * parent job that back cancels, so a check still running when the user leaves navigates nowhere.
  */
 internal class ScanVKVM(
     private val submitViewOnlyKey: SubmitViewOnlyKeyUseCase,
@@ -53,6 +56,8 @@ internal class ScanVKVM(
     private var hasCheckFailed = false
 
     private var sheetJob: Job? = null
+
+    private val checkJob = SupervisorJob(viewModelScope.coroutineContext.job)
 
     val state: StateFlow<ScanVKState> =
         validation
@@ -72,10 +77,10 @@ internal class ScanVKVM(
     private fun createState(validation: ScanValidationState) =
         ScanVKState.create(validation = validation, onBack = ::onBack)
 
-    fun onScanned(result: String) = viewModelScope.launch { handle(result) }
+    fun onScanned(result: String) = viewModelScope.launch(checkJob) { handle(result) }
 
     fun onImageScanned(result: ImageToQrCodeResult) =
-        viewModelScope.launch {
+        viewModelScope.launch(checkJob) {
             when (result) {
                 is ImageToQrCodeResult.SingleCode -> handle(result.text)
                 ImageToQrCodeResult.MultipleCodes -> setValidation(ScanValidationState.SEVERAL_CODES_FOUND)
@@ -129,7 +134,13 @@ internal class ScanVKVM(
             }
     }
 
-    private fun onBack() = navigationRouter.back()
+    /**
+     * Leaves the scanner: the running check is cancelled first, so it cannot navigate afterwards.
+     */
+    private fun onBack() {
+        checkJob.cancel()
+        navigationRouter.back()
+    }
 
     private fun setValidation(validation: ScanValidationState) = this.validation.update { validation }
 }

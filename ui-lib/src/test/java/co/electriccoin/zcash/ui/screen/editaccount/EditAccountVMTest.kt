@@ -66,6 +66,10 @@ import co.electriccoin.zcash.ui.R as UiR
  * colour alone. The avatar follows the picks live and keeps the last one however the picker closes,
  * without pinning the stored colour it opened on. Back cancels a running save; a colour that was not
  * saved shows the error and keeps the pick; an id that names neither account kind goes straight back.
+ * A failed rename writes no colour, a retry after an unsaved colour writes only the colour, remove and
+ * a second avatar tap do nothing while a save runs or the picker is open, and an account removed while
+ * it is edited goes back on Save. A name another account shows, the Zodl account's in any case
+ * included, disables Save and says so under the field; the account's own name never does.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class EditAccountVMTest {
@@ -105,6 +109,17 @@ class EditAccountVMTest {
 
     private val accounts =
         MutableStateFlow<List<WalletAccount>?>(listOf(EditAccountFixtures.zashi(), EditAccountFixtures.viewOnly()))
+
+    private val shownNames =
+        MutableStateFlow(
+            mapOf(
+                EditAccountFixtures.zashiKeyId to "Zodl",
+                EditAccountFixtures.viewOnlyKeyId to "Zodl Vault",
+                KEYSTONE_KEY_ID to "Keystone",
+            )
+        )
+
+    private val accountNames = EditAccountFixtures.accountNames(shownNames)
 
     @BeforeTest
     fun setUp() {
@@ -197,6 +212,61 @@ class EditAccountVMTest {
 
             coVerify(exactly = 1) { accountDataSource.renameAccount(viewOnlyAccount(), "Savings") }
             verify(exactly = 1) { navigationRouter.back() }
+        }
+
+    @Test
+    fun keepingTheCurrentNameIsNotADuplicate() =
+        runTest {
+            val vm = vm()
+            collect(vm)
+            assertNull(assertNotNull(vm.state.value).field.error)
+
+            type(vm, " zodl vault ")
+
+            val state = assertNotNull(vm.state.value)
+            assertNull(state.field.error)
+            assertTrue(state.saveButton.isEnabled)
+            state.saveButton.onClick()
+            runCurrent()
+            coVerify(exactly = 1) { accountDataSource.renameAccount(viewOnlyAccount(), "zodl vault") }
+        }
+
+    @Test
+    fun anotherAccountsNameDisablesSaveAndShowsTheError() =
+        runTest {
+            val vm = vm()
+            collect(vm)
+            pick(vm, Color(PICKED))
+
+            type(vm, "Keystone")
+
+            val state = assertNotNull(vm.state.value)
+            assertFalse(state.saveButton.isEnabled)
+            assertEquals(R.string.accountName_duplicate, (state.field.error as StringResource.ByResource).resource)
+            state.saveButton.onClick()
+            runCurrent()
+            coVerify(exactly = 0) { accountDataSource.renameAccount(any(), any()) }
+            coVerify(exactly = 0) { metadataRepository.setAccountColor(any(), any()) }
+            verify(exactly = 0) { navigationRouter.back() }
+
+            type(vm, "Keystone 2")
+            assertNull(assertNotNull(vm.state.value).field.error)
+            assertTrue(assertNotNull(vm.state.value).saveButton.isEnabled)
+        }
+
+    @Test
+    fun theZodlNameIsADuplicateInAnyCase() =
+        runTest {
+            val vm = vm()
+            collect(vm)
+
+            listOf("zodl", "ZODL", " ZoDl ").forEach { name ->
+                type(vm, name)
+
+                val state = assertNotNull(vm.state.value)
+                assertFalse(state.saveButton.isEnabled, name)
+                assertNotNull(state.field.error, name)
+            }
         }
 
     @Test
@@ -546,6 +616,104 @@ class EditAccountVMTest {
             assertTrue(state.saveButton.isEnabled)
         }
 
+    @Test
+    fun aRenameThatFailsNeverWritesTheColor() =
+        runTest {
+            val failure = IllegalStateException("database locked")
+            coEvery { accountDataSource.renameAccount(any(), any()) } throws failure
+            val vm = vm()
+            collect(vm)
+            type(vm, "Savings")
+            pick(vm, Color(PICKED))
+
+            assertNotNull(vm.state.value).saveButton.onClick()
+            runCurrent()
+
+            verify(exactly = 1) { navigateToError(ErrorArgs.General(failure), any()) }
+            coVerify(exactly = 0) { metadataRepository.setAccountColor(any(), any()) }
+            verify(exactly = 0) { navigationRouter.back() }
+            assertEquals(Color(PICKED), assertNotNull(vm.state.value).avatarColor())
+        }
+
+    @Test
+    fun aRetryAfterAnUnsavedColorSavesOnlyTheColor() =
+        runTest {
+            coEvery { metadataRepository.setAccountColor(any(), any()) } returns false
+            val vm = vm()
+            collect(vm)
+            type(vm, "Savings")
+            pick(vm, Color(PICKED))
+            assertNotNull(vm.state.value).saveButton.onClick()
+            runCurrent()
+            verifyColorNotSavedError()
+            accounts.value = listOf(EditAccountFixtures.zashi(), EditAccountFixtures.viewOnly(customName = "Savings"))
+            runCurrent()
+
+            coEvery { metadataRepository.setAccountColor(any(), any()) } returns true
+            val retry = assertNotNull(vm.state.value).saveButton
+            assertTrue(retry.isEnabled)
+            retry.onClick()
+            runCurrent()
+
+            coVerify(exactly = 1) { accountDataSource.renameAccount(any(), any()) }
+            coVerify(exactly = 2) { metadataRepository.setAccountColor(any(), Color(PICKED)) }
+            verify(exactly = 1) { navigationRouter.back() }
+        }
+
+    @Test
+    fun removeIsIgnoredWhileSaving() =
+        runTest {
+            val saved = CompletableDeferred<Unit>()
+            coEvery { accountDataSource.renameAccount(any(), any()) } coAnswers { saved.await() }
+            val vm = vm()
+            collect(vm)
+            type(vm, "Savings")
+            val remove = assertNotNull(assertNotNull(vm.state.value).remove).button
+
+            assertNotNull(vm.state.value).saveButton.onClick()
+            runCurrent()
+            assertFalse(assertNotNull(assertNotNull(vm.state.value).remove).button.isEnabled)
+            remove.onClick()
+            saved.complete(Unit)
+            runCurrent()
+
+            verify(exactly = 0) { viewOnlyNavigator.forwardToRemoveAccount(any()) }
+        }
+
+    @Test
+    fun aSecondAvatarTapWhileThePickerIsOpenOpensNothing() =
+        runTest {
+            val vm = vm()
+            collect(vm)
+            val edit = assertNotNull(assertNotNull(vm.state.value).avatar.editButton)
+
+            edit.onClick()
+            runCurrent()
+            edit.onClick()
+            runCurrent()
+
+            assertEquals(1, pickerRequests.size)
+        }
+
+    @Test
+    fun anAccountRemovedWhileEditingGoesBackOnSave() =
+        runTest {
+            val vm = vm()
+            collect(vm)
+            type(vm, "Savings")
+            val save = assertNotNull(vm.state.value).saveButton
+
+            accounts.value = listOf(EditAccountFixtures.zashi())
+            runCurrent()
+            save.onClick()
+            runCurrent()
+
+            verify(exactly = 1) { navigationRouter.back() }
+            coVerify(exactly = 0) { accountDataSource.renameAccount(any(), any()) }
+            coVerify(exactly = 0) { metadataRepository.setAccountColor(any(), any()) }
+            verify(exactly = 0) { navigateToError(any(), any()) }
+        }
+
     /** Opens the picker, picks [color] and closes it. */
     private fun TestScope.pick(
         vm: EditAccountVM,
@@ -586,7 +754,7 @@ class EditAccountVMTest {
             args = EditAccountArgs(accountKeyId),
             getWalletAccounts = EditAccountFixtures.getWalletAccounts(accounts),
             renameViewOnlyAccount =
-                RenameViewOnlyAccountUseCase(accountDataSource, mockk(relaxed = true), AccountNameLock()),
+                RenameViewOnlyAccountUseCase(accountDataSource, mockk(relaxed = true), AccountNameLock(), accountNames),
             observeAccountIcon = AccountIconFixtures.useCase(),
             metadataRepository = metadataRepository,
             navigateToColorPicker = navigateToColorPicker,
@@ -594,6 +762,7 @@ class EditAccountVMTest {
             navigationRouter = navigationRouter,
             viewOnlyNavigator = viewOnlyNavigator,
             viewOnlyContent = viewOnlyContent,
+            accountNames = accountNames,
         )
 
     private fun TestScope.collect(vm: EditAccountVM) {
@@ -610,6 +779,7 @@ private const val LOCK = "🔐"
 private const val PICKED = 0xFF0088FF
 private const val STORED = 0xFFBE38F3
 private const val REMOVE_ICON = 7
+private const val KEYSTONE_KEY_ID = "keystone"
 
 /** Resource-backed, because mockk hands back a `@JvmInline` `StringResource.ByString` unboxed. */
 private val REMOVE_INFO = stringRes(101)

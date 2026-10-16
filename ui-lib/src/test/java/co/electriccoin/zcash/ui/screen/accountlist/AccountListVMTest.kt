@@ -1,6 +1,6 @@
 package co.electriccoin.zcash.ui.screen.accountlist
 
-import cash.z.ecc.android.sdk.model.Account
+import androidx.compose.ui.graphics.Color
 import cash.z.ecc.android.sdk.model.AccountUuid
 import cash.z.ecc.android.sdk.model.WalletBalance
 import cash.z.ecc.android.sdk.model.Zatoshi
@@ -11,14 +11,18 @@ import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
+import co.electriccoin.zcash.ui.common.model.metadata.MetadataV3
 import co.electriccoin.zcash.ui.common.model.toStorageKeyId
 import co.electriccoin.zcash.ui.common.usecase.AccountIconFixtures
+import co.electriccoin.zcash.ui.common.usecase.AccountIconFixtures.PICKED
+import co.electriccoin.zcash.ui.common.usecase.EditAccountFixtures
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
 import co.electriccoin.zcash.ui.common.usecase.SelectWalletAccountUseCase
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyNavigator
 import co.electriccoin.zcash.ui.design.R
 import co.electriccoin.zcash.ui.design.component.ButtonStyle
+import co.electriccoin.zcash.ui.design.util.ImageResource
 import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.design.util.asPrivacySensitive
 import co.electriccoin.zcash.ui.design.util.imageRes
@@ -56,10 +60,13 @@ import co.electriccoin.zcash.ui.R as UiR
  * view-only sections in that order whatever order they arrive in, each row with its avatar, its
  * balance (privacy-sensitive, a placeholder while unknown) and its trailing action; the Keystone
  * promo while no Keystone is connected; and the "Add Account" call to action once the wallets
- * are loaded.
+ * are loaded. Every row carries its own account's coloured icon, and a colour change redraws only
+ * that row.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class AccountListVMTest {
+    private val allMetadata = MutableStateFlow<Map<AccountUuid, MetadataV3>>(emptyMap())
+
     @BeforeTest
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -527,6 +534,61 @@ class AccountListVMTest {
             verify(exactly = 1) { navigationRouter.back() }
         }
 
+    @Test
+    fun everyRowCarriesItsAccountsColoredIcon() =
+        runTest {
+            val zashi = zashi(id = 1, isSelected = true)
+            val keystone = keystone(id = 2, isSelected = false)
+            val colored = viewOnly(id = 3, isSelected = false)
+            val plain = viewOnly(id = 4, isSelected = false)
+            allMetadata.value =
+                mapOf(
+                    zashi.sdkAccount.accountUuid to AccountIconFixtures.metadata(Color(ZODL_COLOR)),
+                    keystone.sdkAccount.accountUuid to AccountIconFixtures.metadata(Color(PICKED)),
+                    colored.sdkAccount.accountUuid to AccountIconFixtures.metadata(Color(PICKED)),
+                )
+            val vm = vm(listOf(zashi, keystone, colored, plain))
+            collect(vm)
+
+            assertEquals(
+                listOf(
+                    ImageResource.Layered(
+                        background = Color(ZODL_COLOR),
+                        foreground = ImageResource.ByDrawable(R.drawable.ic_item_zodl_glyph)
+                    ),
+                    imageRes(R.drawable.ic_item_keystone),
+                    AccountIconFixtures.viewOnlyIcon(Color(PICKED)),
+                    AccountIconFixtures.viewOnlyIcon(),
+                ),
+                assertNotNull(vm.state.value.sections).flatMap { section -> section.items.map { it.icon } }
+            )
+        }
+
+    @Test
+    fun aColorChangeRedrawsOnlyThatRow() =
+        runTest {
+            val zashi = zashi(id = 1, isSelected = true)
+            val first = viewOnly(id = 2, isSelected = false)
+            val second = viewOnly(id = 3, isSelected = false)
+            allMetadata.value = mapOf(first.sdkAccount.accountUuid to AccountIconFixtures.metadata(Color(PICKED)))
+            val vm = vm(listOf(zashi, first, second))
+            collect(vm)
+            val before = assertNotNull(vm.state.value.sections).flatMap { it.items }
+
+            allMetadata.value =
+                mapOf(
+                    first.sdkAccount.accountUuid to AccountIconFixtures.metadata(Color(PICKED)),
+                    second.sdkAccount.accountUuid to AccountIconFixtures.metadata(Color(ZODL_COLOR)),
+                )
+            runCurrent()
+
+            val after = assertNotNull(vm.state.value.sections).flatMap { it.items }
+            assertEquals(before[0], after[0])
+            assertEquals(before[1], after[1])
+            assertNotEquals(before[2], after[2])
+            assertEquals(AccountIconFixtures.viewOnlyIcon(Color(ZODL_COLOR)), after[2].icon)
+        }
+
     private fun vm(
         accounts: List<WalletAccount>?,
         selectWalletAccount: SelectWalletAccountUseCase = mockk(relaxed = true),
@@ -555,10 +617,8 @@ class AccountListVMTest {
                 every { accountListSectionPlural } returns VIEW_ONLY_SECTION_PLURAL
                 every { topBarSubtitle } returns VIEW_ONLY_LABEL
             },
-        observeAccountIcon = AccountIconFixtures.useCase(),
+        observeAccountIcon = AccountIconFixtures.useCase(allMetadata),
     )
-
-    private fun sdkAccount(id: Int) = Account.new(AccountUuid.new(ByteArray(16) { (it + id * 16).toByte() }))
 
     /**
      * A pool balance of [amount], all of it available. The accounts below put it in every shielded
@@ -572,7 +632,7 @@ class AccountListVMTest {
         isSelected: Boolean,
         balance: Zatoshi? = Zatoshi(1),
     ) = ZashiAccount(
-        sdkAccount = sdkAccount(id),
+        sdkAccount = EditAccountFixtures.sdkAccount(id),
         unifiedAddress = "u-zashi",
         transparentAddress = "t-zashi",
         saplingAddress = "s-zashi",
@@ -588,7 +648,7 @@ class AccountListVMTest {
         isSelected: Boolean,
         balance: Zatoshi? = Zatoshi(1),
     ) = KeystoneAccount(
-        sdkAccount = sdkAccount(id),
+        sdkAccount = EditAccountFixtures.sdkAccount(id),
         unifiedAddress = "u-keystone",
         transparentAddress = "t-keystone",
         orchardBalance = balance(balance),
@@ -601,7 +661,7 @@ class AccountListVMTest {
         id: Int,
         isSelected: Boolean,
     ) = LedgerAccount(
-        sdkAccount = sdkAccount(id),
+        sdkAccount = EditAccountFixtures.sdkAccount(id),
         unifiedAddress = "u-ledger",
         transparentAddress = "t-ledger",
         orchardBalance = balance(Zatoshi(1)),
@@ -617,7 +677,7 @@ class AccountListVMTest {
         isSelected: Boolean,
         balance: Zatoshi? = Zatoshi(1),
     ) = ViewOnlyAccount(
-        sdkAccount = sdkAccount(id),
+        sdkAccount = EditAccountFixtures.sdkAccount(id),
         unifiedAddress = "u-view-only",
         transparentAddress = "t-view-only",
         orchardBalance = balance(balance),
@@ -648,3 +708,5 @@ private val VIEW_ONLY_SECTION_PLURAL = StringResource.ByResource(resource = 3, a
 private val VIEW_ONLY_LABEL = StringResource.ByResource(resource = 4, args = emptyList())
 
 private const val ADD_ACCOUNT_ICON = 42
+
+private const val ZODL_COLOR = 0xFF0088FF

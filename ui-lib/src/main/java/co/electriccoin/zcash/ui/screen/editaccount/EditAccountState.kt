@@ -44,6 +44,8 @@ data class EditAccountState(
         val previewColored: EditAccountState =
             previewViewOnly(name = "Zodl Vault", color = Color(PREVIEW_COLOR), canSave = true)
 
+        val previewDuplicate: EditAccountState = previewViewOnly(name = "Zodl", isDuplicate = true)
+
         val previewZodl: EditAccountState = previewZodl(image = imageRes(R.drawable.ic_item_zashi))
 
         val previewZodlColored: EditAccountState =
@@ -58,12 +60,14 @@ data class EditAccountState(
         /**
          * The screen for an account showing [image] and [name]. [nameLength] is the code-point length
          * of an editable [name]; null for a name that cannot be changed, which disables the field and
-         * hides the counter. Save is enabled while [canSave] and no save is running.
+         * hides the counter. [isDuplicate] says under the field that another account has the name.
+         * Save is enabled while [canSave] and no save is running.
          */
         fun create(
             image: ImageResource,
             name: StringResource,
             nameLength: Int?,
+            isDuplicate: Boolean,
             canSave: Boolean,
             isSaving: Boolean,
             remove: EditAccountRemoveState?,
@@ -77,7 +81,13 @@ data class EditAccountState(
             heading = stringRes(R.string.accountName_heading),
             message = stringRes(R.string.accountName_message),
             fieldLabel = stringRes(R.string.accountName_label),
-            field = TextFieldState(value = name, isEnabled = nameLength != null, onValueChange = onValueChange),
+            field =
+                TextFieldState(
+                    value = name,
+                    error = if (isDuplicate) stringRes(R.string.accountName_duplicate) else null,
+                    isEnabled = nameLength != null,
+                    onValueChange = onValueChange
+                ),
             placeholder = stringRes(R.string.accountName_placeholder),
             counter =
                 nameLength?.let {
@@ -99,6 +109,7 @@ data class EditAccountState(
             name: String,
             color: Color? = null,
             canSave: Boolean = false,
+            isDuplicate: Boolean = false,
         ) = create(
             image =
                 ImageResource.Layered(
@@ -107,6 +118,7 @@ data class EditAccountState(
                 ),
             name = stringRes(name),
             nameLength = AccountNameLimit.lengthOf(name),
+            isDuplicate = isDuplicate,
             canSave = canSave,
             isSaving = false,
             remove =
@@ -128,6 +140,7 @@ data class EditAccountState(
                 image = image,
                 name = stringRes("Zodl"),
                 nameLength = null,
+                isDuplicate = false,
                 canSave = false,
                 isSaving = false,
                 remove = null,

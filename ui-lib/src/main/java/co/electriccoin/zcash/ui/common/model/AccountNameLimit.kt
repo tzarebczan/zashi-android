@@ -23,5 +23,11 @@ object AccountNameLimit {
             name.substring(0, name.offsetByCodePoints(0, MAX_LENGTH)).trimEnd(ZERO_WIDTH_JOINER)
         }
 
+    /**
+     * [name] as it is saved: trimmed, capped with [cap] and trimmed again, so a cut never leaves
+     * trailing whitespace. Every path that writes a name to the wallet uses this one form.
+     */
+    fun normalize(name: String): String = cap(name.trim()).trim()
+
     private const val ZERO_WIDTH_JOINER = '\u200D'
 }

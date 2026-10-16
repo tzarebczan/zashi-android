@@ -4,6 +4,9 @@ import android.content.Context
 import cash.z.ecc.android.sdk.CloseableSynchronizer
 import cash.z.ecc.android.sdk.Synchronizer
 import cash.z.ecc.android.sdk.block.processor.CompactBlockProcessor
+import cash.z.ecc.android.sdk.ledger.LedgerAccountBinding
+import cash.z.ecc.android.sdk.ledger.LedgerApduTransport
+import cash.z.ecc.android.sdk.ledger.LedgerSigningProgress
 import cash.z.ecc.android.sdk.model.Account
 import cash.z.ecc.android.sdk.model.AccountBalance
 import cash.z.ecc.android.sdk.model.AccountImportSetup
@@ -27,6 +30,7 @@ import cash.z.ecc.android.sdk.model.UnifiedFullViewingKey
 import cash.z.ecc.android.sdk.model.UnifiedSpendingKey
 import cash.z.ecc.android.sdk.model.Zatoshi
 import cash.z.ecc.android.sdk.model.ZcashNetwork
+import cash.z.ecc.android.sdk.model.voting.VotingTorLease
 import cash.z.ecc.android.sdk.type.AddressType
 import cash.z.ecc.android.sdk.type.ConsensusMatchType
 import cash.z.ecc.android.sdk.type.ServerValidation
@@ -35,6 +39,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.engine.HttpClientEngineConfig
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.time.Duration
 
@@ -342,6 +347,34 @@ internal class MockSynchronizer(
     }
 
     override suspend fun renameAccount(accountUuid: AccountUuid, name: String) {
+        error("Intentionally not implemented in ${MockSynchronizer::class.simpleName} implementation.")
+    }
+
+    override val setupError: StateFlow<Throwable?> = MutableStateFlow(null)
+
+    override suspend fun proposeOrchardToIronwoodMigration(account: Account): Proposal {
+        error("Intentionally not implemented in ${MockSynchronizer::class.simpleName} implementation.")
+    }
+
+    override suspend fun signPcztWithLedger(
+        pczt: Pczt,
+        accountUuid: AccountUuid,
+        binding: LedgerAccountBinding,
+        transport: LedgerApduTransport,
+        onProgress: ((LedgerSigningProgress) -> Unit)?
+    ): Pczt {
+        error("Intentionally not implemented in ${MockSynchronizer::class.simpleName} implementation.")
+    }
+
+    override suspend fun acquireVotingTorLease(): VotingTorLease {
+        error("Intentionally not implemented in ${MockSynchronizer::class.simpleName} implementation.")
+    }
+
+    override fun pause() {
+        error("Intentionally not implemented in ${MockSynchronizer::class.simpleName} implementation.")
+    }
+
+    override fun resume() {
         error("Intentionally not implemented in ${MockSynchronizer::class.simpleName} implementation.")
     }
 

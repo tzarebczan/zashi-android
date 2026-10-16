@@ -21,6 +21,7 @@ android {
 
     testOptions {
         unitTests.isReturnDefaultValues = true
+        unitTests.isIncludeAndroidResources = true
     }
 
     sourceSets {
@@ -84,6 +85,9 @@ dependencies {
     testImplementation(libs.kotlin.reflect)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.compose.test.junit)
+    testImplementation(libs.androidx.compose.test.manifest)
 
     androidTestImplementation(libs.bundles.androidx.test)
     androidTestImplementation(libs.kotlin.test)

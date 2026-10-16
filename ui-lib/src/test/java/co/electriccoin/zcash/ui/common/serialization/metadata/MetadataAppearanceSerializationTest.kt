@@ -17,6 +17,8 @@ import kotlin.test.assertTrue
  * The optional appearance block of a V3 metadata file: it round-trips as
  * `{"color":"#RRGGBB","lastUpdated":…}`, is left out when there is none, a file written before it
  * existed still reads, unknown keys are still ignored, and an unreadable colour drops only the block.
+ * So does a block of the wrong shape or without its timestamp, an explicit null reads as none, and a
+ * legacy eight-digit colour is written back as six digits.
  */
 class MetadataAppearanceSerializationTest {
     private val serializer = MetadataSerializer()
@@ -68,6 +70,50 @@ class MetadataAppearanceSerializationTest {
 
         assertNull(metadata.accountMetadata.appearance)
         assertEquals(listOf("r1"), metadata.accountMetadata.read)
+    }
+
+    @Test
+    fun anExplicitNullAppearanceReadsAsNone() {
+        val metadata = read(json(appearance = "null"))
+
+        assertNull(metadata.accountMetadata.appearance)
+        assertEquals(listOf("r1"), metadata.accountMetadata.read)
+    }
+
+    @Test
+    fun anAppearanceOfTheWrongTypeDropsOnlyTheAppearance() {
+        listOf("\"#BE38F3\"", "[\"#BE38F3\",7]", "42").forEach { appearance ->
+            val metadata = read(json(appearance = appearance))
+
+            assertNull(metadata.accountMetadata.appearance, appearance)
+            assertEquals(listOf("r1"), metadata.accountMetadata.read, appearance)
+        }
+    }
+
+    @Test
+    fun anAppearanceWithoutItsTimestampDropsOnlyTheAppearance() {
+        val metadata = read(json(appearance = """{"color":"#BE38F3"}"""))
+
+        assertNull(metadata.accountMetadata.appearance)
+        assertEquals(listOf("r1"), metadata.accountMetadata.read)
+    }
+
+    @Test
+    fun aNumericColorDropsOnlyTheAppearance() {
+        val metadata = read(json(appearance = """{"color":12466419,"lastUpdated":7}"""))
+
+        assertNull(metadata.accountMetadata.appearance)
+        assertEquals(listOf("r1"), metadata.accountMetadata.read)
+    }
+
+    @Test
+    fun aLegacyEightDigitColorIsWrittenBackAsSixDigits() {
+        val metadata = read(json(appearance = """{"color":"#BE38F380","lastUpdated":7}"""))
+
+        val json = write(metadata)
+
+        assertTrue(json.contains(""""color":"#BE38F3""""), json)
+        assertFalse(json.contains("#BE38F380"), json)
     }
 
     private fun write(metadata: MetadataV3) =

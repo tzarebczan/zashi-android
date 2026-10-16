@@ -44,6 +44,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertSame
 
 /**
  * A selected [ViewOnlyAccount] holds no spend authority, so every spend chokepoint refuses it with
@@ -378,6 +379,38 @@ class ViewOnlySpendGuardTest {
             assertViewOnly(assertFailsWith { dataSource.createPcztFromProposal(viewOnly, mockk()) })
             coVerify(exactly = 0) { synchronizerProvider.getSynchronizer() }
         }
+
+    @Test
+    fun theProposalDataSourceRefusesSwapProposalsBeforeTheSdkIsAsked() =
+        runTest {
+            val synchronizerProvider = mockk<SynchronizerProvider>()
+            val dataSource =
+                ProposalDataSourceImpl(
+                    synchronizerProvider = synchronizerProvider,
+                    lightWalletEndpointProvider = mockk(),
+                    isServerSelectionAutomaticProvider = mockk(),
+                    persistableWalletProvider = mockk(),
+                )
+
+            assertViewOnly(
+                assertFailsWith { dataSource.createExactInputProposal(viewOnly, mockk(relaxed = true), mockk()) }
+            )
+            assertViewOnly(
+                assertFailsWith { dataSource.createExactOutputProposal(viewOnly, mockk(relaxed = true), mockk()) }
+            )
+            coVerify(exactly = 0) { synchronizerProvider.getSynchronizer() }
+        }
+
+    @Test
+    fun requireSpendableReturnsEverySpendableAccountUnchanged() {
+        val zashi = EditAccountFixtures.zashi()
+        val keystone = EditAccountFixtures.keystone()
+        val ledger = EditAccountFixtures.ledger()
+
+        assertSame(zashi, zashi.requireSpendable())
+        assertSame(keystone, keystone.requireSpendable())
+        assertSame(ledger, ledger.requireSpendable())
+    }
 
     @Test
     fun requireSpendableRefusesOnlyTheViewOnlyAccount() {

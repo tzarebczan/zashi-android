@@ -15,7 +15,10 @@ import co.electriccoin.zcash.ui.BaseNavigationCommand
 import co.electriccoin.zcash.ui.NavigationCommand
 import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.common.datasource.ZashiSpendingKeyDataSource
+import co.electriccoin.zcash.ui.common.model.AccountOperationUnsupportedException
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
+import co.electriccoin.zcash.ui.common.model.MutableLce
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.model.migration.MigrationMode
@@ -56,6 +59,8 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MigrationReviewVMTest {
@@ -291,6 +296,91 @@ class MigrationReviewVMTest {
                 sdk.submitNoteSplit(splitProposal, usk)
             }
         }
+
+    @Test
+    fun immediateConfirmOnAViewOnlyAccountIsRefusedWithoutSigningOrAdopting() =
+        runTest {
+            val proposal = mockk<Proposal> { coEvery { totalFeeRequired() } returns Zatoshi(1_000L) }
+            val router = FakeNavigationRouter()
+            val zashiProposalRepository = mockk<ZashiProposalRepository>(relaxed = true)
+            val keystoneProposalRepository = mockk<KeystoneProposalRepository>(relaxed = true)
+            val submitProposal = mockk<SubmitProposalUseCase>(relaxed = true)
+            val vm =
+                vm(
+                    router = router,
+                    getSelectedWalletAccount = viewOnlySelected(),
+                    zashiProposalRepository = zashiProposalRepository,
+                    keystoneProposalRepository = keystoneProposalRepository,
+                    submitProposal = submitProposal,
+                )
+
+            invokeOnConfirmImmediate(vm, proposal)
+            advanceUntilIdle()
+
+            assertRefusedAsViewOnly(vm)
+            coVerify(exactly = 0) { zashiProposalRepository.setMigrationSweepProposal(any(), any()) }
+            coVerify(exactly = 0) { keystoneProposalRepository.setMigrationSweepProposal(any(), any()) }
+            coVerify(exactly = 0) { keystoneProposalRepository.createPCZTFromProposal() }
+            coVerify(exactly = 0) { submitProposal() }
+            assertEquals(emptyList(), router.forwardedRoutes)
+        }
+
+    /**
+     * The screen proposes its schedule when it opens, so "without proposing" covers the confirm
+     * itself: no note split is prepared or submitted and nothing is signed.
+     */
+    @Test
+    fun automaticConfirmOnAViewOnlyAccountIsRefusedWithoutProposing() =
+        runTest {
+            val router = FakeNavigationRouter()
+            val sdk = mockk<OrchardMigrationSdk>(relaxed = true)
+            val finalizeMigrationSchedule = mockk<FinalizeMigrationScheduleUseCase>(relaxed = true)
+            val vm =
+                vm(
+                    router = router,
+                    getSelectedWalletAccount = viewOnlySelected(),
+                    getOrchardMigrationSdk = mockk { coEvery { this@mockk() } returns sdk },
+                    finalizeMigrationSchedule = finalizeMigrationSchedule,
+                    mode = MigrationMode.AUTOMATIC,
+                )
+
+            invokeOnConfirmAutomatic(
+                vm,
+                MigrationSchedule(transfers = emptyList(), estimatedDurationHours = 1, proposalHandle = 0L)
+            )
+            advanceUntilIdle()
+
+            assertRefusedAsViewOnly(vm)
+            coVerify(exactly = 0) { sdk.isNoteSplitNeeded() }
+            coVerify(exactly = 0) { sdk.prepareNoteSplit() }
+            coVerify(exactly = 0) { sdk.proposeMigrationTransfersFromSplit(any()) }
+            coVerify(exactly = 0) { sdk.submitNoteSplit(any(), any()) }
+            coVerify(exactly = 0) { sdk.signAndStoreMigrationSchedule(any(), any()) }
+            coVerify(exactly = 0) { finalizeMigrationSchedule(any(), any(), any()) }
+            assertEquals(emptyList(), router.forwardedRoutes)
+        }
+
+    private fun viewOnlySelected(): GetSelectedWalletAccountUseCase {
+        val viewOnly = mockk<ViewOnlyAccount>(relaxed = true) { every { isSpendable } returns false }
+        return mockk {
+            coEvery { this@mockk() } returns viewOnly
+            every { observe() } returns flowOf(viewOnly)
+        }
+    }
+
+    /** The confirm action ended in the view-only refusal, read from the VM's private confirm LCE. */
+    private fun assertRefusedAsViewOnly(vm: MigrationReviewVM) {
+        val confirmLce =
+            MigrationReviewVM::class.java
+                .getDeclaredField("confirmLce")
+                .apply { isAccessible = true }
+                .get(vm) as MutableLce<*>
+        val error = assertNotNull(confirmLce.state.value.error)
+        assertEquals(
+            AccountOperationUnsupportedException.Kind.VIEW_ONLY,
+            assertIs<AccountOperationUnsupportedException>(error.cause).kind
+        )
+    }
 
     private fun invokeOnConfirmAutomatic(vm: MigrationReviewVM, sched: MigrationSchedule) {
         val method =

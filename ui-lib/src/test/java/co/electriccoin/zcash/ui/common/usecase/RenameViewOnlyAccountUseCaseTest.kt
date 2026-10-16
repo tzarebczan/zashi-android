@@ -8,6 +8,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.coVerifyOrder
 import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
@@ -16,13 +17,28 @@ import kotlin.test.assertFailsWith
  * A rename stores the trimmed name for the account through the account data source, and a blank
  * name is never stored. A stored rename then clears the name an earlier build kept in preferences,
  * best-effort, so the name migration cannot move it back; a rename that failed leaves it alone.
+ * A name another account shows is refused, whatever its case; the account's own name is not.
  */
 class RenameViewOnlyAccountUseCaseTest {
     private val accountDataSource = mockk<AccountDataSource>(relaxed = true)
 
     private val accountNameProvider = mockk<AccountNameProvider>(relaxed = true)
 
-    private val useCase = RenameViewOnlyAccountUseCase(accountDataSource, accountNameProvider, AccountNameLock())
+    private val shownNames =
+        MutableStateFlow(
+            mapOf(
+                EditAccountFixtures.zashiKeyId to "Zodl",
+                EditAccountFixtures.viewOnlyKeyId to "Zodl Vault",
+            )
+        )
+
+    private val useCase =
+        RenameViewOnlyAccountUseCase(
+            accountDataSource,
+            accountNameProvider,
+            AccountNameLock(),
+            EditAccountFixtures.accountNames(shownNames)
+        )
 
     private val account = EditAccountFixtures.viewOnly()
 
@@ -61,6 +77,23 @@ class RenameViewOnlyAccountUseCaseTest {
 
             coVerify(exactly = 0) { accountDataSource.renameAccount(any(), any()) }
             coVerify(exactly = 0) { accountNameProvider.clear(any()) }
+        }
+
+    @Test
+    fun aNameAnotherAccountShowsIsRefusedInAnyCase() =
+        runTest {
+            useCase(account, " ZODL ")
+
+            coVerify(exactly = 0) { accountDataSource.renameAccount(any(), any()) }
+            coVerify(exactly = 0) { accountNameProvider.clear(any()) }
+        }
+
+    @Test
+    fun theAccountsOwnNameIsNotADuplicate() =
+        runTest {
+            useCase(account, "zodl vault")
+
+            coVerify(exactly = 1) { accountDataSource.renameAccount(account, "zodl vault") }
         }
 
     @Test

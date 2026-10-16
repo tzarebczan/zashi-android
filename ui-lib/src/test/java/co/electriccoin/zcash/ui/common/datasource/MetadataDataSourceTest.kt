@@ -818,6 +818,49 @@ class MetadataDataSourceTest {
         }
 
     @Test
+    fun anAppearanceTieKeepsTheCanonicalSide() =
+        runTest {
+            val result =
+                merge(
+                    canonical = metadata(lastUpdated = 1, appearance = appearance(0xFFFF383C, lastUpdated = 4)),
+                    legacy = metadata(lastUpdated = 9, appearance = appearance(0xFF0088FF, lastUpdated = 4))
+                )
+
+            assertEquals(appearance(0xFFFF383C, lastUpdated = 4), result.accountMetadata.appearance)
+        }
+
+    @Test
+    fun aBookmarkFlipKeepsTheStoredAppearance() =
+        runTest {
+            val written = storedWithAppearance()
+
+            assertTrue(dataSource().flipTxAsBookmarked("tx1", key))
+
+            assertEquals(STORED_APPEARANCE, written.captured.accountMetadata.appearance)
+            assertEquals(
+                listOf("tx1"),
+                written.captured.accountMetadata.bookmarked
+                    .filter { it.isBookmarked }
+                    .map { it.txId }
+            )
+        }
+
+    @Test
+    fun aNoteEditKeepsTheStoredAppearance() =
+        runTest {
+            val written = storedWithAppearance()
+
+            assertTrue(dataSource().createOrUpdateTxNote("tx1", "rent", key))
+
+            assertEquals(STORED_APPEARANCE, written.captured.accountMetadata.appearance)
+            assertEquals(
+                listOf("rent"),
+                written.captured.accountMetadata.annotations
+                    .map { it.content }
+            )
+        }
+
+    @Test
     fun setAccountColorWritesTheColor() =
         runTest {
             val written = slot<MetadataV3>()
@@ -1141,6 +1184,20 @@ class MetadataDataSourceTest {
         return observe()
     }
 
+    /**
+     * One canonical file holding [STORED_APPEARANCE], read back as whatever was last written to it;
+     * the returned slot holds that last write.
+     */
+    private fun storedWithAppearance(): CapturingSlot<MetadataV3> {
+        val written = slot<MetadataV3>()
+        every { metadataStorageProvider.getStorageFiles(key) } returns listOf(canonicalFile)
+        every { metadataProvider.readMetadataFromFile(canonicalFile, key) } answers {
+            if (written.isCaptured) written.captured else metadata(lastUpdated = 1, appearance = STORED_APPEARANCE)
+        }
+        every { metadataProvider.writeMetadataToFile(canonicalFile, capture(written), key) } just Runs
+        return written
+    }
+
     private fun MetadataV3.history() = accountMetadata.swaps.lastUsedAssetHistory.toList()
 
     private fun TestScope.dataSource() =
@@ -1204,5 +1261,7 @@ class MetadataDataSourceTest {
 
     private companion object {
         const val SEED_SIZE = 32
+        val STORED_APPEARANCE =
+            AccountAppearanceMetadataV3(color = Color(0xFFBE38F3), lastUpdated = Instant.ofEpochSecond(2))
     }
 }

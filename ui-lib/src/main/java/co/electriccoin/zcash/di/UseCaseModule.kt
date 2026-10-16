@@ -98,6 +98,7 @@ import co.electriccoin.zcash.ui.common.usecase.NavigateToVotingUseCase
 import co.electriccoin.zcash.ui.common.usecase.NavigateToWalletBackupUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveABContactPickedUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveAccountIconUseCase
+import co.electriccoin.zcash.ui.common.usecase.ObserveAccountNamesUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveClearSendUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveContactByAddressUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveFastestServersUseCase
@@ -203,6 +204,7 @@ val useCaseModule =
         factoryOf(::SelectWalletAccountUseCase)
         factoryOf(::ObserveSelectedWalletAccountUseCase)
         factoryOf(::ObserveAccountIconUseCase)
+        factoryOf(::ObserveAccountNamesUseCase)
         factoryOf(::RenameViewOnlyAccountUseCase)
         factoryOf(::MigrateStoredAccountNamesUseCase)
         factoryOf(::ObserveZashiAccountUseCase)

@@ -13,11 +13,14 @@ import co.electriccoin.zcash.ui.common.model.metadata.AccountMetadataV3
 import co.electriccoin.zcash.ui.common.model.metadata.MetadataV3
 import co.electriccoin.zcash.ui.common.model.metadata.SwapsMetadataV3
 import co.electriccoin.zcash.ui.common.provider.MetadataKeyStorageProvider
+import co.electriccoin.zcash.ui.common.provider.PersistableWalletProvider
 import co.electriccoin.zcash.ui.common.serialization.metadata.MetadataKey
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.unmockkAll
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -25,6 +28,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import java.io.IOException
 import java.time.Instant
+import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -32,7 +36,9 @@ import kotlin.test.assertTrue
 
 /**
  * [MetadataRepositoryImpl] writing an account's colour under that account's own metadata key,
- * whichever account is selected, and sharing every account's metadata in one map, empty at first.
+ * whichever account is selected, and sharing every account's metadata in one map, empty at first. A
+ * key that is not stored yet is derived from the account's own viewing key, the Zodl account's
+ * without one.
  */
 class MetadataRepositoryAccountColorTest {
     private val selectedKey = mockk<MetadataKey>()
@@ -42,23 +48,12 @@ class MetadataRepositoryAccountColorTest {
     private val metadataDataSource = mockk<MetadataDataSource>(relaxed = true)
     private val accounts = MutableStateFlow<List<WalletAccount>?>(listOf(selected, viewOnly))
 
-    private val repository =
-        MetadataRepositoryImpl(
-            accountDataSource =
-                mockk<AccountDataSource> {
-                    every { selectedAccount } returns flowOf(selected)
-                    every { allAccounts } returns accounts
-                    coEvery { getSelectedAccount() } returns selected
-                },
-            metadataDataSource = metadataDataSource,
-            metadataKeyStorageProvider =
-                mockk<MetadataKeyStorageProvider> {
-                    coEvery { get(SELECTED_UUID) } returns selectedKey
-                    coEvery { get(VIEW_ONLY_UUID) } returns viewOnlyKey
-                },
-            persistableWalletProvider = mockk(),
-            simpleSwapAssetProvider = mockk(relaxed = true)
-        )
+    private val repository = repository()
+
+    @AfterTest
+    fun tearDown() {
+        unmockkAll()
+    }
 
     @Test
     fun aColorIsWrittenUnderTheAccountsOwnKey() =
@@ -115,6 +110,85 @@ class MetadataRepositoryAccountColorTest {
             assertEquals(Color(PICKED), color.await())
         }
 
+    @Test
+    fun aViewOnlyKeyIsDerivedFromTheAccountsViewingKey() =
+        runTest {
+            val sdkAccount =
+                mockk<Account> {
+                    every { accountUuid } returns VIEW_ONLY_UUID
+                    every { ufvk } returns VIEW_ONLY_UFVK
+                }
+            val account = mockk<ViewOnlyAccount> { every { this@mockk.sdkAccount } returns sdkAccount }
+
+            assertEquals(listOf(sdkAccount.ufvk), derivedUfvks(account))
+        }
+
+    @Test
+    fun theZodlKeyIsDerivedWithoutAViewingKey() =
+        runTest {
+            val sdkAccount =
+                mockk<Account> {
+                    every { accountUuid } returns SELECTED_UUID
+                    every { ufvk } returns VIEW_ONLY_UFVK
+                }
+            val zodl = mockk<ZashiAccount> { every { this@mockk.sdkAccount } returns sdkAccount }
+
+            assertEquals(listOf<String?>(null), derivedUfvks(zodl))
+        }
+
+    /**
+     * Writes a colour for [account] through a repository whose key storage holds no key yet, and
+     * returns the viewing keys [MetadataKey.derive] was given.
+     */
+    private suspend fun derivedUfvks(account: WalletAccount): List<String?> {
+        val ufvks = mutableListOf<String?>()
+        mockkObject(MetadataKey.Companion)
+        coEvery { MetadataKey.derive(any(), any(), any(), any()) } coAnswers {
+            ufvks += arg<String?>(3)
+            mockk()
+        }
+        coEvery { metadataDataSource.setAccountColor(any(), any()) } returns true
+        val repository =
+            repository(
+                keyStorage =
+                    mockk<MetadataKeyStorageProvider>(relaxed = true).also { provider ->
+                        coEvery { provider.get(any()) } returns null
+                    },
+                persistableWalletProvider =
+                    mockk<PersistableWalletProvider> {
+                        coEvery { requirePersistableWallet() } returns mockk(relaxed = true)
+                    },
+            )
+
+        assertTrue(repository.setAccountColor(account, Color(PICKED)))
+        return ufvks
+    }
+
+    /**
+     * A repository over [selected] and [viewOnly] whose key storage holds both accounts' keys unless
+     * [keyStorage] says otherwise.
+     */
+    private fun repository(
+        keyStorage: MetadataKeyStorageProvider =
+            mockk {
+                coEvery { get(SELECTED_UUID) } returns selectedKey
+                coEvery { get(VIEW_ONLY_UUID) } returns viewOnlyKey
+            },
+        persistableWalletProvider: PersistableWalletProvider = mockk(),
+    ) = MetadataRepositoryImpl(
+        accountDataSource =
+            mockk<AccountDataSource> {
+                every { selectedAccount } returns flowOf(selected)
+                every { allAccounts } returns accounts
+                coEvery { getSelectedAccount() } returns selected
+                coEvery { getZashiAccount() } returns selected
+            },
+        metadataDataSource = metadataDataSource,
+        metadataKeyStorageProvider = keyStorage,
+        persistableWalletProvider = persistableWalletProvider,
+        simpleSwapAssetProvider = mockk(relaxed = true)
+    )
+
     private inline fun <reified T : WalletAccount> account(uuid: AccountUuid) =
         mockk<T> { every { sdkAccount } returns Account.new(uuid) }
 
@@ -136,5 +210,6 @@ class MetadataRepositoryAccountColorTest {
         val SELECTED_UUID: AccountUuid = AccountUuid.new(ByteArray(16) { it.toByte() })
         val VIEW_ONLY_UUID: AccountUuid = AccountUuid.new(ByteArray(16) { (it + 1).toByte() })
         const val PICKED = 0x80BE38F3
+        const val VIEW_ONLY_UFVK = "uview1accountsownviewingkeyfixture"
     }
 }

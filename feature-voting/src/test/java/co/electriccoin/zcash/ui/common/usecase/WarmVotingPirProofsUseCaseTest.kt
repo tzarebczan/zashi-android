@@ -7,6 +7,8 @@ import cash.z.ecc.android.sdk.fixture.WalletAddressFixture
 import cash.z.ecc.android.sdk.fixture.WalletBalanceFixture
 import cash.z.ecc.android.sdk.model.Zatoshi
 import cash.z.ecc.android.sdk.model.ZcashNetwork
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
+import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.ZashiAccount
 import co.electriccoin.zcash.ui.common.model.voting.Proposal
 import co.electriccoin.zcash.ui.common.model.voting.SessionStatus
@@ -201,6 +203,22 @@ class WarmVotingPirProofsUseCaseTest {
             coVerify(exactly = 0) { env.votingProofPrecomputeRepository.startPirWarmup(any()) }
         }
 
+    @Test
+    fun aViewOnlyAccountWarmsNothing() =
+        runTest {
+            val viewOnly = mockk<ViewOnlyAccount>(relaxed = true) { every { isSpendable } returns false }
+            val env = environment(selected = viewOnly)
+            coEvery { env.votingConfigRepository.get() } returns
+                VotingConfigSnapshot(serviceConfig = env.serviceConfig(), source = VotingConfigSource.REMOTE)
+
+            env.useCase()
+
+            coVerify(exactly = 0) { env.synchronizerProvider.getVotingWalletDbPath() }
+            coVerify(exactly = 0) { env.synchronizerProvider.getSynchronizer() }
+            coVerify(exactly = 0) { env.votingCryptoClient.getWalletNotesJson(any(), any(), any(), any()) }
+            coVerify(exactly = 0) { env.votingProofPrecomputeRepository.startPirWarmup(any()) }
+        }
+
     private class Environment(
         val votingApiRepository: VotingApiRepository,
         val votingConfigRepository: VotingConfigRepository,
@@ -223,7 +241,10 @@ class WarmVotingPirProofsUseCaseTest {
             )
     }
 
-    private fun environment(rounds: List<VotingRound> = listOf(round())): Environment {
+    private fun environment(
+        rounds: List<VotingRound> = listOf(round()),
+        selected: WalletAccount? = null,
+    ): Environment {
         val votingApiRepository = mockk<VotingApiRepository>()
         val votingConfigRepository = mockk<VotingConfigRepository>()
         val votingCryptoClient = mockk<VotingCryptoClient>()
@@ -252,7 +273,7 @@ class WarmVotingPirProofsUseCaseTest {
 
         coEvery { synchronizerProvider.getSynchronizer() } returns synchronizer
         coEvery { synchronizerProvider.getVotingWalletDbPath() } returns "/wallet/db"
-        coEvery { getSelectedWalletAccount() } returns account
+        coEvery { getSelectedWalletAccount() } returns (selected ?: account)
 
         val useCase =
             WarmVotingPirProofsUseCase(

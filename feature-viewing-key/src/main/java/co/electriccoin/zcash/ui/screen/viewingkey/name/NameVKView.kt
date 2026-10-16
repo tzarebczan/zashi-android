@@ -71,3 +71,10 @@ private fun ColoredPreview() =
     ZcashTheme {
         NameVKView(NameVKState.previewColored)
     }
+
+@PreviewScreens
+@Composable
+private fun DuplicatePreview() =
+    ZcashTheme {
+        NameVKView(NameVKState.previewDuplicate)
+    }

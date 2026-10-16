@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.electriccoin.zcash.ui.NavigationRouter
+import co.electriccoin.zcash.ui.common.model.AccountNameDuplicates
 import co.electriccoin.zcash.ui.common.model.AccountNameLimit
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.WalletAccount
@@ -15,6 +16,7 @@ import co.electriccoin.zcash.ui.common.repository.MetadataRepository
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
 import co.electriccoin.zcash.ui.common.usecase.NavigateToColorPickerUseCase
 import co.electriccoin.zcash.ui.common.usecase.ObserveAccountIconUseCase
+import co.electriccoin.zcash.ui.common.usecase.ObserveAccountNamesUseCase
 import co.electriccoin.zcash.ui.common.usecase.RenameViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyNavigator
@@ -45,9 +47,11 @@ import kotlinx.coroutines.launch
  * colour shown, the avatar follows the picks live and keeps the last one however the picker closes,
  * and a colour other than the stored one enables Save. A view-only account's name starts in the
  * field and is capped at [AccountNameLimit.MAX_LENGTH] code points as it is typed; a new, non-blank
- * name enables Save as well, and the account can be removed. The Zodl account's name cannot be
- * changed, so its field is disabled and only the colour saves. Save stores whichever changed and
- * returns; a failure shows the error screen and keeps what was typed and picked.
+ * name enables Save as well, and the account can be removed. A name another account already shows,
+ * by [AccountNameDuplicates], disables Save and says so under the field; the account's own name is
+ * never a duplicate. The Zodl account's name cannot be changed, so its field is disabled and only the
+ * colour saves. Save stores whichever changed and returns; a failure shows the error screen and keeps
+ * what was typed and picked.
  */
 class EditAccountVM(
     private val args: EditAccountArgs,
@@ -60,6 +64,7 @@ class EditAccountVM(
     private val navigationRouter: NavigationRouter,
     private val viewOnlyNavigator: ViewOnlyNavigator,
     private val viewOnlyContent: ViewOnlyContent,
+    accountNames: ObserveAccountNamesUseCase,
 ) : ViewModel() {
     /** The account the route names while it is the Zodl account or a view-only one, otherwise null. */
     private val account: Flow<WalletAccount?> =
@@ -86,6 +91,10 @@ class EditAccountVM(
             .flatMapLatest(metadataRepository::observeColor)
             .stateIn(viewModel = this, initialValue = null)
 
+    /** The name every account shows, which a new name must not repeat. */
+    private val existingNames: StateFlow<Map<String, String>> =
+        accountNames.observe().stateIn(viewModel = this, initialValue = emptyMap())
+
     private var saveJob: Job? = null
 
     private var colorPickerJob: Job? = null
@@ -97,14 +106,15 @@ class EditAccountVM(
                 .distinctUntilChanged { old, new ->
                     old.sdkAccount.accountUuid == new.sdkAccount.accountUuid && old.currentName() == new.currentName()
                 },
-            name.filterNotNull(),
+            combine(name.filterNotNull(), existingNames) { name, existing -> name to isDuplicate(name, existing) },
             isSaving,
             storedColor,
             pickedColor,
-        ) { account, name, isSaving, stored, picked ->
+        ) { account, (name, isDuplicate), isSaving, stored, picked ->
             createState(
                 account = account,
                 name = name,
+                isDuplicate = isDuplicate,
                 isSaving = isSaving,
                 color = picked ?: stored,
                 isColorChanged = newColor(picked, stored) != null
@@ -125,16 +135,19 @@ class EditAccountVM(
     private fun createState(
         account: WalletAccount,
         name: String,
+        isDuplicate: Boolean,
         isSaving: Boolean,
         color: Color?,
         isColorChanged: Boolean,
     ): EditAccountState {
         val viewOnly = account as? ViewOnlyAccount
+        val isNameDuplicate = viewOnly != null && isDuplicate
         return EditAccountState.create(
             image = observeAccountIcon.iconOf(account, color),
             name = if (viewOnly == null) account.name else stringRes(name),
             nameLength = viewOnly?.let { AccountNameLimit.lengthOf(name) },
-            canSave = isColorChanged || (viewOnly != null && canRename(name, viewOnly)),
+            isDuplicate = isNameDuplicate,
+            canSave = !isNameDuplicate && (isColorChanged || (viewOnly != null && canRename(name, viewOnly))),
             isSaving = isSaving,
             remove =
                 viewOnly?.let {
@@ -177,6 +190,7 @@ class EditAccountVM(
                     navigationRouter.back()
                     return@launch
                 }
+                if (current is ViewOnlyAccount && isDuplicate(typed, existingNames.value)) return@launch
                 val renamed = (current as? ViewOnlyAccount)?.takeIf { canRename(typed, it) }
                 val color = newColor(picked, storedColor.value)
                 if (renamed == null && color == null) return@launch
@@ -218,6 +232,12 @@ class EditAccountVM(
         val trimmed = name.trim()
         return trimmed.isNotEmpty() && trimmed != account.currentName()
     }
+
+    /** Whether [name] is another account's name; the edited account's own name never counts. */
+    private fun isDuplicate(
+        name: String,
+        existing: Map<String, String>
+    ) = AccountNameDuplicates.isDuplicate(name, existing, excluding = args.accountKeyId)
 
     /**
      * The name the field edits: a view-only account's stored or imported name, empty when it shows

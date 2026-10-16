@@ -13,6 +13,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -192,6 +193,25 @@ class ScanVKVMTest {
             vm.state.value.onBack()
 
             verify(exactly = 1) { navigationRouter.back() }
+        }
+
+    @Test
+    fun backDuringTheCheckCancelsItSoNothingNavigatesLater() =
+        runTest {
+            val gate = CompletableDeferred<SubmitViewOnlyKeyResult>()
+            coEvery { submit.invoke(HELD_KEY, any()) } coAnswers { gate.await() }
+            val vm = vm()
+            collect(vm)
+            vm.onScanned(HELD_KEY)
+            runCurrent()
+
+            vm.state.value.onBack()
+            gate.complete(SubmitViewOnlyKeyResult.Accepted)
+            runCurrent()
+
+            verify(exactly = 1) { navigationRouter.back() }
+            verify(exactly = 0) { navigationRouter.replace(any()) }
+            verify(exactly = 0) { navigateToError(any(), any()) }
         }
 
     private fun vm() =

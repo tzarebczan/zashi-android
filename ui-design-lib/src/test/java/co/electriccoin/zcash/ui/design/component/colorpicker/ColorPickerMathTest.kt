@@ -106,6 +106,17 @@ class ColorPickerMathTest {
         assertEquals(21f, contrastRatio(Color.White, Color.Black), 0.01f)
     }
 
+    /** The 3:1 line falls between two neighbouring greys: white still reaches it on the darker one. */
+    @Test
+    fun whiteStopsJustAboveTheThreeToOneLine() {
+        val lastWhite = Color(0xFF949494)
+        val firstBlack = Color(0xFF959595)
+        assertEquals(3.03f, contrastRatio(Color.White, lastWhite), TOLERANCE)
+        assertEquals(2.99f, contrastRatio(Color.White, firstBlack), TOLERANCE)
+        assertEquals(Color.White, contrastingContentColor(lastWhite))
+        assertEquals(Color.Black, contrastingContentColor(firstBlack))
+    }
+
     private companion object {
         const val TOLERANCE = 0.01f
     }

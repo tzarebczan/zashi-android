@@ -108,6 +108,13 @@ private fun ColoredPreview() =
 
 @PreviewScreens
 @Composable
+private fun DuplicatePreview() =
+    ZcashTheme {
+        EditAccountView(EditAccountState.previewDuplicate)
+    }
+
+@PreviewScreens
+@Composable
 private fun ZodlPreview() =
     ZcashTheme {
         EditAccountView(EditAccountState.previewZodl)
