@@ -82,8 +82,13 @@ interface LedgerAccountImporter {
      * Imports and selects the paired account at [birthday], then moves on to the connected screen.
      *
      * @throws LedgerPairingMissingException if the pending pairing is gone.
+     * @throws InitializeException.ImportAccountCollisionException if the wallet already holds an
+     *         account sharing a viewing key component with the paired one.
      */
-    @Throws(InitializeException.ImportAccountException::class)
+    @Throws(
+        InitializeException.ImportAccountException::class,
+        InitializeException.ImportAccountCollisionException::class,
+    )
     suspend fun importAccount(birthday: BlockHeight?)
 }
 
