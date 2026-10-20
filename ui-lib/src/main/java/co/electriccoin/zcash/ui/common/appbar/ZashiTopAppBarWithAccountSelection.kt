@@ -119,7 +119,7 @@ private fun AccountSwitch(state: AccountSwitchState?) {
             )
         }
         if (onAccountTypeClick != null) {
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(if (subtitle == null) 8.dp else 4.dp))
             Image(
                 painter = painterResource(R.drawable.ic_app_bar_arrow_down),
                 contentDescription = null,
