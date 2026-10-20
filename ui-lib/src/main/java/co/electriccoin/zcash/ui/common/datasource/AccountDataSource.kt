@@ -294,6 +294,11 @@ class AccountDataSourceImpl(
      * key, so any overlap the lookup finds refuses the import. A failed lookup fails the import
      * closed, since importing unchecked could widen an account; the caller can retry. The account
      * list compared after the import is a last guard for an account added in between.
+     *
+     * The import itself goes through [retryViewOnlyImport]: the engine refuses a wallet mutation
+     * while it is still finishing a previous pass, for example the initial sync of an account
+     * imported just before, and writes nothing when it does, so a failed import is retried quietly
+     * before it is reported.
      */
     override suspend fun importViewOnlyAccount(
         ufvk: String,
@@ -312,15 +317,17 @@ class AccountDataSourceImpl(
             val existing = synchronizer.getAccounts()
             val created =
                 mapViewOnlyImportFailure {
-                    synchronizer.importAccountByUfvk(
-                        AccountImportSetup(
-                            accountName = name,
-                            keySource = VIEW_ONLY_KEYSOURCE,
-                            ufvk = UnifiedFullViewingKey(ufvk),
-                            purpose = AccountPurpose.ViewOnly,
-                            birthday = birthday,
+                    retryViewOnlyImport {
+                        synchronizer.importAccountByUfvk(
+                            AccountImportSetup(
+                                accountName = name,
+                                keySource = VIEW_ONLY_KEYSOURCE,
+                                ufvk = UnifiedFullViewingKey(ufvk),
+                                purpose = AccountPurpose.ViewOnly,
+                                birthday = birthday,
+                            )
                         )
-                    )
+                    }
                 }
             if (existing.any { it.accountUuid == created.accountUuid }) {
                 throw ViewOnlyAccountAlreadyExistsException()
@@ -671,6 +678,41 @@ private const val KEYSTONE_KEYSOURCE = "keystone"
  * The key source a view-only import is stored with, which is how the account is recognised again.
  */
 internal const val VIEW_ONLY_KEYSOURCE = "view_only"
+
+/**
+ * How many times [retryViewOnlyImport] tries the SDK's view-only import before it gives up.
+ */
+private const val VIEW_ONLY_IMPORT_ATTEMPTS = 3
+
+/**
+ * The wait before the first retry of [retryViewOnlyImport], in milliseconds; it doubles before
+ * every further retry.
+ */
+private const val VIEW_ONLY_IMPORT_FIRST_RETRY_DELAY_MS = 2_000L
+
+/**
+ * Runs [attempt], the SDK's view-only import, up to [VIEW_ONLY_IMPORT_ATTEMPTS] times with a
+ * doubling wait in between, and rethrows the last failure. The engine refuses a wallet mutation
+ * while it is still finishing a previous pass and writes nothing when it does, so a later attempt
+ * can succeed. Cancellation and a key collision are rethrown at once: neither changes on a retry.
+ */
+@Suppress("TooGenericExceptionCaught", "SwallowedException")
+internal suspend fun <T> retryViewOnlyImport(attempt: suspend () -> T): T {
+    var retryDelay = VIEW_ONLY_IMPORT_FIRST_RETRY_DELAY_MS
+    repeat(VIEW_ONLY_IMPORT_ATTEMPTS - 1) {
+        try {
+            return attempt()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: InitializeException.ImportAccountCollisionException) {
+            throw e
+        } catch (e: Exception) {
+            delay(retryDelay)
+            retryDelay *= 2
+        }
+    }
+    return attempt()
+}
 
 class AccountDeletionException(
     message: String,

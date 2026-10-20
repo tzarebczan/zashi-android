@@ -395,6 +395,7 @@ class AccountDataSourceImplViewOnlyTest {
 
             assertTrue(generateSequence<Throwable>(thrown) { it.cause }.all { it is ViewOnlyAccountImportException })
             assertFalse(thrown.stackTraceToString().contains("uview"))
+            coVerify(exactly = 3) { synchronizer.importAccountByUfvk(any()) }
         }
 
     @Test
@@ -423,6 +424,7 @@ class AccountDataSourceImplViewOnlyTest {
             assertTrue(causes.all { it is ViewOnlyAccountAlreadyExistsException })
             assertFalse(thrown.stackTraceToString().contains("uview"))
             assertFalse(thrown.stackTraceToString().contains("AccountUuid"))
+            coVerify(exactly = 1) { synchronizer.importAccountByUfvk(any()) }
         }
 
     @Test
@@ -488,6 +490,7 @@ class AccountDataSourceImplViewOnlyTest {
                 dataSource(synchronizer, relaxedBindingProvider())
                     .importViewOnlyAccount(ufvk = UFVK, name = "Savings", birthday = null)
             }
+            coVerify(exactly = 1) { synchronizer.importAccountByUfvk(any()) }
         }
 
     @Test
