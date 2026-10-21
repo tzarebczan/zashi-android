@@ -178,7 +178,7 @@ class AccountListVMTest {
         }
 
     @Test
-    fun everyRowEndsInTheOptionsAction() =
+    fun theZodlRowEndsInAChevronAndEveryOtherRowInTheOptionsAction() =
         runTest {
             val vm =
                 vm(
@@ -193,7 +193,12 @@ class AccountListVMTest {
 
             val items = assertNotNull(vm.state.value.sections).flatMap { it.items }
             assertEquals(
-                List(4) { R.drawable.ic_wallet_list_more },
+                listOf(
+                    R.drawable.ic_wallet_list_chevron,
+                    R.drawable.ic_wallet_list_more,
+                    R.drawable.ic_wallet_list_more,
+                    R.drawable.ic_wallet_list_more,
+                ),
                 items.map { assertNotNull(it.trailingAction).icon }
             )
         }
@@ -317,16 +322,13 @@ class AccountListVMTest {
         }
 
     @Test
-    fun theOptionsButtonNamesItsWallet() =
+    fun theChevronIsDecorativeAndTheOptionsButtonNamesItsWallet() =
         runTest {
             val vm = vm(listOf(zodl(id = 1, isSelected = true), viewOnly(id = 2, isSelected = false)))
             collect(vm)
 
             val sections = assertNotNull(vm.state.value.sections)
-            assertEquals(
-                stringRes(UiR.string.hwWallet_walletOptions_contentDescription, stringRes(UiR.string.accounts_zashi)),
-                assertNotNull(sections[0].items.single().trailingAction).contentDescription
-            )
+            assertNull(assertNotNull(sections[0].items.single().trailingAction).contentDescription)
             assertEquals(
                 stringRes(UiR.string.hwWallet_walletOptions_contentDescription, stringRes("Savings")),
                 assertNotNull(sections[1].items.single().trailingAction).contentDescription
@@ -334,7 +336,7 @@ class AccountListVMTest {
         }
 
     @Test
-    fun theOptionsOfTheZodlAccountOpenEditAccountWithoutSelectingIt() =
+    fun theZodlChevronSelectsLikeTheRowAndOpensNothing() =
         runTest {
             val selectWalletAccount = mockk<SelectWalletAccountUseCase>(relaxed = true)
             val navigationRouter = mockk<NavigationRouter>(relaxed = true)
@@ -347,13 +349,14 @@ class AccountListVMTest {
                 )
             collect(vm)
 
-            assertNotNull(assertNotNull(vm.state.value.sections)[0].items.single().trailingAction).onClick()
+            val row = assertNotNull(vm.state.value.sections)[0].items.single()
+            val chevron = assertNotNull(row.trailingAction)
+            assertEquals(row.onClick, chevron.onClick)
+            chevron.onClick()
             runCurrent()
 
-            verify(exactly = 1) {
-                navigationRouter.forward(EditAccountArgs(zodl.sdkAccount.accountUuid.toStorageKeyId()))
-            }
-            coVerify(exactly = 0) { selectWalletAccount.invoke(any(), any()) }
+            coVerify(exactly = 1) { selectWalletAccount.invoke(zodl, true) }
+            verify(exactly = 0) { navigationRouter.forward(*anyVararg()) }
         }
 
     @Test

@@ -91,13 +91,19 @@ class AccountListVM(
                     onAccountClick(account.sdkAccount.accountUuid)
                 },
             onOptionsClick =
-                onOptionsClicks.getOrPut(account.sdkAccount.accountUuid) {
-                    when (account) {
-                        is KeystoneAccount, is LedgerAccount -> {
+                when (account) {
+                    is ZodlAccount -> {
+                        null
+                    }
+
+                    is KeystoneAccount, is LedgerAccount -> {
+                        onOptionsClicks.getOrPut(account.sdkAccount.accountUuid) {
                             onHardwareWalletOptionsClick(account.sdkAccount.accountUuid)
                         }
+                    }
 
-                        is ZodlAccount, is ViewOnlyAccount -> {
+                    is ViewOnlyAccount -> {
+                        onOptionsClicks.getOrPut(account.sdkAccount.accountUuid) {
                             onEditClick(account.sdkAccount.accountUuid)
                         }
                     }
@@ -122,7 +128,7 @@ class AccountListVM(
     private fun onHardwareWalletOptionsClick(accountUuid: AccountUuid): () -> Unit =
         { navigationRouter.forward(WalletOptionsArgs(accountKeyId = accountUuid.toStorageKeyId())) }
 
-    /** Opens Edit Account, which changes the Zodl account's colour or a view-only account's colour and name. */
+    /** Opens Edit Account, which changes a view-only account's colour and name. */
     private fun onEditClick(accountUuid: AccountUuid): () -> Unit =
         { navigationRouter.forward(EditAccountArgs(accountKeyId = accountUuid.toStorageKeyId())) }
 
