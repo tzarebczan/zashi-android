@@ -7,6 +7,7 @@ import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.common.datasource.AccountDataSource
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountAlreadyExistsException
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountImportException
+import co.electriccoin.zcash.ui.common.model.ViewOnlyImportStep
 import co.electriccoin.zcash.ui.common.model.ViewOnlyPendingImportMissingException
 import co.electriccoin.zcash.ui.common.provider.SynchronizerProvider
 import co.electriccoin.zcash.ui.common.repository.MetadataRepository
@@ -170,7 +171,7 @@ class ImportViewOnlyAccountUseCaseTest {
         runTest {
             repository.set(PendingViewOnlyImport(ufvk = UFVK, name = "Savings"))
             coEvery { accountDataSource.importViewOnlyAccount(any(), any(), any()) } throws
-                ViewOnlyAccountImportException()
+                ViewOnlyAccountImportException(ViewOnlyImportStep.IMPORT)
 
             val error = assertFailsWith<ViewOnlyAccountImportException> { useCase(birthday = null) }
 
@@ -226,7 +227,7 @@ class ImportViewOnlyAccountUseCaseTest {
         runTest {
             repository.set(PendingViewOnlyImport(ufvk = UFVK, name = "Savings"))
             coEvery { accountDataSource.importViewOnlyAccount(any(), any(), any()) } throws
-                ViewOnlyAccountImportException() andThen created
+                ViewOnlyAccountImportException(ViewOnlyImportStep.ANCHOR) andThen created
 
             assertFailsWith<ViewOnlyAccountImportException> { useCase(birthday = null) }
             useCase(birthday = null)

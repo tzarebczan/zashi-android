@@ -18,6 +18,7 @@ import co.electriccoin.zcash.ui.common.model.LedgerAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountAlreadyExistsException
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountImportException
+import co.electriccoin.zcash.ui.common.model.ViewOnlyImportStep
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.provider.LedgerAccountBindingProvider
@@ -43,6 +44,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * A view-only account as the data source maps and imports it: it is recognised by its key source
@@ -395,7 +397,7 @@ class AccountDataSourceImplViewOnlyTest {
 
             assertTrue(generateSequence<Throwable>(thrown) { it.cause }.all { it is ViewOnlyAccountImportException })
             assertFalse(thrown.stackTraceToString().contains("uview"))
-            coVerify(exactly = 3) { synchronizer.importAccountByUfvk(any()) }
+            coVerify(exactly = TEST_RETRY_DELAYS.size + 1) { synchronizer.importAccountByUfvk(any()) }
         }
 
     @Test
@@ -589,7 +591,7 @@ class AccountDataSourceImplViewOnlyTest {
     @Test
     fun noWrappedImportExceptionLeaksAKeyInItsStackTrace() {
         listOf(
-            ViewOnlyAccountImportException(),
+            *ViewOnlyImportStep.entries.map(::ViewOnlyAccountImportException).toTypedArray(),
             ViewOnlyAccountAlreadyExistsException(),
         ).forEach { exception ->
             assertFalse(exception.stackTraceToString().contains("uview"), exception.toString())
@@ -683,7 +685,7 @@ class AccountDataSourceImplViewOnlyTest {
             ledgerAccountBindingProvider = ledgerAccountBindingProvider,
             viewOnlyContent = viewOnlyContent,
             context = mockk(relaxed = true),
-        )
+        ).apply { viewOnlyImportRetryDelays = TEST_RETRY_DELAYS }
     }
 
     private companion object {
@@ -692,5 +694,8 @@ class AccountDataSourceImplViewOnlyTest {
         const val UFVK = "uview1testkeythatmustneverbeprinted"
 
         val DEFAULT_NAME = stringRes(co.electriccoin.zcash.ui.R.string.accounts_zashi)
+
+        /** Short retry waits: the import runs on `Dispatchers.IO`, out of reach of virtual time. */
+        val TEST_RETRY_DELAYS = List(2) { 1.milliseconds }
     }
 }

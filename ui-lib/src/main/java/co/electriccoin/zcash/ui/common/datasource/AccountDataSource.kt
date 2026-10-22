@@ -1,6 +1,7 @@
 package co.electriccoin.zcash.ui.common.datasource
 
 import android.content.Context
+import androidx.annotation.VisibleForTesting
 import cash.z.ecc.android.sdk.Synchronizer
 import cash.z.ecc.android.sdk.exception.InitializeException
 import cash.z.ecc.android.sdk.ledger.LedgerAccountPairing
@@ -13,6 +14,7 @@ import cash.z.ecc.android.sdk.model.BlockHeight
 import cash.z.ecc.android.sdk.model.UnifiedAddressRequest
 import cash.z.ecc.android.sdk.model.UnifiedFullViewingKey
 import cash.z.ecc.android.sdk.model.Zip32AccountIndex
+import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.model.KeystoneAccount
 import co.electriccoin.zcash.ui.common.model.LedgerAccount
@@ -20,6 +22,7 @@ import co.electriccoin.zcash.ui.common.model.LedgerAccountBindingData
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccount
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountAlreadyExistsException
 import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountImportException
+import co.electriccoin.zcash.ui.common.model.ViewOnlyImportStep
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.model.ZodlAccount
 import co.electriccoin.zcash.ui.common.provider.LedgerAccountBindingProvider
@@ -60,6 +63,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 @Suppress("TooManyFunctions")
@@ -108,7 +112,7 @@ interface AccountDataSource {
      *         case, only possible when the wallet changed between the check and the import, the SDK
      *         has already widened that account with [ufvk]; this reports it, it cannot undo it.
      * @throws ViewOnlyAccountImportException if the overlap check failed or the SDK rejected the
-     *         import.
+     *         import; its [ViewOnlyAccountImportException.step] tells which.
      */
     suspend fun importViewOnlyAccount(
         ufvk: String,
@@ -143,6 +147,14 @@ class AccountDataSourceImpl(
     private val context: Context,
 ) : AccountDataSource {
     private val log = loggableNot("AccountDataSource")
+
+    /**
+     * The waits [importViewOnlyAccount] passes to [retryViewOnlyImport]. Tests shorten them: the
+     * import runs on [Dispatchers.IO], where a test's virtual time does not apply.
+     */
+    @VisibleForTesting
+    internal var viewOnlyImportRetryDelays: List<Duration> = VIEW_ONLY_IMPORT_RETRY_DELAYS
+
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private val requestNextShieldedAddressChannel = MutableSharedFlow<AddressRequest>()
@@ -297,8 +309,9 @@ class AccountDataSourceImpl(
      *
      * The import itself goes through [retryViewOnlyImport]: the engine refuses a wallet mutation
      * while it is still finishing a previous pass, for example the initial sync of an account
-     * imported just before, and writes nothing when it does, so a failed import is retried quietly
-     * before it is reported.
+     * imported just before, and the restore anchor the import fetches first can fail over a slow
+     * network or Tor; neither writes anything, so a failed import is retried quietly for about a
+     * minute before it is reported.
      */
     override suspend fun importViewOnlyAccount(
         ufvk: String,
@@ -308,7 +321,7 @@ class AccountDataSourceImpl(
         withContext(Dispatchers.IO) {
             val synchronizer = synchronizerProvider.getSynchronizer()
             val overlap =
-                mapViewOnlyImportFailure {
+                mapViewOnlyImportFailure(stepOf = { ViewOnlyImportStep.OVERLAP }) {
                     synchronizer.findAccountSharingKeyComponents(UnifiedFullViewingKey(ufvk))
                 }
             if (overlap != null) {
@@ -316,8 +329,8 @@ class AccountDataSourceImpl(
             }
             val existing = synchronizer.getAccounts()
             val created =
-                mapViewOnlyImportFailure {
-                    retryViewOnlyImport {
+                mapViewOnlyImportFailure(stepOf = ::viewOnlyImportFailureStep) {
+                    retryViewOnlyImport(viewOnlyImportRetryDelays) {
                         synchronizer.importAccountByUfvk(
                             AccountImportSetup(
                                 accountName = name,
@@ -338,10 +351,14 @@ class AccountDataSourceImpl(
     /**
      * Maps an SDK failure of the view-only import: a key collision to
      * [ViewOnlyAccountAlreadyExistsException], anything else but cancellation to
-     * [ViewOnlyAccountImportException]. Neither carries the SDK's exception or message.
+     * [ViewOnlyAccountImportException] at the step [stepOf] names for it, which is also logged.
+     * Neither carries the SDK's exception or message.
      */
     @Suppress("TooGenericExceptionCaught", "SwallowedException")
-    private inline fun <T> mapViewOnlyImportFailure(block: () -> T): T =
+    private inline fun <T> mapViewOnlyImportFailure(
+        stepOf: (Exception) -> ViewOnlyImportStep,
+        block: () -> T
+    ): T =
         try {
             block()
         } catch (e: CancellationException) {
@@ -349,7 +366,9 @@ class AccountDataSourceImpl(
         } catch (e: InitializeException.ImportAccountCollisionException) {
             throw ViewOnlyAccountAlreadyExistsException()
         } catch (e: Exception) {
-            throw ViewOnlyAccountImportException()
+            val step = stepOf(e)
+            Twig.warn { "View-only import failed at step ${step.code}" }
+            throw ViewOnlyAccountImportException(step)
         }
 
     @Suppress("TooGenericExceptionCaught")
@@ -680,26 +699,32 @@ private const val KEYSTONE_KEYSOURCE = "keystone"
 internal const val VIEW_ONLY_KEYSOURCE = "view_only"
 
 /**
- * How many times [retryViewOnlyImport] tries the SDK's view-only import before it gives up.
+ * The waits between the attempts of [retryViewOnlyImport]: 2 s, 4 s, then 8 s each, 54 s in all.
+ * A transient failure is retried for about a minute, long enough for a slow Tor circuit (one can
+ * take 15 s to build) or a still-unwinding sync pass, before it is reported.
  */
-private const val VIEW_ONLY_IMPORT_ATTEMPTS = 3
+internal val VIEW_ONLY_IMPORT_RETRY_DELAYS: List<Duration> =
+    listOf(2.seconds, 4.seconds) + List(VIEW_ONLY_IMPORT_LONG_RETRIES) { 8.seconds }
 
 /**
- * The wait before the first retry of [retryViewOnlyImport], in milliseconds; it doubles before
- * every further retry.
+ * How many retries of [retryViewOnlyImport] wait the longest, capped backoff.
  */
-private const val VIEW_ONLY_IMPORT_FIRST_RETRY_DELAY_MS = 2_000L
+private const val VIEW_ONLY_IMPORT_LONG_RETRIES = 6
 
 /**
- * Runs [attempt], the SDK's view-only import, up to [VIEW_ONLY_IMPORT_ATTEMPTS] times with a
- * doubling wait in between, and rethrows the last failure. The engine refuses a wallet mutation
- * while it is still finishing a previous pass and writes nothing when it does, so a later attempt
- * can succeed. Cancellation and a key collision are rethrown at once: neither changes on a retry.
+ * Runs [attempt], the SDK's view-only import, once and then once more after each of
+ * [retryDelays], and rethrows the last failure. The engine refuses a wallet mutation while it is
+ * still finishing a previous pass, and the restore anchor the import fetches first can fail over a
+ * slow network or Tor; neither writes anything, so a later attempt can succeed. Cancellation and a
+ * key collision are rethrown at once: neither changes on a retry. Each retried failure is logged
+ * with its [ViewOnlyImportStep.code] only.
  */
 @Suppress("TooGenericExceptionCaught", "SwallowedException")
-internal suspend fun <T> retryViewOnlyImport(attempt: suspend () -> T): T {
-    var retryDelay = VIEW_ONLY_IMPORT_FIRST_RETRY_DELAY_MS
-    repeat(VIEW_ONLY_IMPORT_ATTEMPTS - 1) {
+internal suspend fun <T> retryViewOnlyImport(
+    retryDelays: List<Duration> = VIEW_ONLY_IMPORT_RETRY_DELAYS,
+    attempt: suspend () -> T
+): T {
+    for (retryDelay in retryDelays) {
         try {
             return attempt()
         } catch (e: CancellationException) {
@@ -707,12 +732,26 @@ internal suspend fun <T> retryViewOnlyImport(attempt: suspend () -> T): T {
         } catch (e: InitializeException.ImportAccountCollisionException) {
             throw e
         } catch (e: Exception) {
+            Twig.warn {
+                "View-only import attempt failed at step ${viewOnlyImportFailureStep(e).code}; " +
+                    "retrying in $retryDelay"
+            }
             delay(retryDelay)
-            retryDelay *= 2
         }
     }
     return attempt()
 }
+
+/**
+ * The [ViewOnlyImportStep] an SDK failure of the view-only import itself is reported at, decided by
+ * the failure's type alone, never by its message.
+ */
+internal fun viewOnlyImportFailureStep(failure: Exception): ViewOnlyImportStep =
+    when (failure) {
+        is InitializeException.ImportAccountAnchorUnavailableException -> ViewOnlyImportStep.ANCHOR
+        is InitializeException.ImportAccountCheckpointsNotReadyException -> ViewOnlyImportStep.ENGINE_BUSY
+        else -> ViewOnlyImportStep.IMPORT
+    }
 
 class AccountDeletionException(
     message: String,

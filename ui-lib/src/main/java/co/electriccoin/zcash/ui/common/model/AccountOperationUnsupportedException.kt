@@ -85,9 +85,33 @@ class ViewOnlyAccountAlreadyExistsException : Exception("This viewing key is alr
 /**
  * Importing a full viewing key failed in the SDK. Deliberately carries neither the SDK's exception
  * as its cause nor its message: both can echo the key back, and the error screen prints and emails
- * the stack trace.
+ * the stack trace. Its message names only the [step] that failed, by its fixed [ViewOnlyImportStep.code],
+ * so an error report tells the failures apart.
  */
-class ViewOnlyAccountImportException : Exception("The viewing key could not be imported.")
+class ViewOnlyAccountImportException(
+    val step: ViewOnlyImportStep
+) : Exception("The viewing key could not be imported (${step.code}).")
+
+/**
+ * The step of a view-only import that failed. [code] is a fixed string, safe in a log or an error
+ * report: it is never built from an exception's message, which can echo the key, nor from a class
+ * name, which R8 obfuscates.
+ */
+enum class ViewOnlyImportStep(
+    val code: String
+) {
+    /** The SDK's lookup of an account sharing a viewing key component with the key failed. */
+    OVERLAP("overlap"),
+
+    /** The SDK could not fetch the restore anchor from the server, for example over a slow Tor. */
+    ANCHOR("anchor"),
+
+    /** The SDK's engine was still finishing a previous pass and refused the import. */
+    ENGINE_BUSY("engine-busy"),
+
+    /** The SDK's import failed for any other reason. */
+    IMPORT("import"),
+}
 
 /**
  * The key and name a view-only import collected are gone from memory, typically because the
