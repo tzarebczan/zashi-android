@@ -7,6 +7,12 @@ and this application adheres to [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [3.17.2 (3157)] - 2026-10-20
+
+### Fixed:
+
+- Updated the Zcash SDK to 5.2.2, which refreshes the bundled Rust TLS root certificates (`rustls-webpki`, `webpki-roots`), so connections made from the Rust layer (including Tor) no longer trust the revoked eMudhra roots.
+
 ## [3.17.1 (3155)] - 2026-10-14
 
 ### Changed:
