@@ -5,8 +5,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import cash.z.ecc.android.sdk.model.BlockHeight
 import co.electriccoin.zcash.ui.NavigationRouter
+import co.electriccoin.zcash.ui.common.model.ViewOnlyPendingImportMissingException
 import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepository
-import co.electriccoin.zcash.ui.common.usecase.ImportViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyAccountImporter
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyContent
 import co.electriccoin.zcash.ui.common.viewonly.ViewOnlyNavContributor
@@ -61,13 +61,15 @@ internal class ViewOnlyContentImpl : ViewOnlyContent {
 
     override val enrollmentBranding =
         HWWalletBranding(
-            logo = R.drawable.view_only_ic_avatar,
+            logo = null,
             newOrActive = null,
             enterBlockHeightManually = stringRes(R.string.view_only_birthday_enter_manually),
-            connect = stringRes(R.string.view_only_birthday_import),
+            connect = stringRes(R.string.view_only_continue),
             enterManuallyTestTag = VKEnrollmentTag.ENTER_MANUALLY_BTN,
-            connectTestTag = VKEnrollmentTag.IMPORT_BTN,
+            connectTestTag = VKEnrollmentTag.CONTINUE_BTN,
             blockHeightFieldTestTag = VKEnrollmentTag.BLOCK_HEIGHT_FIELD,
+            dateTitle = stringRes(R.string.view_only_birthday_title),
+            dateSubtitle = stringRes(R.string.view_only_birthday_subtitle),
         )
 
     override val keepOpenDescription = stringRes(R.string.view_only_keep_open_description)
@@ -87,17 +89,21 @@ internal class ViewOnlyContentImpl : ViewOnlyContent {
 
 private object VKEnrollmentTag {
     const val ENTER_MANUALLY_BTN = "VIEW_ONLY_DATE_ENTER_MANUALLY"
-    const val IMPORT_BTN = "VIEW_ONLY_HEIGHT_IMPORT"
+    const val CONTINUE_BTN = "VIEW_ONLY_HEIGHT_CONTINUE"
     const val BLOCK_HEIGHT_FIELD = "VIEW_ONLY_HEIGHT_BLOCK_HEIGHT_FIELD"
 }
 
 internal class ViewOnlyAccountImporterImpl(
     private val pendingImportRepository: ViewOnlyPendingImportRepository,
-    private val importViewOnlyAccount: ImportViewOnlyAccountUseCase,
+    private val navigationRouter: NavigationRouter,
 ) : ViewOnlyAccountImporter {
     override fun hasPendingImport(): Boolean = pendingImportRepository.get() != null
 
-    override suspend fun importAccount(birthday: BlockHeight?) = importViewOnlyAccount(birthday)
+    override fun continueWithBirthday(birthday: BlockHeight?) {
+        val pending = pendingImportRepository.get() ?: throw ViewOnlyPendingImportMissingException()
+        pendingImportRepository.set(pending.copy(birthday = birthday))
+        navigationRouter.forward(NameVKArgs)
+    }
 }
 
 internal class ViewOnlyNavigatorImpl(

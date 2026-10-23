@@ -11,7 +11,7 @@ and this application adheres to [Semantic Versioning](https://semver.org/spec/v2
 
 - You can now add a view-only account by importing a Unified Full Viewing Key: tap Add Account in
   the Wallets & Hardware screen, choose Import full viewing key, paste the key or scan its QR code,
-  name the account and pick its colour, and tell Zodl when it was created. A view-only account
+  tell Zodl when the account was created, then name it and pick its colour. A view-only account
   shows its balance, addresses and activity, receives funds, swaps into ZEC, exports its viewing
   key and tax file, and is marked View Only under its name at the top of Home. It holds no spending
   key, so Home offers only Receive and Swap for it, and sending, paying, shielding, swapping from

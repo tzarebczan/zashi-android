@@ -12,11 +12,12 @@ import co.electriccoin.zcash.ui.common.usecase.SubmitViewOnlyKeyUseCase
 import co.electriccoin.zcash.ui.common.usecase.UfvkDescriber
 import co.electriccoin.zcash.ui.common.usecase.ValidateUfvkUseCase
 import co.electriccoin.zcash.ui.common.usecase.ViewOnlyKeyCheckException
+import co.electriccoin.zcash.ui.screen.connecthw.HWWalletEnrollment
+import co.electriccoin.zcash.ui.screen.connecthw.date.HWDateArgs
 import co.electriccoin.zcash.ui.screen.error.ErrorArgs
 import co.electriccoin.zcash.ui.screen.error.NavigateToErrorUseCase
 import co.electriccoin.zcash.ui.screen.viewingkey.alreadyimported.AlreadyImportedVKArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.importvk.ImportVKVM
-import co.electriccoin.zcash.ui.screen.viewingkey.name.NameVKArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.scan.ScanVKArgs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -45,7 +46,7 @@ import kotlin.test.assertTrue
 
 /**
  * The paste screen enables Continue for any text, submits it once, and routes by the outcome: an
- * importable key to naming, a key the wallet holds to the "already imported" sheet, anything else
+ * importable key to the birthday date, a key the wallet holds to the "already imported" sheet, anything else
  * to the invalid-key sheet. A key the SDK fails to read opens the general error screen instead, and
  * Continue can be tried again. A pasted key is wiped from the clipboard on Continue and on back, and
  * the key never shows up in the state's text.
@@ -93,7 +94,7 @@ class ImportVKVMTest {
         }
 
     @Test
-    fun anImportableKeyGoesOnToNaming() =
+    fun anImportableKeyGoesOnToTheBirthdayDate() =
         runTest {
             val vm = vm()
             collect(vm)
@@ -104,7 +105,7 @@ class ImportVKVMTest {
             runCurrent()
 
             coVerify(exactly = 1) { submit.invoke(TYPED, any()) }
-            verify(exactly = 1) { navigationRouter.forward(NameVKArgs) }
+            verify(exactly = 1) { navigationRouter.forward(HWDateArgs(HWWalletEnrollment.ViewOnly)) }
             assertNull(vm.invalidKeySheet.value)
         }
 

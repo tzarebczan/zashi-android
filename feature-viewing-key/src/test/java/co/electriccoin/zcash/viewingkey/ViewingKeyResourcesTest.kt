@@ -5,6 +5,7 @@ import co.electriccoin.zcash.ui.design.util.StringResource
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -47,6 +48,8 @@ class ViewingKeyResourcesTest {
                 content.removeAccountButton,
                 content.enrollmentBranding.enterBlockHeightManually,
                 content.enrollmentBranding.connect,
+                assertNotNull(content.enrollmentBranding.dateTitle),
+                assertNotNull(content.enrollmentBranding.dateSubtitle),
             ).map { resource ->
                 val id = (resource as StringResource.ByResource).resource
                 names[id] ?: error("Resource $id is not a string of this module")
@@ -61,6 +64,34 @@ class ViewingKeyResourcesTest {
     @Test
     fun theViewOnlyImportCarriesNoNewOrActiveCopy() {
         assertNull(ViewOnlyContentImpl().enrollmentBranding.newOrActive)
+    }
+
+    @Test
+    fun theViewOnlyBirthdayScreensShowNoLogo() {
+        assertNull(ViewOnlyContentImpl().enrollmentBranding.logo)
+    }
+
+    @Test
+    fun theViewOnlyBirthdayScreensContinueRatherThanImport() {
+        val connect = ViewOnlyContentImpl().enrollmentBranding.connect as StringResource.ByResource
+
+        assertEquals(R.string.view_only_continue, connect.resource)
+    }
+
+    @Test
+    fun theViewOnlyDateScreenAsksForTheFirstAccountTransaction() {
+        val branding = ViewOnlyContentImpl().enrollmentBranding
+
+        assertEquals(
+            R.string.view_only_birthday_title,
+            (branding.dateTitle as StringResource.ByResource).resource
+        )
+        assertEquals(
+            R.string.view_only_birthday_subtitle,
+            (branding.dateSubtitle as StringResource.ByResource).resource
+        )
+        assertEquals("First Account Transaction", english["view_only_birthday_title"])
+        assertEquals("Primera transacción de la cuenta", spanish["view_only_birthday_title"])
     }
 
     @Test
@@ -98,7 +129,7 @@ class ViewingKeyResourcesTest {
         val light = File("src/main/res/drawable").list().orEmpty().toSet()
         val night = File("src/main/res/drawable-night").list().orEmpty().toSet()
 
-        assertTrue("view_only_ic_avatar.xml" in light)
+        assertTrue("view_only_ic_info.xml" in light)
         assertEquals(emptySet(), light - night - TINTED_ICONS)
     }
 

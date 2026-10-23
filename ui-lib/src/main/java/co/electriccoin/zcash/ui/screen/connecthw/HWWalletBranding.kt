@@ -11,16 +11,23 @@ import co.electriccoin.zcash.ui.design.util.stringRes
  * screens. Keeping it in one place is what lets those screens hold no vendor branch of their own;
  * [brandingOf] is the single point where an enrollment turns into vendor-specific resources. A
  * view-only import reuses the birthday screens with the branding the view-only feature supplies;
- * it skips the new-or-active question, so its [newOrActive] is null.
+ * it skips the new-or-active question, so its [newOrActive] is null, and it shows no logo.
+ *
+ * @param logo the vendor logo above the screens' heading; null shows none.
+ * @param connect the label of the estimation and height screens' primary button.
+ * @param dateTitle the date screen's heading; null keeps the generic heading.
+ * @param dateSubtitle the text under the date screen's heading; null keeps the hardware-wallet text.
  */
 data class HWWalletBranding(
-    @param:DrawableRes val logo: Int,
+    @param:DrawableRes val logo: Int?,
     val newOrActive: HWNewOrActiveBranding?,
     val enterBlockHeightManually: StringResource,
     val connect: StringResource,
     val enterManuallyTestTag: String,
     val connectTestTag: String,
     val blockHeightFieldTestTag: String,
+    val dateTitle: StringResource? = null,
+    val dateSubtitle: StringResource? = null,
 )
 
 /**

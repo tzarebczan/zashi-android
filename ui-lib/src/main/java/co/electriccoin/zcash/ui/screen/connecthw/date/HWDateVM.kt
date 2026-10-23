@@ -34,7 +34,8 @@ import kotlin.time.toKotlinInstant
 /**
  * Picks the month the enrolled account first transacted in, and estimates the birthday height from
  * it. A view-only import starts on the latest month the picker offers, the current one; a hardware
- * wallet starts on Sapling activation.
+ * wallet starts on Sapling activation. The heading and the text under it come from the branding
+ * when it sets them, as a view-only import does.
  */
 class HWDateVM(
     private val args: HWDateArgs,
@@ -70,7 +71,8 @@ class HWDateVM(
     private fun createState(yearMonth: YearMonth, isLoading: Boolean) =
         BirthdayPickerState(
             title = null,
-            message = stringRes(R.string.firstWalletTransactionSubtitleHWWallet),
+            subtitle = branding.dateTitle ?: stringRes(R.string.restoreWallet_birthday_estimateDate_title),
+            message = branding.dateSubtitle ?: stringRes(R.string.firstWalletTransactionSubtitleHWWallet),
             logo = branding.logo,
             selection = yearMonth,
             primaryButton =

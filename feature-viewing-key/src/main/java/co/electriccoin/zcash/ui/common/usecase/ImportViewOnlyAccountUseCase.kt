@@ -29,7 +29,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Imports the pending viewing key under its name at [invoke]'s birthday, selects the new account,
+ * Imports the pending viewing key under its name at its birthday, selects the new account,
  * forgets the key and restarts the synchronizer, then moves on: straight to the success screen when
  * the account imports from the chain tip, through the keep-open screen when it has history to scan.
  * A key the wallet turns out to hold already ends the flow on the "already imported" sheet.
@@ -57,18 +57,15 @@ internal class ImportViewOnlyAccountUseCase(
      *         process death.
      * @throws ViewOnlyAccountImportException if the SDK rejected the key.
      */
-    suspend operator fun invoke(birthday: BlockHeight?) {
+    suspend operator fun invoke() {
         val requested = pendingImportRepository.get() ?: throw ViewOnlyPendingImportMissingException()
         mutex.withLock {
-            if (pendingImportRepository.get() === requested) import(requested, birthday)
+            if (pendingImportRepository.get() === requested) import(requested)
         }
     }
 
-    private suspend fun import(
-        pending: PendingViewOnlyImport,
-        birthday: BlockHeight?,
-    ) {
-        val route = withContext(NonCancellable) { importAndSelect(pending, birthday) }
+    private suspend fun import(pending: PendingViewOnlyImport) {
+        val route = withContext(NonCancellable) { importAndSelect(pending, pending.birthday) }
         currentCoroutineContext().ensureActive()
         navigationRouter.forward(route)
     }

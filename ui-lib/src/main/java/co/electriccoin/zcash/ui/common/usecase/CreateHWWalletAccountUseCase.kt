@@ -46,9 +46,11 @@ class CreateHWWalletAccountUseCase(
         }
 
     /**
-     * Imports the account being enrolled at [birthday]. A Ledger pairing or a pending view-only key
-     * that went missing since the screen opened cannot come back by trying again, so the user is
-     * returned to the wallet root instead of an error that offers a retry.
+     * Imports the hardware-wallet account being enrolled at [birthday]. A view-only import is not
+     * imported here: its birthday is stored with the pending key and the flow goes on to name the
+     * account, which imports it. A Ledger pairing or a pending view-only key that went missing since
+     * the screen opened cannot come back by trying again, so the user is returned to the wallet root
+     * instead of an error that offers a retry.
      */
     suspend operator fun invoke(
         enrollment: HWWalletEnrollment,
@@ -71,7 +73,7 @@ class CreateHWWalletAccountUseCase(
 
             is HWWalletEnrollment.ViewOnly -> {
                 try {
-                    viewOnlyAccountImporter.importAccount(birthday)
+                    viewOnlyAccountImporter.continueWithBirthday(birthday)
                 } catch (_: ViewOnlyPendingImportMissingException) {
                     navigationRouter.backToRoot()
                 }

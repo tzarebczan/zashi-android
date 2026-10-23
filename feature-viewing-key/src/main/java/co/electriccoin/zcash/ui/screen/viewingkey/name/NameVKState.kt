@@ -38,15 +38,19 @@ internal data class NameVKState(
 
         val previewDuplicate: NameVKState = preview(name = "Zodl", isDuplicate = true)
 
+        val previewImporting: NameVKState = preview(name = "Zodl Vault", isImporting = true)
+
         /**
          * The screen for [name] with the avatar in [color], or the default avatar without one.
          * Continue is enabled while the name is not blank and not [isDuplicate], the name of another
-         * account, which the field also says under it.
+         * account, which the field also says under it. While [isImporting], Continue shows its
+         * progress and is disabled.
          */
         fun create(
             name: String,
             color: Color?,
             isDuplicate: Boolean,
+            isImporting: Boolean,
             onAvatarEditClick: () -> Unit,
             onValueChange: (String) -> Unit,
             onContinueClick: () -> Unit,
@@ -56,7 +60,8 @@ internal data class NameVKState(
                 ButtonState(
                     text = stringRes(R.string.view_only_continue),
                     style = ButtonStyle.PRIMARY,
-                    isEnabled = name.isNotBlank() && !isDuplicate,
+                    isEnabled = name.isNotBlank() && !isDuplicate && !isImporting,
+                    isLoading = isImporting,
                     onClick = onContinueClick,
                 )
             return NameVKState(
@@ -86,10 +91,12 @@ internal data class NameVKState(
             name: String,
             color: Color? = null,
             isDuplicate: Boolean = false,
+            isImporting: Boolean = false,
         ) = create(
             name = name,
             color = color,
             isDuplicate = isDuplicate,
+            isImporting = isImporting,
             onAvatarEditClick = {},
             onValueChange = {},
             onContinueClick = {},

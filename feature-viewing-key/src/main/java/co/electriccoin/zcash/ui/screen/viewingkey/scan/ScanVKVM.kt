@@ -8,12 +8,13 @@ import co.electriccoin.zcash.ui.common.usecase.SubmitViewOnlyKeyResult
 import co.electriccoin.zcash.ui.common.usecase.SubmitViewOnlyKeyUseCase
 import co.electriccoin.zcash.ui.common.usecase.ViewOnlyKeyCheckException
 import co.electriccoin.zcash.ui.design.component.ZashiConfirmationState
+import co.electriccoin.zcash.ui.screen.connecthw.HWWalletEnrollment
+import co.electriccoin.zcash.ui.screen.connecthw.date.HWDateArgs
 import co.electriccoin.zcash.ui.screen.error.ErrorArgs
 import co.electriccoin.zcash.ui.screen.error.NavigateToErrorUseCase
 import co.electriccoin.zcash.ui.screen.scan.ImageToQrCodeResult
 import co.electriccoin.zcash.ui.screen.scan.ScanValidationState
 import co.electriccoin.zcash.ui.screen.viewingkey.alreadyimported.AlreadyImportedVKArgs
-import co.electriccoin.zcash.ui.screen.viewingkey.name.NameVKArgs
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
@@ -30,8 +31,8 @@ import kotlin.time.Duration.Companion.milliseconds
 /**
  * Scans a full viewing key QR code, or picks an image of one. A code that is not an importable key
  * opens the invalid-code sheet, and the camera's further results are ignored while it is up. An
- * importable key replaces the scanner with the naming screen, so back from there returns to the
- * paste screen. The key is never logged.
+ * importable key replaces the scanner with the birthday date screen, so back from there returns to
+ * the paste screen. The key is never logged.
  *
  * When the SDK fails to read a key, nothing is known about it, so the invalid-code sheet would be
  * wrong: the scanner stops taking results, returns to the paste screen and opens the general error
@@ -104,7 +105,7 @@ internal class ScanVKVM(
                 SubmitViewOnlyKeyResult.Accepted -> {
                     hasBeenScannedSuccessfully = true
                     setValidation(ScanValidationState.VALID)
-                    navigationRouter.replace(NameVKArgs)
+                    navigationRouter.replace(HWDateArgs(HWWalletEnrollment.ViewOnly))
                 }
 
                 SubmitViewOnlyKeyResult.AlreadyImported -> {

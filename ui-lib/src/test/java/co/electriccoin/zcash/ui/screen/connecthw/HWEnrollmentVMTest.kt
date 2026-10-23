@@ -71,13 +71,15 @@ class HWEnrollmentVMTest {
 
     private val viewOnlyBranding =
         HWWalletBranding(
-            logo = VIEW_ONLY_LOGO,
+            logo = null,
             newOrActive = null,
             enterBlockHeightManually = stringRes("Enter block height"),
-            connect = stringRes("Import"),
+            connect = stringRes("Continue"),
             enterManuallyTestTag = "VIEW_ONLY_ENTER_MANUALLY",
-            connectTestTag = "VIEW_ONLY_CONNECT",
+            connectTestTag = "VIEW_ONLY_CONTINUE",
             blockHeightFieldTestTag = "VIEW_ONLY_HEIGHT_FIELD",
+            dateTitle = stringRes("First Account Transaction"),
+            dateSubtitle = stringRes("Choose the approximate date of this account's first transaction."),
         )
 
     private val viewOnlyContent =
@@ -236,6 +238,43 @@ class HWEnrollmentVMTest {
                 verify(exactly = 1) { navigationRouter.forward(HeightInfoArgs) }
             }
         }
+
+    @Test
+    fun theBirthdayScreensShowTheVendorLogoForAHardwareWalletAndNoLogoForAViewOnlyImport() =
+        runTest {
+            enrollments.forEach { enrollment ->
+                val date = dateVM(enrollment, readyUseCase())
+                val estimation = estimationVM(enrollment, readyUseCase())
+                val height = heightVM(enrollment, readyUseCase())
+                collect { height.state.collect { } }
+                val expected =
+                    when (enrollment) {
+                        is HWWalletEnrollment.Keystone -> co.electriccoin.zcash.ui.design.R.drawable.image_keystone
+                        HWWalletEnrollment.Ledger -> R.drawable.ic_ledger_wordmark
+                        HWWalletEnrollment.ViewOnly -> null
+                    }
+
+                assertEquals(expected, assertNotNull(date.state.value.content).logo, "$enrollment date")
+                assertEquals(expected, assertNotNull(estimation.state.value.content).logo, "$enrollment estimation")
+                assertEquals(expected, assertNotNull(height.state.value.content).logo, "$enrollment height")
+            }
+        }
+
+    @Test
+    fun theDateScreenTakesItsHeadingFromTheBrandingWhenItSetsOne() {
+        hardwareEnrollments.forEach { enrollment ->
+            val state = assertNotNull(dateVM(enrollment, readyUseCase()).state.value.content)
+
+            assertEquals(R.string.restoreWallet_birthday_estimateDate_title, state.subtitle.resourceId())
+            assertEquals(R.string.firstWalletTransactionSubtitleHWWallet, state.message.resourceId())
+        }
+
+        val viewOnly = assertNotNull(dateVM(HWWalletEnrollment.ViewOnly, readyUseCase()).state.value.content)
+
+        assertEquals(viewOnlyBranding.dateTitle, viewOnly.subtitle)
+        assertEquals(viewOnlyBranding.dateSubtitle, viewOnly.message)
+        assertEquals(R.string.general_next, viewOnly.primaryButton.text.resourceId())
+    }
 
     @Test
     fun theDateScreenStartsOnSaplingActivationForAHardwareWalletAndOnTheLatestMonthForAViewOnlyImport() {
@@ -448,5 +487,3 @@ class HWEnrollmentVMTest {
 private const val ESTIMATED_HEIGHT = 2_500_000L
 
 private const val VALID_HEIGHT = "2500000"
-
-private const val VIEW_ONLY_LOGO = 7

@@ -24,8 +24,9 @@ import kotlin.test.assertTrue
 /**
  * The single vendor branch of the shared enrollment flow: a Keystone enrollment parses its UR and
  * goes through the Keystone import, a Ledger enrollment goes straight to the Ledger one and returns
- * to the root when its pairing went missing, a view-only enrollment goes to the view-only importer
- * and returns to the root when its pending key went missing, and none is ready when what it needs is
+ * to the root when its pairing went missing, a view-only enrollment hands its birthday to the
+ * view-only importer, which goes on to name the account, and returns to the root when its pending
+ * key went missing, and none is ready when what it needs is
  * gone.
  */
 class CreateHWWalletAccountUseCaseTest {
@@ -94,7 +95,7 @@ class CreateHWWalletAccountUseCaseTest {
         }
 
     @Test
-    fun aViewOnlyEnrollmentImportsThroughTheViewOnlyImporter() =
+    fun aViewOnlyEnrollmentHandsItsBirthdayToTheViewOnlyImporter() =
         runTest {
             val createKeystoneAccount = mockk<CreateKeystoneAccountUseCase>(relaxed = true)
             val ledgerAccountImporter = mockk<LedgerAccountImporter>(relaxed = true)
@@ -110,7 +111,7 @@ class CreateHWWalletAccountUseCaseTest {
 
             useCase(HWWalletEnrollment.ViewOnly, birthday)
 
-            coVerify(exactly = 1) { viewOnlyAccountImporter.importAccount(birthday) }
+            verify(exactly = 1) { viewOnlyAccountImporter.continueWithBirthday(birthday) }
             coVerify(exactly = 0) { ledgerAccountImporter.importAccount(any()) }
             coVerify(exactly = 0) { createKeystoneAccount.invoke(any(), any(), any()) }
             verify(exactly = 0) { navigationRouter.backToRoot() }
@@ -121,7 +122,7 @@ class CreateHWWalletAccountUseCaseTest {
         runTest {
             val viewOnlyAccountImporter =
                 mockk<ViewOnlyAccountImporter>(relaxed = true) {
-                    coEvery { importAccount(any()) } throws ViewOnlyPendingImportMissingException()
+                    every { continueWithBirthday(any()) } throws ViewOnlyPendingImportMissingException()
                 }
             val navigationRouter = mockk<NavigationRouter>(relaxed = true)
             val useCase =

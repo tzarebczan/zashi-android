@@ -8,6 +8,7 @@ import co.electriccoin.zcash.ui.common.repository.BiometricRepository
 import co.electriccoin.zcash.ui.common.repository.MetadataRepository
 import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepository
 import co.electriccoin.zcash.ui.common.usecase.ClearClipboardUseCase
+import co.electriccoin.zcash.ui.common.usecase.ErrorMapperUseCase
 import co.electriccoin.zcash.ui.common.usecase.GetViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.GetWalletAccountsUseCase
 import co.electriccoin.zcash.ui.common.usecase.ImportViewOnlyAccountUseCase
@@ -83,6 +84,7 @@ class ViewingKeyKoinGraphSmokeTest {
                 factory { mockk<RenameViewOnlyAccountUseCase>(relaxed = true) }
                 factory { mockk<ObserveAccountIconUseCase>(relaxed = true) }
                 factory { mockk<IsAccountNameTakenUseCase>(relaxed = true) }
+                factory { mockk<ErrorMapperUseCase>(relaxed = true) }
                 viewModelOf(::EditAccountVM)
             }
 

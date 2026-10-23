@@ -47,8 +47,9 @@
     <string name="view_only_imported_message">Your view only account has been added.\nTrack its balance and activity anytime.</string>
     <string name="view_only_imported_done">Done</string>
 
+    <string name="view_only_birthday_title">First Account Transaction</string>
+    <string name="view_only_birthday_subtitle">Choose the approximate date of this account\'s first transaction. If you\'re not sure, choose an earlier date.</string>
     <string name="view_only_birthday_enter_manually">Enter block height</string>
-    <string name="view_only_birthday_import">Import</string>
 
     <string name="view_only_keep_open_description">Zodl is scanning the blockchain to retrieve this account’s transactions. Older wallets can take hours to complete syncing. Follow these steps to prevent interruption:</string>
     <string name="view_only_keep_open_subtitle">Your account is being synced.</string>

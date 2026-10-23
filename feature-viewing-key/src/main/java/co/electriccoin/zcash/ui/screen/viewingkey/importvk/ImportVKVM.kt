@@ -12,10 +12,11 @@ import co.electriccoin.zcash.ui.common.usecase.SubmitViewOnlyKeyUseCase
 import co.electriccoin.zcash.ui.common.usecase.ValidateUfvkUseCase
 import co.electriccoin.zcash.ui.common.usecase.ViewOnlyKeyCheckException
 import co.electriccoin.zcash.ui.design.component.ZashiConfirmationState
+import co.electriccoin.zcash.ui.screen.connecthw.HWWalletEnrollment
+import co.electriccoin.zcash.ui.screen.connecthw.date.HWDateArgs
 import co.electriccoin.zcash.ui.screen.error.ErrorArgs
 import co.electriccoin.zcash.ui.screen.error.NavigateToErrorUseCase
 import co.electriccoin.zcash.ui.screen.viewingkey.alreadyimported.AlreadyImportedVKArgs
-import co.electriccoin.zcash.ui.screen.viewingkey.name.NameVKArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.scan.ScanVKArgs
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -28,9 +29,9 @@ import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
- * Takes the full viewing key the user pastes or types and, once it is importable, goes on to name
- * the account. The key stays in this view model's memory and in the pending import only: it never
- * goes into a route, the saved instance state or a log.
+ * Takes the full viewing key the user pastes or types and, once it is importable, goes on to ask
+ * when the account first transacted, before it is named. The key stays in this view model's memory
+ * and in the pending import only: it never goes into a route, the saved instance state or a log.
  *
  * The keyboard pastes into the field directly, so a paste is recognised by a single edit that adds
  * a long run of text. When one happened, the clipboard is cleared on Continue and on back, so the
@@ -75,7 +76,7 @@ internal class ImportVKVM(
             }.stateIn(viewModel = this, initialValue = null)
 
     /**
-     * The paste screen is the root of the import flow: every later screen (scan, name, birthday,
+     * The paste screen is the root of the import flow: every later screen (scan, birthday, name,
      * keep-open, success) is opened on top of it, so this view model is cleared only once the whole
      * flow has left the back stack. The pending key goes with it, whichever way the flow ended.
      */
@@ -112,7 +113,7 @@ internal class ImportVKVM(
                     when (submitViewOnlyKey(text.value)) {
                         SubmitViewOnlyKeyResult.Accepted -> {
                             clearPasted()
-                            navigationRouter.forward(NameVKArgs)
+                            navigationRouter.forward(HWDateArgs(HWWalletEnrollment.ViewOnly))
                         }
 
                         SubmitViewOnlyKeyResult.AlreadyImported -> {

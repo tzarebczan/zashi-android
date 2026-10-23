@@ -4,12 +4,13 @@ import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.common.usecase.SubmitViewOnlyKeyResult
 import co.electriccoin.zcash.ui.common.usecase.SubmitViewOnlyKeyUseCase
 import co.electriccoin.zcash.ui.common.usecase.ViewOnlyKeyCheckException
+import co.electriccoin.zcash.ui.screen.connecthw.HWWalletEnrollment
+import co.electriccoin.zcash.ui.screen.connecthw.date.HWDateArgs
 import co.electriccoin.zcash.ui.screen.error.ErrorArgs
 import co.electriccoin.zcash.ui.screen.error.NavigateToErrorUseCase
 import co.electriccoin.zcash.ui.screen.scan.ImageToQrCodeResult
 import co.electriccoin.zcash.ui.screen.scan.ScanValidationState
 import co.electriccoin.zcash.ui.screen.viewingkey.alreadyimported.AlreadyImportedVKArgs
-import co.electriccoin.zcash.ui.screen.viewingkey.name.NameVKArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.scan.ScanVKVM
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -36,9 +37,10 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 /**
- * The scanner takes the first importable key and replaces itself with the naming screen; a code
- * that is not one opens the invalid-code sheet, which pauses further results until it is closed. A
- * key the SDK fails to read stops the scanner and opens the general error screen on the paste screen.
+ * The scanner takes the first importable key and replaces itself with the birthday date screen; a
+ * code that is not one opens the invalid-code sheet, which pauses further results until it is
+ * closed. A key the SDK fails to read stops the scanner and opens the general error screen on the
+ * paste screen.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ScanVKVMTest {
@@ -71,7 +73,7 @@ class ScanVKVMTest {
     }
 
     @Test
-    fun theFirstImportableKeyReplacesTheScannerWithNaming() =
+    fun theFirstImportableKeyReplacesTheScannerWithTheBirthdayDate() =
         runTest {
             val vm = vm()
             collect(vm)
@@ -80,7 +82,7 @@ class ScanVKVMTest {
             vm.onScanned(OTHER_KEY)
             runCurrent()
 
-            verify(exactly = 1) { navigationRouter.replace(NameVKArgs) }
+            verify(exactly = 1) { navigationRouter.replace(HWDateArgs(HWWalletEnrollment.ViewOnly)) }
             coVerify(exactly = 1) { submit.invoke(any(), any()) }
             assertEquals(ScanValidationState.VALID, vm.state.value.validation)
         }
@@ -117,7 +119,7 @@ class ScanVKVMTest {
 
             vm.onScanned(KEY)
             runCurrent()
-            verify(exactly = 1) { navigationRouter.replace(NameVKArgs) }
+            verify(exactly = 1) { navigationRouter.replace(HWDateArgs(HWWalletEnrollment.ViewOnly)) }
         }
 
     @Test
@@ -183,7 +185,7 @@ class ScanVKVMTest {
             vm.onImageScanned(ImageToQrCodeResult.SingleCode(KEY))
             runCurrent()
 
-            verify(exactly = 1) { navigationRouter.replace(NameVKArgs) }
+            verify(exactly = 1) { navigationRouter.replace(HWDateArgs(HWWalletEnrollment.ViewOnly)) }
         }
 
     @Test

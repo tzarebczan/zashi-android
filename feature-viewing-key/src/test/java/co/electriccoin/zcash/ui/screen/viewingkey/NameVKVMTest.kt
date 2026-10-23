@@ -2,25 +2,31 @@ package co.electriccoin.zcash.ui.screen.viewingkey
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
+import cash.z.ecc.android.sdk.model.BlockHeight
 import co.electriccoin.zcash.ui.NavigationRouter
 import co.electriccoin.zcash.ui.common.model.AccountNameLimit
+import co.electriccoin.zcash.ui.common.model.LceError
+import co.electriccoin.zcash.ui.common.model.ViewOnlyAccountImportException
+import co.electriccoin.zcash.ui.common.model.ViewOnlyPendingImportMissingException
 import co.electriccoin.zcash.ui.common.model.WalletAccount
 import co.electriccoin.zcash.ui.common.repository.PendingViewOnlyImport
 import co.electriccoin.zcash.ui.common.repository.ViewOnlyPendingImportRepositoryImpl
+import co.electriccoin.zcash.ui.common.usecase.ErrorMapperUseCase
+import co.electriccoin.zcash.ui.common.usecase.ImportViewOnlyAccountUseCase
 import co.electriccoin.zcash.ui.common.usecase.NavigateToColorPickerUseCase
 import co.electriccoin.zcash.ui.common.usecase.ViewOnlyAccountFixtures
 import co.electriccoin.zcash.ui.design.R
 import co.electriccoin.zcash.ui.design.util.ImageResource
 import co.electriccoin.zcash.ui.design.util.StringResource
 import co.electriccoin.zcash.ui.screen.colorpicker.ColorPickerArgs
-import co.electriccoin.zcash.ui.screen.connecthw.HWWalletEnrollment
-import co.electriccoin.zcash.ui.screen.connecthw.date.HWDateArgs
-import co.electriccoin.zcash.ui.screen.connecthw.neworactive.HWNewOrActiveArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.name.NameVKState
 import co.electriccoin.zcash.ui.screen.viewingkey.name.NameVKVM
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,18 +43,22 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * The name is capped at twelve characters as it is typed, the counter follows it, Continue needs a
- * name that is not blank and stores it trimmed before going straight to the birthday date, without
- * the new-or-active question, and back forgets the pending key. The avatar's pencil badge opens the
- * colour picker; the avatar follows the picks live and keeps the last one however the picker closes,
- * and Continue keeps it with the pending import. A name another account shows, in any case,
- * disables Continue and says so under the field, never next to another name, and Continue checks the
- * name again when tapped. The keyboard's Done key continues only while Continue is enabled.
+ * The name is capped at twelve characters as it is typed, the counter follows it, and Continue needs
+ * a name that is not blank. Naming is the last step: Continue stores the trimmed name and the picked
+ * colour with the pending key and birthday and imports, showing its progress, once however often it
+ * is tapped; without a pending key or birthday it returns to the root, and a failed import shows the
+ * error, from which it is tried again. While it imports, back, the name and the colour are ignored;
+ * otherwise back returns to the birthday screen and keeps the pending key and birthday. The avatar's
+ * pencil badge opens the colour picker; the avatar follows the picks live and keeps the last one
+ * however the picker closes. A name another account shows, in any case, disables Continue and says
+ * so under the field, never next to another name, and Continue checks the name again when tapped.
+ * The keyboard's Done key continues only while Continue is enabled.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class NameVKVMTest {
@@ -72,8 +82,20 @@ class NameVKVMTest {
 
     private val isAccountNameTaken = ViewOnlyAccountFixtures.isAccountNameTaken(accounts)
 
-    private val repository =
-        ViewOnlyPendingImportRepositoryImpl().apply { set(PendingViewOnlyImport(ufvk = UFVK, name = "")) }
+    private val repository = ViewOnlyPendingImportRepositoryImpl().apply { set(pending()) }
+
+    private var importAnswer: suspend () -> Unit = {}
+
+    private val importViewOnlyAccount =
+        mockk<ImportViewOnlyAccountUseCase> {
+            coEvery { this@mockk.invoke() } coAnswers { importAnswer() }
+        }
+
+    private val errorStateMapper =
+        ErrorMapperUseCase(
+            sendEmail = mockk(relaxed = true),
+            viewOnlyContent = mockk(relaxed = true),
+        )
 
     @BeforeTest
     fun setUp() {
@@ -95,12 +117,14 @@ class NameVKVMTest {
 
             assertEquals(
                 "Zodl Savings",
-                vm.state.value.nameField.field.value
+                vm
+                    .content()
+                    .nameField.field.value
                     .text()
             )
             assertEquals(
                 listOf(12, 12),
-                assertNotNull(vm.state.value.nameField.counter)
+                assertNotNull(vm.content().nameField.counter)
                     .args()
             )
         }
@@ -115,12 +139,14 @@ class NameVKVMTest {
 
             assertEquals(
                 "Vault " + LOCK.repeat(6),
-                vm.state.value.nameField.field.value
+                vm
+                    .content()
+                    .nameField.field.value
                     .text()
             )
             assertEquals(
                 listOf(12, 12),
-                assertNotNull(vm.state.value.nameField.counter)
+                assertNotNull(vm.content().nameField.counter)
                     .args()
             )
 
@@ -128,7 +154,7 @@ class NameVKVMTest {
 
             assertEquals(
                 listOf(3, 12),
-                assertNotNull(vm.state.value.nameField.counter)
+                assertNotNull(vm.content().nameField.counter)
                     .args()
             )
         }
@@ -140,7 +166,7 @@ class NameVKVMTest {
             collect(vm)
             assertEquals(
                 listOf(0, AccountNameLimit.MAX_LENGTH),
-                assertNotNull(vm.state.value.nameField.counter)
+                assertNotNull(vm.content().nameField.counter)
                     .args()
             )
 
@@ -148,7 +174,7 @@ class NameVKVMTest {
 
             assertEquals(
                 listOf(10, AccountNameLimit.MAX_LENGTH),
-                assertNotNull(vm.state.value.nameField.counter)
+                assertNotNull(vm.content().nameField.counter)
                     .args()
             )
         }
@@ -158,16 +184,19 @@ class NameVKVMTest {
         runTest {
             val vm = vm()
             collect(vm)
-            assertFalse(vm.state.value.continueButton.isEnabled)
+            assertFalse(vm.content().continueButton.isEnabled)
 
             type(vm, "   ")
-            assertFalse(vm.state.value.continueButton.isEnabled)
-            vm.state.value.continueButton
+            assertFalse(vm.content().continueButton.isEnabled)
+            vm
+                .content()
+                .continueButton
                 .onClick()
-            verify(exactly = 0) { navigationRouter.forward(any()) }
+            runCurrent()
+            coVerify(exactly = 0) { importViewOnlyAccount.invoke() }
 
             type(vm, "Vault")
-            assertTrue(vm.state.value.continueButton.isEnabled)
+            assertTrue(vm.content().continueButton.isEnabled)
         }
 
     @Test
@@ -178,16 +207,22 @@ class NameVKVMTest {
 
             type(vm, " keystone ")
 
-            assertFalse(vm.state.value.continueButton.isEnabled)
+            assertFalse(vm.content().continueButton.isEnabled)
             assertEquals(
                 R.string.accountName_duplicate,
-                (vm.state.value.nameField.field.error as StringResource.ByResource).resource
+                (
+                    vm
+                        .content()
+                        .nameField.field.error as StringResource.ByResource
+                ).resource
             )
-            vm.state.value.continueButton
+            vm
+                .content()
+                .continueButton
                 .onClick()
             runCurrent()
-            verify(exactly = 0) { navigationRouter.forward(any()) }
-            assertEquals(PendingViewOnlyImport(ufvk = UFVK, name = ""), repository.get())
+            coVerify(exactly = 0) { importViewOnlyAccount.invoke() }
+            assertEquals(pending(), repository.get())
         }
 
     @Test
@@ -197,12 +232,16 @@ class NameVKVMTest {
             collect(vm)
 
             type(vm, "ZODL")
-            assertFalse(vm.state.value.continueButton.isEnabled)
+            assertFalse(vm.content().continueButton.isEnabled)
 
             type(vm, "Zodl 2")
 
-            assertTrue(vm.state.value.continueButton.isEnabled)
-            assertNull(vm.state.value.nameField.field.error)
+            assertTrue(vm.content().continueButton.isEnabled)
+            assertNull(
+                vm
+                    .content()
+                    .nameField.field.error
+            )
         }
 
     @Test
@@ -210,7 +249,9 @@ class NameVKVMTest {
         runTest {
             val vm = vm()
             val states = mutableListOf<NameVKState>()
-            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.state.collect { states.add(it) } }
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                vm.state.collect { state -> state.content?.let { states.add(it) } }
+            }
             runCurrent()
 
             listOf("Keystone", "Savings", "zodl", "Vault").forEach { type(vm, it) }
@@ -230,15 +271,15 @@ class NameVKVMTest {
             val vm = vm()
             collect(vm)
             type(vm, "Savings")
-            val continueButton = vm.state.value.continueButton
+            val continueButton = vm.content().continueButton
             assertTrue(continueButton.isEnabled)
 
             accounts.value = listOf(ViewOnlyAccountFixtures.viewOnly(customName = "Savings"))
             continueButton.onClick()
             runCurrent()
 
-            verify(exactly = 0) { navigationRouter.forward(any()) }
-            assertEquals(PendingViewOnlyImport(ufvk = UFVK, name = ""), repository.get())
+            coVerify(exactly = 0) { importViewOnlyAccount.invoke() }
+            assertEquals(pending(), repository.get())
         }
 
     @Test
@@ -248,16 +289,20 @@ class NameVKVMTest {
             collect(vm)
 
             type(vm, "   ")
-            vm.state.value.nameField
+            vm
+                .content()
+                .nameField
                 .onDone()
             runCurrent()
             type(vm, "Keystone")
-            vm.state.value.nameField
+            vm
+                .content()
+                .nameField
                 .onDone()
             runCurrent()
 
-            verify(exactly = 0) { navigationRouter.forward(any()) }
-            assertEquals(PendingViewOnlyImport(ufvk = UFVK, name = ""), repository.get())
+            coVerify(exactly = 0) { importViewOnlyAccount.invoke() }
+            assertEquals(pending(), repository.get())
         }
 
     @Test
@@ -267,40 +312,201 @@ class NameVKVMTest {
             collect(vm)
             type(vm, "Vault")
 
-            vm.state.value.nameField
+            vm
+                .content()
+                .nameField
                 .onDone()
             runCurrent()
 
-            assertEquals(PendingViewOnlyImport(ufvk = UFVK, name = "Vault"), repository.get())
-            verify(exactly = 1) { navigationRouter.forward(HWDateArgs(HWWalletEnrollment.ViewOnly)) }
+            assertEquals(pending(name = "Vault"), repository.get())
+            coVerify(exactly = 1) { importViewOnlyAccount.invoke() }
         }
 
     @Test
-    fun continueStoresTheTrimmedNameAndGoesStraightToTheBirthdayDate() =
+    fun continueImportsWithTheTrimmedNameTheColorAndTheBirthdayAndShowsItsProgress() =
         runTest {
+            val importing = CompletableDeferred<Unit>()
+            var imported: PendingViewOnlyImport? = null
+            importAnswer = {
+                imported = repository.get()
+                importing.await()
+            }
             val vm = vm()
             collect(vm)
+            pickColor(vm, Color(PICKED))
             type(vm, " Vault ")
 
-            vm.state.value.continueButton
+            vm
+                .content()
+                .continueButton
                 .onClick()
             runCurrent()
 
-            assertEquals(PendingViewOnlyImport(ufvk = UFVK, name = "Vault"), repository.get())
-            verify(exactly = 1) { navigationRouter.forward(HWDateArgs(HWWalletEnrollment.ViewOnly)) }
-            verify(exactly = 0) { navigationRouter.forward(HWNewOrActiveArgs(HWWalletEnrollment.ViewOnly)) }
+            assertEquals(pending(name = "Vault", color = Color(PICKED)), imported)
+            coVerify(exactly = 1) { importViewOnlyAccount.invoke() }
+            assertTrue(vm.content().continueButton.isLoading)
+            assertFalse(vm.content().continueButton.isEnabled)
+
+            importing.complete(Unit)
+            runCurrent()
+
+            assertFalse(vm.content().continueButton.isLoading)
+            verify(exactly = 0) { navigationRouter.backToRoot() }
         }
 
     @Test
-    fun backForgetsThePendingKey() =
+    fun aDoubleTapImportsOnce() =
+        runTest {
+            val importing = CompletableDeferred<Unit>()
+            importAnswer = { importing.await() }
+            val vm = vm()
+            collect(vm)
+            type(vm, "Vault")
+            val continueButton = vm.content().continueButton
+
+            continueButton.onClick()
+            continueButton.onClick()
+            runCurrent()
+            continueButton.onClick()
+            vm
+                .content()
+                .continueButton
+                .onClick()
+            runCurrent()
+
+            coVerify(exactly = 1) { importViewOnlyAccount.invoke() }
+            importing.complete(Unit)
+        }
+
+    @Test
+    fun withoutAPendingKeyAtContinueTheFlowReturnsToTheRoot() =
         runTest {
             val vm = vm()
             collect(vm)
+            type(vm, "Vault")
+            repository.clear()
 
-            vm.state.value.onBack()
+            vm
+                .content()
+                .continueButton
+                .onClick()
+            runCurrent()
 
-            assertNull(repository.get())
+            verify(exactly = 1) { navigationRouter.backToRoot() }
+            coVerify(exactly = 0) { importViewOnlyAccount.invoke() }
+        }
+
+    @Test
+    fun withoutABirthdayAtContinueTheFlowReturnsToTheRoot() =
+        runTest {
+            repository.set(PendingViewOnlyImport(ufvk = UFVK, name = ""))
+            val vm = vm()
+            collect(vm)
+            type(vm, "Vault")
+
+            vm
+                .content()
+                .continueButton
+                .onClick()
+            runCurrent()
+
+            verify(exactly = 1) { navigationRouter.backToRoot() }
+            coVerify(exactly = 0) { importViewOnlyAccount.invoke() }
+            assertEquals(PendingViewOnlyImport(ufvk = UFVK, name = ""), repository.get())
+        }
+
+    @Test
+    fun aPendingKeyGoneDuringTheImportReturnsToTheRoot() =
+        runTest {
+            importAnswer = { throw ViewOnlyPendingImportMissingException() }
+            val vm = vm()
+            collect(vm)
+            type(vm, "Vault")
+
+            vm
+                .content()
+                .continueButton
+                .onClick()
+            runCurrent()
+
+            verify(exactly = 1) { navigationRouter.backToRoot() }
+            assertNull(vm.state.value.error)
+        }
+
+    @Test
+    fun aFailedImportShowsTheErrorAndRetryImportsAgain() =
+        runTest {
+            var calls = 0
+            importAnswer = {
+                calls++
+                if (calls == 1) throw ViewOnlyAccountImportException()
+            }
+            val vm = vm()
+            collect(vm)
+            type(vm, "Vault")
+
+            vm
+                .content()
+                .continueButton
+                .onClick()
+            runCurrent()
+
+            val error = assertIs<LceError.BottomSheet>(vm.state.value.error)
+            assertFalse(vm.content().continueButton.isLoading)
+            assertTrue(vm.content().continueButton.isEnabled)
+
+            error.state.primaryAction
+                .onClick()
+            runCurrent()
+
+            coVerify(exactly = 2) { importViewOnlyAccount.invoke() }
+            assertNull(vm.state.value.error)
+            assertEquals(pending(name = "Vault"), repository.get())
+        }
+
+    @Test
+    fun backWhileImportingAndEditsWhileImportingAreIgnored() =
+        runTest {
+            val importing = CompletableDeferred<Unit>()
+            importAnswer = { importing.await() }
+            val vm = vm()
+            collect(vm)
+            type(vm, "Vault")
+            vm
+                .content()
+                .continueButton
+                .onClick()
+            runCurrent()
+
+            vm.content().onBack()
+            type(vm, "Savings")
+            openPicker(vm)
+
+            verify(exactly = 0) { navigationRouter.back() }
+            assertEquals(
+                "Vault",
+                vm
+                    .content()
+                    .nameField.field.value
+                    .text()
+            )
+            assertTrue(pickerRequests.isEmpty())
+            importing.complete(Unit)
+        }
+
+    @Test
+    fun backReturnsToTheBirthdayAndKeepsThePendingKeyAndBirthday() =
+        runTest {
+            val vm = vm()
+            collect(vm)
+            type(vm, "Vault")
+
+            vm.content().onBack()
+
+            assertEquals(pending(), repository.get())
             verify(exactly = 1) { navigationRouter.back() }
+            verify(exactly = 0) { navigationRouter.backToRoot() }
+            coVerify(exactly = 0) { importViewOnlyAccount.invoke() }
         }
 
     @Test
@@ -318,7 +524,7 @@ class NameVKVMTest {
         runTest {
             val vm = vm()
             collect(vm)
-            assertNull(vm.state.value.avatarColor())
+            assertNull(vm.content().avatarColor())
 
             openPicker(vm)
             val request = pickerRequests.single()
@@ -327,25 +533,27 @@ class NameVKVMTest {
             navigateToColorPicker.onClosed(request)
             runCurrent()
 
-            assertEquals(Color(PICKED), vm.state.value.avatarColor())
-            assertEquals(PendingViewOnlyImport(ufvk = UFVK, name = ""), repository.get())
+            assertEquals(Color(PICKED), vm.content().avatarColor())
+            assertEquals(pending(), repository.get())
 
             type(vm, "Savings")
-            vm.state.value.continueButton
+            vm
+                .content()
+                .continueButton
                 .onClick()
             runCurrent()
 
-            assertEquals(PendingViewOnlyImport(ufvk = UFVK, name = "Savings", color = Color(PICKED)), repository.get())
+            assertEquals(pending(name = "Savings", color = Color(PICKED)), repository.get())
         }
 
     @Test
     fun theColorOfThePendingImportShowsWhenTheScreenOpensAgain() =
         runTest {
-            repository.set(PendingViewOnlyImport(ufvk = UFVK, name = "Savings", color = Color(PICKED)))
+            repository.set(pending(name = "Savings", color = Color(PICKED)))
             val vm = vm()
             collect(vm)
 
-            assertEquals(Color(PICKED), vm.state.value.avatarColor())
+            assertEquals(Color(PICKED), vm.content().avatarColor())
         }
 
     @Test
@@ -364,7 +572,7 @@ class NameVKVMTest {
             navigateToColorPicker.onClosed(second)
             runCurrent()
 
-            assertEquals(Color(PICKED), vm.state.value.avatarColor())
+            assertEquals(Color(PICKED), vm.content().avatarColor())
         }
 
     @Test
@@ -377,12 +585,12 @@ class NameVKVMTest {
 
             navigateToColorPicker.onPicked(Color(OTHER), request)
             runCurrent()
-            assertEquals(Color(OTHER), vm.state.value.avatarColor())
+            assertEquals(Color(OTHER), vm.content().avatarColor())
 
             navigateToColorPicker.onPicked(Color(PICKED), request)
             navigateToColorPicker.onClosed(request)
             runCurrent()
-            assertEquals(Color(PICKED), vm.state.value.avatarColor())
+            assertEquals(Color(PICKED), vm.content().avatarColor())
 
             openPicker(vm)
             assertEquals(2, pickerRequests.size)
@@ -404,15 +612,39 @@ class NameVKVMTest {
         (form.header.avatar.image as ImageResource.Layered).background.takeIf { it.isSpecified }
 
     private fun TestScope.openPicker(vm: NameVKVM) {
-        assertNotNull(vm.state.value.form.header.avatar.editButton).onClick()
+        assertNotNull(
+            vm
+                .content()
+                .form.header.avatar.editButton
+        ).onClick()
         runCurrent()
     }
+
+    private fun TestScope.pickColor(
+        vm: NameVKVM,
+        color: Color,
+    ) {
+        openPicker(vm)
+        val request = pickerRequests.last()
+        navigateToColorPicker.onPicked(color, request)
+        navigateToColorPicker.onClosed(request)
+        runCurrent()
+    }
+
+    private fun NameVKVM.content() = assertNotNull(state.value.content)
+
+    private fun pending(
+        name: String = "",
+        color: Color? = null,
+    ) = PendingViewOnlyImport(ufvk = UFVK, name = name, color = color, birthday = BIRTHDAY)
 
     private fun TestScope.type(
         vm: NameVKVM,
         text: String,
     ) {
-        vm.state.value.nameField.field
+        vm
+            .content()
+            .nameField.field
             .onValueChange(text)
         runCurrent()
     }
@@ -423,6 +655,8 @@ class NameVKVMTest {
             navigationRouter = navigationRouter,
             navigateToColorPicker = navigateToColorPicker,
             isAccountNameTaken = isAccountNameTaken,
+            importViewOnlyAccount = importViewOnlyAccount,
+            errorStateMapper = errorStateMapper,
         )
 
     private fun TestScope.collect(vm: NameVKVM) {
@@ -438,6 +672,7 @@ class NameVKVMTest {
         const val UFVK = "uview1namefixture"
         const val PICKED = 0x80BE38F3
         const val OTHER = 0xFF0088FF
+        val BIRTHDAY = BlockHeight.new(2_500_000L)
     }
 }
 

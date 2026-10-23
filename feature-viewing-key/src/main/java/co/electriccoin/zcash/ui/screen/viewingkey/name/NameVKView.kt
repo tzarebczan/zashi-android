@@ -63,3 +63,10 @@ private fun DuplicatePreview() =
     ZcashTheme {
         NameVKView(NameVKState.previewDuplicate)
     }
+
+@PreviewScreens
+@Composable
+private fun ImportingPreview() =
+    ZcashTheme {
+        NameVKView(NameVKState.previewImporting)
+    }

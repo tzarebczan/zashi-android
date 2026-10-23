@@ -27,7 +27,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 
 /**
- * Takes a birthday height typed by hand and imports the enrolled account at it.
+ * Takes a birthday height typed by hand and imports the enrolled hardware-wallet account at it; a
+ * view-only import stores the height and goes on to name the account instead.
  */
 class HWHeightVM(
     private val args: HWHeightArgs,

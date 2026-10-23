@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.map
 /**
  * Asks whether the device being enrolled is new or has been used before: a new one imports from
  * the chain tip, an active one goes on to the birthday question. Only the hardware-wallet
- * enrollments ask it; a view-only import goes from its name straight to the birthday question, so
+ * enrollments ask it; a view-only import goes from its key straight to the birthday question, so
  * an enrollment whose branding has no new-or-active copy shows nothing and returns to the root.
  */
 class HWNewOrActiveVM(

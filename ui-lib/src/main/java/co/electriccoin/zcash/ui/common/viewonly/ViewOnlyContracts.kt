@@ -37,8 +37,9 @@ interface ViewOnlyNavContributor {
 }
 
 /**
- * The shared birthday screens' way into a view-only import: whether the key and name the flow
- * collected are still held in memory, and the import itself once the birthday is known.
+ * The shared birthday screens' way into a view-only import: whether the key the flow collected is
+ * still held in memory, and the hand-over to the naming step once the birthday is known. The
+ * birthday screens come before the name, so they never import the account themselves.
  */
 interface ViewOnlyAccountImporter {
     /**
@@ -48,12 +49,13 @@ interface ViewOnlyAccountImporter {
     fun hasPendingImport(): Boolean
 
     /**
-     * Imports and selects the pending account at [birthday] and forgets the pending key.
+     * Stores [birthday] with the pending import and opens the naming step, which imports the
+     * account.
      *
-     * @throws co.electriccoin.zcash.ui.common.model.ViewOnlyPendingImportMissingException if the
-     *         pending import is gone.
+     * @throws co.electriccoin.zcash.ui.common.model.ViewOnlyPendingImportMissingException if
+     *         nothing is pending.
      */
-    suspend fun importAccount(birthday: BlockHeight?)
+    fun continueWithBirthday(birthday: BlockHeight?)
 }
 
 /**
@@ -106,9 +108,9 @@ interface ViewOnlyContent {
     val taxExportFileNamePrefix: String
 
     /**
-     * The logo, copy and test tags of the shared birthday screens while they import a view-only
-     * account; see `brandingOf`. It has no new-or-active copy, because a view-only import never
-     * asks that question.
+     * The logo, copy and test tags of the shared birthday screens while they take a view-only
+     * account's birthday; see `brandingOf`. It has no new-or-active copy, because a view-only import
+     * never asks that question.
      */
     val enrollmentBranding: HWWalletBranding
 

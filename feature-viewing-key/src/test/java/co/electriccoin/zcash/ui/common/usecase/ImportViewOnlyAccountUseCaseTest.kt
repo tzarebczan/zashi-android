@@ -16,6 +16,7 @@ import co.electriccoin.zcash.ui.screen.keepopen.KeepOpenArgs
 import co.electriccoin.zcash.ui.screen.keepopen.KeepOpenFlow
 import co.electriccoin.zcash.ui.screen.viewingkey.alreadyimported.AlreadyImportedVKArgs
 import co.electriccoin.zcash.ui.screen.viewingkey.imported.ImportedVKArgs
+import co.electriccoin.zcash.ui.screen.viewingkey.name.NameVKArgs
 import co.electriccoin.zcash.viewingkey.ViewOnlyAccountImporterImpl
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -46,7 +47,9 @@ import kotlin.test.assertTrue
  * pending fails without touching the wallet; an SDK failure keeps the key so the import can be
  * retried. A caller cancelled mid-import still gets the account selected, but no navigation. A picked
  * colour is stored for the new account once the wallet lists it, and a store that hangs is given up
- * without holding back the import. The importer ui-lib calls delegates to it.
+ * without holding back the import. The birthday is the one the pending import holds. The importer
+ * ui-lib's birthday screens call stores that birthday with the pending import and opens the naming
+ * step, which imports.
  */
 class ImportViewOnlyAccountUseCaseTest {
     private val repository = ViewOnlyPendingImportRepositoryImpl()
@@ -78,7 +81,7 @@ class ImportViewOnlyAccountUseCaseTest {
         runTest {
             repository.set(PendingViewOnlyImport(ufvk = UFVK, name = "Savings"))
 
-            useCase(birthday = null)
+            useCase()
 
             coVerify(exactly = 1) { accountDataSource.importViewOnlyAccount(UFVK, "Savings", null) }
             coVerify(exactly = 1) { accountDataSource.selectAccount(created) }
@@ -95,7 +98,7 @@ class ImportViewOnlyAccountUseCaseTest {
             every { accountDataSource.allAccounts } returns MutableStateFlow(listOf(account))
             repository.set(PendingViewOnlyImport(ufvk = UFVK, name = "Savings", color = Color(PICKED)))
 
-            useCase(birthday = null)
+            useCase()
 
             coVerifyOrder {
                 accountDataSource.selectAccount(created)
@@ -111,7 +114,7 @@ class ImportViewOnlyAccountUseCaseTest {
             every { accountDataSource.allAccounts } returns MutableStateFlow(emptyList())
             repository.set(PendingViewOnlyImport(ufvk = UFVK, name = "Savings", color = Color(PICKED)))
 
-            useCase(birthday = null)
+            useCase()
 
             coVerify(exactly = 0) { metadataRepository.setAccountColor(any(), any()) }
             verify(exactly = 1) { synchronizerProvider.resetSynchronizer() }
@@ -127,7 +130,7 @@ class ImportViewOnlyAccountUseCaseTest {
             coEvery { metadataRepository.setAccountColor(any(), any()) } coAnswers { awaitCancellation() }
             repository.set(PendingViewOnlyImport(ufvk = UFVK, name = "Savings", color = Color(PICKED)))
 
-            useCase(birthday = null)
+            useCase()
 
             coVerify(exactly = 1) { metadataRepository.setAccountColor(account, Color(PICKED)) }
             coVerify(exactly = 1) { accountDataSource.selectAccount(created) }
@@ -140,10 +143,10 @@ class ImportViewOnlyAccountUseCaseTest {
     @Test
     fun anAccountWithHistoryGoesThroughTheKeepOpenScreen() =
         runTest {
-            repository.set(PendingViewOnlyImport(ufvk = UFVK, name = "Savings"))
             val birthday = BlockHeight.new(2_000_000L)
+            repository.set(PendingViewOnlyImport(ufvk = UFVK, name = "Savings", birthday = birthday))
 
-            useCase(birthday)
+            useCase()
 
             coVerify(exactly = 1) { accountDataSource.importViewOnlyAccount(UFVK, "Savings", birthday) }
             verify(exactly = 1) { navigationRouter.forward(KeepOpenArgs(KeepOpenFlow.VIEW_ONLY)) }
@@ -157,7 +160,7 @@ class ImportViewOnlyAccountUseCaseTest {
             coEvery { accountDataSource.importViewOnlyAccount(any(), any(), any()) } throws
                 ViewOnlyAccountAlreadyExistsException()
 
-            useCase(birthday = null)
+            useCase()
 
             verify(exactly = 1) { navigationRouter.forward(AlreadyImportedVKArgs) }
             coVerify(exactly = 0) { accountDataSource.selectAccount(any<Account>()) }
@@ -172,7 +175,7 @@ class ImportViewOnlyAccountUseCaseTest {
             coEvery { accountDataSource.importViewOnlyAccount(any(), any(), any()) } throws
                 ViewOnlyAccountImportException()
 
-            val error = assertFailsWith<ViewOnlyAccountImportException> { useCase(birthday = null) }
+            val error = assertFailsWith<ViewOnlyAccountImportException> { useCase() }
 
             assertFalse(error.stackTraceToString().contains("uview"))
             assertEquals(UFVK, repository.get()?.ufvk)
@@ -187,8 +190,8 @@ class ImportViewOnlyAccountUseCaseTest {
             val imported = CompletableDeferred<Account>()
             coEvery { accountDataSource.importViewOnlyAccount(any(), any(), any()) } coAnswers { imported.await() }
 
-            val first = async { useCase(birthday = null) }
-            val second = async { useCase(birthday = null) }
+            val first = async { useCase() }
+            val second = async { useCase() }
             runCurrent()
             imported.complete(created)
             first.await()
@@ -209,7 +212,7 @@ class ImportViewOnlyAccountUseCaseTest {
             val imported = CompletableDeferred<Account>()
             coEvery { accountDataSource.importViewOnlyAccount(any(), any(), any()) } coAnswers { imported.await() }
 
-            val caller = launch { useCase(birthday = null) }
+            val caller = launch { useCase() }
             runCurrent()
             caller.cancel()
             imported.complete(created)
@@ -228,8 +231,8 @@ class ImportViewOnlyAccountUseCaseTest {
             coEvery { accountDataSource.importViewOnlyAccount(any(), any(), any()) } throws
                 ViewOnlyAccountImportException() andThen created
 
-            assertFailsWith<ViewOnlyAccountImportException> { useCase(birthday = null) }
-            useCase(birthday = null)
+            assertFailsWith<ViewOnlyAccountImportException> { useCase() }
+            useCase()
 
             coVerify(exactly = 2) { accountDataSource.importViewOnlyAccount(UFVK, "Savings", null) }
             verify(exactly = 1) { navigationRouter.forward(ImportedVKArgs) }
@@ -239,30 +242,56 @@ class ImportViewOnlyAccountUseCaseTest {
     @Test
     fun nothingPendingFailsWithoutTouchingTheWallet() =
         runTest {
-            assertFailsWith<ViewOnlyPendingImportMissingException> { useCase(birthday = null) }
+            assertFailsWith<ViewOnlyPendingImportMissingException> { useCase() }
 
             coVerify(exactly = 0) { accountDataSource.importViewOnlyAccount(any(), any(), any()) }
             verify(exactly = 0) { synchronizerProvider.resetSynchronizer() }
         }
 
     @Test
-    fun theImporterReportsThePendingKeyAndDelegatesTheImport() =
-        runTest {
-            val importer = ViewOnlyAccountImporterImpl(repository, useCase)
-            assertFalse(importer.hasPendingImport())
+    fun theImporterReportsThePendingKey() {
+        val importer = ViewOnlyAccountImporterImpl(repository, navigationRouter)
+        assertFalse(importer.hasPendingImport())
 
-            repository.set(PendingViewOnlyImport(ufvk = UFVK, name = "Savings"))
-            assertTrue(importer.hasPendingImport())
+        repository.set(PendingViewOnlyImport(ufvk = UFVK, name = ""))
 
-            importer.importAccount(null)
+        assertTrue(importer.hasPendingImport())
+    }
 
-            coVerify(exactly = 1) { accountDataSource.importViewOnlyAccount(UFVK, "Savings", null) }
-            assertFalse(importer.hasPendingImport())
-        }
+    @Test
+    fun theImporterStoresTheBirthdayAndOpensTheNamingStepWithoutImporting() {
+        val importer = ViewOnlyAccountImporterImpl(repository, navigationRouter)
+        repository.set(PendingViewOnlyImport(ufvk = UFVK, name = "Savings", color = Color(PICKED)))
+        val birthday = BlockHeight.new(2_000_000L)
+
+        importer.continueWithBirthday(birthday)
+
+        assertEquals(
+            PendingViewOnlyImport(ufvk = UFVK, name = "Savings", color = Color(PICKED), birthday = birthday),
+            repository.get()
+        )
+        verify(exactly = 1) { navigationRouter.forward(NameVKArgs) }
+        coVerify(exactly = 0) { accountDataSource.importViewOnlyAccount(any(), any(), any()) }
+    }
+
+    @Test
+    fun theImporterFailsWhenNothingIsPending() {
+        val importer = ViewOnlyAccountImporterImpl(repository, navigationRouter)
+
+        assertFailsWith<ViewOnlyPendingImportMissingException> { importer.continueWithBirthday(null) }
+
+        assertNull(repository.get())
+        verify(exactly = 0) { navigationRouter.forward(any()) }
+    }
 
     @Test
     fun thePendingImportNeverPrintsItsKey() {
-        assertFalse(PendingViewOnlyImport(ufvk = UFVK, name = "Savings").toString().contains("uview"))
+        val birthday = BlockHeight.new(2_000_000L)
+
+        val printed = PendingViewOnlyImport(ufvk = UFVK, name = "Savings", birthday = birthday).toString()
+
+        assertFalse(printed.contains("uview"))
+        assertTrue(printed.contains("birthday=$birthday"))
     }
 
     private companion object {

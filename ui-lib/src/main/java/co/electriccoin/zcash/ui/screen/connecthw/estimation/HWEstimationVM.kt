@@ -24,7 +24,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 
 /**
- * Confirms the estimated birthday height and imports the enrolled account at it.
+ * Confirms the estimated birthday height and imports the enrolled hardware-wallet account at it; a
+ * view-only import stores the height and goes on to name the account instead.
  */
 class HWEstimationVM(
     private val args: HWEstimationArgs,

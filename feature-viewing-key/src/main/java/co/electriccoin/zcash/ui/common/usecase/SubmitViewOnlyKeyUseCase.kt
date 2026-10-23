@@ -13,7 +13,8 @@ import kotlin.time.Duration.Companion.seconds
 
 /**
  * Takes the viewing key the user pasted or scanned: an importable key the wallet does not hold yet
- * becomes the pending import, to be named on the next screen. The key goes to memory only.
+ * becomes the pending import, whose birthday and then name the next screens ask for. The key goes
+ * to memory only.
  *
  * A key counts as held already when the SDK finds an account sharing any Orchard, Sapling (at the
  * incoming-viewing-key level) or transparent component with it, not only when it is the same text.
