@@ -53,7 +53,8 @@ import kotlin.test.assertTrue
  * a name that is not blank. Naming is the last step: Continue stores the trimmed name and the picked
  * colour with the pending key and birthday and imports, showing its progress, once however often it
  * is tapped; without a pending key or birthday it returns to the root, and a failed import shows the
- * error, from which it is tried again. While it imports, back, the name and the colour are ignored;
+ * error, from which it is tried again. While it imports, the name field is disabled with its counter
+ * still shown, and back, the name and the colour are ignored;
  * otherwise back returns to the birthday screen and keeps the pending key and birthday. The avatar's
  * pencil badge opens the colour picker; the avatar follows the picks live and keeps the last one
  * however the picker closes. A name another account shows, in any case, disables Continue and says
@@ -492,6 +493,51 @@ class NameVKVMTest {
             )
             assertTrue(pickerRequests.isEmpty())
             importing.complete(Unit)
+        }
+
+    @Test
+    fun theNameFieldIsDisabledWhileImportingAndEnabledAgainAfterAFailedImport() =
+        runTest {
+            val importing = CompletableDeferred<Unit>()
+            importAnswer = {
+                importing.await()
+                throw ViewOnlyAccountImportException()
+            }
+            val vm = vm()
+            collect(vm)
+            type(vm, "Vault")
+            assertTrue(
+                vm
+                    .content()
+                    .nameField.field.isEnabled
+            )
+
+            vm
+                .content()
+                .continueButton
+                .onClick()
+            runCurrent()
+
+            assertFalse(
+                vm
+                    .content()
+                    .nameField.field.isEnabled
+            )
+            assertEquals(
+                listOf(5, AccountNameLimit.MAX_LENGTH),
+                assertNotNull(vm.content().nameField.counter)
+                    .args()
+            )
+
+            importing.complete(Unit)
+            runCurrent()
+
+            assertIs<LceError.BottomSheet>(vm.state.value.error)
+            assertTrue(
+                vm
+                    .content()
+                    .nameField.field.isEnabled
+            )
         }
 
     @Test

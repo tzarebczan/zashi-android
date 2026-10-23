@@ -92,7 +92,9 @@ data class AccountNameFieldState(
          * The field showing [name]. [nameLength] is the code-point length of an editable [name],
          * shown in the counter; null for a name that cannot be changed, which disables the field and
          * hides the counter. [isDuplicate] says under the field that another account has the name.
-         * The keyboard's Done key runs [submit] while it is enabled.
+         * The keyboard's Done key runs [submit] while it is enabled. [isEnabled] false disables the
+         * field while keeping the counter, for a name that must not change for now, such as while the
+         * account is being imported.
          */
         fun create(
             name: StringResource,
@@ -100,13 +102,14 @@ data class AccountNameFieldState(
             isDuplicate: Boolean,
             onValueChange: (String) -> Unit,
             submit: ButtonState,
+            isEnabled: Boolean = true,
         ) = AccountNameFieldState(
             label = stringRes(R.string.accountName_label),
             field =
                 TextFieldState(
                     value = name,
                     error = if (isDuplicate) stringRes(R.string.accountName_duplicate) else null,
-                    isEnabled = nameLength != null,
+                    isEnabled = isEnabled && nameLength != null,
                     onValueChange = onValueChange
                 ),
             placeholder = stringRes(R.string.accountName_placeholder),

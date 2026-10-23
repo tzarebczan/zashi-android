@@ -44,7 +44,7 @@ internal data class NameVKState(
          * The screen for [name] with the avatar in [color], or the default avatar without one.
          * Continue is enabled while the name is not blank and not [isDuplicate], the name of another
          * account, which the field also says under it. While [isImporting], Continue shows its
-         * progress and is disabled.
+         * progress and is disabled, and so is the name field.
          */
         fun create(
             name: String,
@@ -81,6 +81,7 @@ internal data class NameVKState(
                         isDuplicate = isDuplicate,
                         onValueChange = onValueChange,
                         submit = continueButton,
+                        isEnabled = !isImporting,
                     ),
                 continueButton = continueButton,
                 onBack = onBack,
