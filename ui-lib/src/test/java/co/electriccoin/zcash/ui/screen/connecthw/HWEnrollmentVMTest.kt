@@ -36,7 +36,6 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.serialization.json.Json
-import java.time.YearMonth
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -277,17 +276,16 @@ class HWEnrollmentVMTest {
     }
 
     @Test
-    fun theDateScreenStartsOnSaplingActivationForAHardwareWalletAndOnTheLatestMonthForAViewOnlyImport() {
+    fun theDateScreenStartsOnSaplingActivationForAHardwareWalletAndForAViewOnlyImport() {
         hardwareEnrollments.forEach { enrollment ->
             val selection = assertNotNull(dateVM(enrollment, readyUseCase()).state.value.content).selection
 
             assertEquals(WalletFixture.SAPLING_ACTIVATION_YEAR_MONTH, selection)
         }
 
-        val before = YearMonth.now()
         val selection = assertNotNull(dateVM(HWWalletEnrollment.ViewOnly, readyUseCase()).state.value.content).selection
 
-        assertTrue(selection in before..YearMonth.now())
+        assertEquals(WalletFixture.SAPLING_ACTIVATION_YEAR_MONTH, selection)
     }
 
     @Test
